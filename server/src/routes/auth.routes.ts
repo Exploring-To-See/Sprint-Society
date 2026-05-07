@@ -1,0 +1,111 @@
+import { Router, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+import db from '../database/db';
+import { signToken } from '../utils/jwt';
+import { authenticate, AuthRequest } from '../middleware/auth';
+
+const router = Router();
+
+const registerSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  password: z.string().min(6),
+  gender: z.enum(['male', 'female', 'non-binary']),
+  age: z.number().int().min(13).max(100),
+  height_cm: z.number().min(100).max(250),
+  weight_kg: z.number().min(30).max(250),
+  fitness_level: z.enum(['sedentary', 'lightly_active', 'active', 'very_active']),
+  running_experience: z.enum(['none', 'beginner', 'intermediate', 'advanced']),
+  injury_history: z.array(z.string()).default([]),
+});
+
+router.post('/register', async (req, res: Response) => {
+  try {
+    const data = registerSchema.parse(req.body);
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
+    if (existing) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const result = db.prepare(`
+      INSERT INTO users (name, email, password_hash, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.name, data.email, passwordHash, data.gender, data.age,
+      data.height_cm, data.weight_kg, data.fitness_level, data.running_experience,
+      JSON.stringify(data.injury_history)
+    );
+
+    const userId = result.lastInsertRowid as number;
+
+    db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
+
+    const token = signToken(userId);
+    res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email } });
+  } catch (err: any) {
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ error: 'Validation failed', details: err.errors });
+    }
+    throw err;
+  }
+});
+
+router.post('/login', async (req, res: Response) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const user = db.prepare('SELECT id, name, email, role, password_hash FROM users WHERE email = ?').get(email) as any;
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = signToken(user.id);
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+});
+
+router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
+  const user = db.prepare(`
+    SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, created_at
+    FROM users WHERE id = ?
+  `).get(req.userId) as any;
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  user.injury_history = JSON.parse(user.injury_history || '[]');
+  res.json(user);
+});
+
+router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
+  const updates = req.body;
+  const allowed = ['name', 'age', 'height_cm', 'weight_kg', 'fitness_level', 'running_experience', 'injury_history'];
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  for (const key of allowed) {
+    if (updates[key] !== undefined) {
+      fields.push(`${key} = ?`);
+      values.push(key === 'injury_history' ? JSON.stringify(updates[key]) : updates[key]);
+    }
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+
+  values.push(req.userId);
+  db.prepare(`UPDATE users SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(...values);
+  res.json({ success: true });
+});
+
+export default router;
