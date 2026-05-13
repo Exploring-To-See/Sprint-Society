@@ -12,6 +12,9 @@
     "start": "npm run start --workspace=server",
     "setup:admin": "tsx server/src/setup-admin.ts"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
