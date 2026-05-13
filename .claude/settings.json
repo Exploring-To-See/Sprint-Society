@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(git *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vite *)",
+      "Bash(cd video && npx remotion *)",
+      "Bash(cd video && npx tsx *)",
+      "PowerShell(fnm env 2>&1)",
+      "PowerShell($env:FNM_DIR = \"C:\\\\Users\\\\ivashistha005\\\\AppData\\\\Roaming\\\\fnm\"; Get-ChildItem \"$env:FNM_DIR\" -ErrorAction SilentlyContinue)",
+      "Read(//c/Users/ivashistha005/AppData/Roaming/fnm/node-versions/**)",
+      "Bash(cd \"c:\\\\Users\\\\ivashistha005\\\\OneDrive - PwC\\\\Desktop\\\\T\\\\sprint-society\" && touch output/.gitkeep video/public/assets/.gitkeep video/src/data/.gitkeep && mkdir -p .claude/commands)",
+      "PowerShell(fnm env --use-on-cd --shell power-shell | Out-String -Stream | ForEach-Object { Invoke-Expression $_ }; Set-Location \"c:\\\\Users\\\\ivashistha005\\\\OneDrive - PwC\\\\Desktop\\\\T\\\\sprint-society\\\\video\"; npm install)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\", \"User\"\\); cd \"c:\\\\Users\\\\ivashistha005\\\\OneDrive - PwC\\\\Desktop\\\\T\\\\sprint-society\\\\server\"; npx tsc --noEmit 2>&1)",
+      "PowerShell($env:FNM_DIR = \"$env:APPDATA\\\\fnm\"; $versions = Get-ChildItem \"$env:FNM_DIR\\\\node-versions\" -Directory | Select-Object -First 1; if \\($versions\\) { $nodePath = \"$\\($versions.FullName\\)\\\\installation\"; Write-Output \"Node path: $nodePath\" })",
+      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\fnm\" -ErrorAction SilentlyContinue | Select-Object Name)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\ivashistha005\\OneDrive - PwC\\Desktop\\T\\sprint-society\\.claude"
+    ]
+  }
+}

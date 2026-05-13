@@ -5,3 +5,8 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# Video output
+output/
+video/public/assets/*
+!video/public/assets/.gitkeep

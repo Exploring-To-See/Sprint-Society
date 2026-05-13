@@ -1,0 +1,15 @@
+{
+  "runnerName": "Alex",
+  "date": "May 14, 2026",
+  "distance": 7.5,
+  "distanceUnit": "km",
+  "duration": "38:12",
+  "paceMinutes": 5,
+  "paceSeconds": 6,
+  "calories": 580,
+  "elevationGain": 120,
+  "achievements": ["Longest Run This Month", "Sub-5:10 Pace"],
+  "tier": "intermediate",
+  "xpEarned": 200,
+  "style": "clean"
+}
