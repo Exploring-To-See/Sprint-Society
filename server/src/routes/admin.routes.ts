@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
@@ -126,6 +127,23 @@ router.post('/announcements', (req: AuthRequest, res: Response) => {
 router.delete('/announcements/:id', (req: AuthRequest, res: Response) => {
   db.prepare('DELETE FROM announcements WHERE id = ?').run(req.params.id);
   res.json({ success: true });
+});
+
+// ===== ADMIN RESET PASSWORD =====
+
+router.put('/runners/:id/reset-password', (req: AuthRequest, res: Response) => {
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be 6+ characters' });
+  }
+
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id) as any;
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const hash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, req.params.id);
+
+  res.json({ message: 'Password reset successfully' });
 });
 
 // ===== CLUB STATS =====

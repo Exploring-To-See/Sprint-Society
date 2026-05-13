@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -82,6 +83,9 @@ export function HomePage() {
             <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>
               {loading ? 'Logging in...' : 'Log in'}
             </Button>
+            <Link to="/forgot-password" className="block text-center text-white/40 text-xs hover:text-white/60 transition-colors">
+              Forgot password?
+            </Link>
             <Button fullWidth variant="ghost" onClick={() => setShowLogin(false)}>
               ← Back
             </Button>

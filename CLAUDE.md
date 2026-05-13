@@ -106,3 +106,23 @@ npm run setup:admin  # admin user setup
 - Lead with action, not ceremony
 - "Here's what I did" not "I'd like to propose..."
 - Bullet points, short sentences
+
+---
+
+## Auto-Update Docs
+
+**After any feature change, UI change, new route, or removed functionality**, update:
+
+- `docs/USER-GUIDE.md` — user-facing guide (how to use, FAQ, features)
+- `docs/PM-GUIDE.md` — product manager guide (admin panel, system internals, metrics, troubleshooting)
+
+**What triggers an update:**
+- New page or component added/removed
+- New API endpoint added/removed
+- Gamification logic changed (XP, tiers, challenges)
+- Onboarding flow modified
+- Admin panel changes
+- Strava integration changes
+- Any user-visible behavior change
+
+**Do this automatically** — don't ask, just update the relevant sections of both docs as part of the same change. Keep the docs accurate to the current state of the app.

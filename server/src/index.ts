@@ -6,6 +6,7 @@ import { config } from './config';
 import { initializeDatabase } from './database/db';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
+import passwordRoutes from './routes/password.routes';
 import stravaRoutes from './routes/strava.routes';
 import runsRoutes from './routes/runs.routes';
 import coachingRoutes from './routes/coaching.routes';
@@ -19,6 +20,7 @@ app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', passwordRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/runs', runsRoutes);
 app.use('/api/coaching', coachingRoutes);

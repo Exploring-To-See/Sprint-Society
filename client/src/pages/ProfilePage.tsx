@@ -1,9 +1,74 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AppShell } from '../components/layout/AppShell';
 import { Button } from '../components/ui/Button';
+
+function ChangePasswordSection() {
+  const [open, setOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.put('/auth/change-password', { currentPassword, newPassword });
+      setMessage(data.message);
+      setCurrentPassword('');
+      setNewPassword('');
+      setTimeout(() => setOpen(false), 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <div className="glass-card p-5">
+        <button onClick={() => setOpen(true)} className="text-sm text-white/50 hover:text-white transition-colors w-full text-left">
+          Change password →
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="glass-card p-5 space-y-3">
+      <h3 className="font-heading font-semibold text-sm text-white/50 uppercase tracking-wider">Change Password</h3>
+      <input
+        type="password"
+        placeholder="Current password"
+        value={currentPassword}
+        onChange={(e) => setCurrentPassword(e.target.value)}
+        className="w-full px-3 py-2.5 rounded-lg bg-bg-primary border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+      />
+      <input
+        type="password"
+        placeholder="New password (6+ chars)"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        className="w-full px-3 py-2.5 rounded-lg bg-bg-primary border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
+      />
+      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {message && <p className="text-accent-green text-xs">{message}</p>}
+      <div className="flex gap-2">
+        <Button size="sm" onClick={handleChange} disabled={!currentPassword || newPassword.length < 6 || loading}>
+          {loading ? 'Saving...' : 'Update'}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+      </div>
+    </div>
+  );
+}
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
@@ -113,7 +178,10 @@ export function ProfilePage() {
           </div>
         </div>
 
-        {/* Leaderboard link / Logout */}
+        {/* Change Password */}
+        <ChangePasswordSection />
+
+        {/* Logout */}
         <div className="space-y-3 pt-2">
           <Button onClick={logout} variant="ghost" fullWidth>
             Log out
