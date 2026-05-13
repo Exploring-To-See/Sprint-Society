@@ -172,9 +172,11 @@ export function RegistrationFlow() {
                   <p className="text-white/50 text-sm">Helps us calculate your ideal pace</p>
                 </div>
                 <TapGrid options={GENDER_OPTIONS} selected={form.gender} onSelect={(v) => update('gender', v)} columns={3} />
-                <Slider label="Age" value={form.age} onChange={(v) => update('age', v)} min={13} max={80} unit=" yrs" />
-                <Slider label="Height" value={form.height_cm} onChange={(v) => update('height_cm', v)} min={120} max={220} unit=" cm" />
-                <Slider label="Weight" value={form.weight_kg} onChange={(v) => update('weight_kg', v)} min={35} max={150} unit=" kg" />
+                <div className="space-y-5 pt-2">
+                  <Slider label="Age" value={form.age} onChange={(v) => update('age', v)} min={13} max={80} unit="yrs" />
+                  <Slider label="Height" value={form.height_cm} onChange={(v) => update('height_cm', v)} min={120} max={220} unit="cm" />
+                  <Slider label="Weight" value={form.weight_kg} onChange={(v) => update('weight_kg', v)} min={35} max={150} unit="kg" />
+                </div>
               </>
             )}
 

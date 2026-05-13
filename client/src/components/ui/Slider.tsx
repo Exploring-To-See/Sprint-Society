@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-
 interface SliderProps {
   value: number;
   onChange: (value: number) => void;
@@ -13,38 +11,55 @@ interface SliderProps {
 
 export function Slider({ value, onChange, min, max, step = 1, label, unit, formatValue }: SliderProps) {
   const percent = ((value - min) / (max - min)) * 100;
-  const displayValue = formatValue ? formatValue(value) : `${value}${unit || ''}`;
+  const displayValue = formatValue ? formatValue(value) : `${value}`;
+
+  const decrement = () => onChange(Math.max(min, value - step));
+  const increment = () => onChange(Math.min(max, value + step));
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-white/60 font-medium">{label}</span>
-        <motion.span
-          key={value}
-          initial={{ scale: 1.2, color: '#39FF14' }}
-          animate={{ scale: 1, color: '#ffffff' }}
-          className="text-lg font-mono font-bold"
-        >
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-white/50 tracking-wide">{label}</span>
+        <span className="text-xl font-bold font-mono text-white tabular-nums">
           {displayValue}
-        </motion.span>
+          {unit && <span className="text-sm text-white/40 ml-1 font-normal">{unit.trim()}</span>}
+        </span>
       </div>
-      <div className="relative">
-        <div className="h-2 rounded-full bg-bg-tertiary overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-accent-green/70 to-accent-green rounded-full"
-            style={{ width: `${percent}%` }}
-            layout
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={decrement}
+          className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 active:bg-white/10 active:scale-95 transition-all"
+        >
+          −
+        </button>
+
+        <div className="flex-1 relative flex items-center">
+          <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-white/60 to-white transition-[width] duration-75"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-pan-x"
           />
         </div>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer"
-        />
+
+        <button
+          type="button"
+          onClick={increment}
+          className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 active:bg-white/10 active:scale-95 transition-all"
+        >
+          +
+        </button>
       </div>
     </div>
   );
