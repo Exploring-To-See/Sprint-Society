@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import db from '../database/db';
 import { config } from '../config';
 import { authenticate } from '../middleware/auth';
