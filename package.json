@@ -9,7 +9,7 @@
     "dev:server": "cd server && npm run dev",
     "dev:video": "cd video && npx remotion preview src/index.ts",
     "render:video": "cd video && npx tsx scripts/render.ts",
-    "build": "cd client && npm install && npm run build && cd ../server && npm install && npm run build",
+    "build": "cd client && npm install --include=dev && npm run build && cd ../server && npm install --include=dev && npm run build",
     "start": "cd server && npm start",
     "setup:admin": "cd server && npx tsx src/setup-admin.ts"
   },
