@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { RunCard } from '../components/social/RunCard';
 import { useAuth } from '../context/AuthContext';
-import { formatDistance, formatRelativeDate } from '../lib/formatters';
+
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
+const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 export function SharePage() {
   const { user } = useAuth();
@@ -29,43 +36,54 @@ export function SharePage() {
 
   return (
     <AppShell>
-      <div className="space-y-5">
-        <h2 className="font-heading text-xl font-bold">Share Your Run</h2>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+        <motion.div variants={fadeUp}>
+          <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-600">Social</p>
+          <h1 className="font-heading text-xl font-bold mt-0.5">Share Your Run</h1>
+        </motion.div>
 
         {!selectedRun ? (
           <>
-            <p className="text-white/40 text-sm">Select a run to create a shareable card</p>
-            <div className="space-y-2">
+            <motion.p variants={fadeUp} className="text-zinc-500 text-sm">
+              Pick a run to create a shareable card for Instagram/WhatsApp
+            </motion.p>
+            <motion.div variants={fadeUp} className="space-y-2">
               {data?.runs.map((run: any) => (
                 <button
                   key={run.id}
                   onClick={() => setSelectedRunId(run.id)}
-                  className="w-full glass-card p-4 text-left hover:border-accent-green/30 transition-colors border border-transparent"
+                  className="w-full card p-4 text-left hover:border-zinc-600 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-mono font-bold">{formatDistance(run.distance_meters)}</p>
-                      <p className="text-xs text-white/40">{formatRelativeDate(run.start_date)}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <span className="text-sm">🏃</span>
+                      </div>
+                      <div>
+                        <p className="font-mono text-sm font-bold">{(run.distance_meters / 1000).toFixed(1)} km</p>
+                        <p className="text-[11px] text-zinc-500">{formatDate(run.start_date)}</p>
+                      </div>
                     </div>
-                    <span className="text-white/20">→</span>
+                    <span className="text-zinc-600 text-sm">→</span>
                   </div>
                 </button>
               ))}
               {(!data || data.runs.length === 0) && (
-                <div className="text-center py-10">
-                  <p className="text-4xl mb-3">📸</p>
-                  <p className="text-white/50 text-sm">Complete a run first to create shareable cards</p>
+                <div className="text-center py-16">
+                  <p className="text-3xl mb-3">🏆</p>
+                  <p className="text-zinc-500 text-sm">Complete a run first</p>
+                  <p className="text-zinc-600 text-xs mt-1">Then come back to create shareable cards</p>
                 </div>
               )}
-            </div>
+            </motion.div>
           </>
         ) : (
-          <>
+          <motion.div variants={fadeUp} className="space-y-4">
             <button
               onClick={() => setSelectedRunId(null)}
-              className="text-white/50 text-sm hover:text-white transition-colors"
+              className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors"
             >
-              ← Select different run
+              ← Pick different run
             </button>
             <RunCard
               run={selectedRun}
@@ -73,9 +91,9 @@ export function SharePage() {
               streak={xp?.current_streak_days}
               tier={tier?.tier}
             />
-          </>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     </AppShell>
   );
 }

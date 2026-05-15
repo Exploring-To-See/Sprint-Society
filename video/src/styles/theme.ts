@@ -9,6 +9,9 @@ export const colors = {
     blue: '#00D4FF',
     pink: '#FF1493',
     gold: '#FFD700',
+    orange: '#FF4D00',
+    red: '#FF1744',
+    ember: '#FF6B35',
   },
   tier: {
     beginner: '#39FF14',

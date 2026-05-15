@@ -4,6 +4,7 @@ import { RunRecap } from "./compositions/RunRecap/RunRecap";
 import { AchievementUnlocked } from "./compositions/AchievementUnlocked/AchievementUnlocked";
 import { TransformationJourney } from "./compositions/TransformationJourney/TransformationJourney";
 import { WeeklyMontage } from "./compositions/WeeklyMontage/WeeklyMontage";
+import { ComingSoon } from "./compositions/ComingSoon/ComingSoon";
 import { aspectRatios, fps } from "./styles/theme";
 
 const defaultRunRecapProps = {
@@ -47,6 +48,20 @@ const defaultTransformationProps = {
   motivationalText: "Every step counts.",
   weeksCompleted: 8,
   style: "cinematic" as const,
+};
+
+const defaultComingSoonProps = {
+  clips: [
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-53-25.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-54-39.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-55-23.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-55-43.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-54-05.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-23-10-23-24.mp4",
+  ],
+  tagline: "For the runners, by the runners.",
+  launchText: "COMING SOON",
+  style: "hype" as const,
 };
 
 const defaultWeeklyMontageProps = {
@@ -182,6 +197,35 @@ export const Root: React.FC = () => {
         width={aspectRatios.landscape.width}
         height={aspectRatios.landscape.height}
         defaultProps={defaultWeeklyMontageProps}
+      />
+
+      {/* ComingSoon — all aspect ratios */}
+      <Composition
+        id="ComingSoon-Story"
+        component={ComingSoon}
+        durationInFrames={540}
+        fps={fps}
+        width={aspectRatios.story.width}
+        height={aspectRatios.story.height}
+        defaultProps={defaultComingSoonProps}
+      />
+      <Composition
+        id="ComingSoon-Square"
+        component={ComingSoon}
+        durationInFrames={fps * 12}
+        fps={fps}
+        width={aspectRatios.square.width}
+        height={aspectRatios.square.height}
+        defaultProps={defaultComingSoonProps}
+      />
+      <Composition
+        id="ComingSoon-Landscape"
+        component={ComingSoon}
+        durationInFrames={fps * 12}
+        fps={fps}
+        width={aspectRatios.landscape.width}
+        height={aspectRatios.landscape.height}
+        defaultProps={defaultComingSoonProps}
       />
     </>
   );

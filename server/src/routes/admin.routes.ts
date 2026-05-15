@@ -146,6 +146,109 @@ router.put('/runners/:id/reset-password', (req: AuthRequest, res: Response) => {
   res.json({ message: 'Password reset successfully' });
 });
 
+// ===== USER MANAGEMENT =====
+
+router.put('/runners/:id/disable', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(req.params.id) as any;
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.role === 'admin') return res.status(400).json({ error: 'Cannot disable admin accounts' });
+
+  db.prepare('UPDATE users SET role = ? WHERE id = ?').run('disabled', req.params.id);
+  res.json({ message: 'User disabled' });
+});
+
+router.put('/runners/:id/enable', (req: AuthRequest, res: Response) => {
+  db.prepare("UPDATE users SET role = 'runner' WHERE id = ?").run(req.params.id);
+  res.json({ message: 'User re-enabled' });
+});
+
+router.put('/runners/:id/xp', (req: AuthRequest, res: Response) => {
+  const { amount, reason } = req.body;
+  if (!amount || !reason) return res.status(400).json({ error: 'Amount and reason required' });
+
+  const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(req.params.id) as any;
+  if (!xp) return res.status(404).json({ error: 'User XP record not found' });
+
+  const newTotal = Math.max(0, xp.total_xp + amount);
+  db.prepare('UPDATE user_xp SET total_xp = ? WHERE user_id = ?').run(newTotal, req.params.id);
+  db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)').run(
+    req.params.id, amount, 'admin_adjustment', reason
+  );
+
+  res.json({ message: `XP adjusted by ${amount}`, new_total: newTotal });
+});
+
+router.put('/runners/:id/tier', (req: AuthRequest, res: Response) => {
+  const { tier } = req.body;
+  if (!['beginner', 'intermediate', 'advanced'].includes(tier)) {
+    return res.status(400).json({ error: 'Invalid tier. Must be beginner, intermediate, or advanced' });
+  }
+
+  db.prepare('INSERT INTO tier_history (user_id, tier, score) VALUES (?, ?, ?)').run(req.params.id, tier, 0);
+  res.json({ message: `Tier overridden to ${tier}` });
+});
+
+router.delete('/runners/:id', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(req.params.id) as any;
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.role === 'admin') return res.status(400).json({ error: 'Cannot delete admin accounts' });
+
+  db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  res.json({ message: 'User and all associated data deleted' });
+});
+
+// ===== DATA EXPORT =====
+
+router.get('/export/runners', (req: AuthRequest, res: Response) => {
+  const data = db.prepare(`
+    SELECT u.id, u.name, u.email, u.gender, u.age, u.height_cm, u.weight_kg,
+      u.fitness_level, u.running_experience, u.created_at,
+      ux.total_xp, ux.current_level, ux.current_streak_days,
+      (SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1) as current_tier,
+      (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs,
+      (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance_meters
+    FROM users u
+    LEFT JOIN user_xp ux ON u.id = ux.user_id
+    WHERE u.role = 'runner'
+    ORDER BY u.created_at DESC
+  `).all();
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename=sprint-society-runners.json');
+  res.json(data);
+});
+
+router.get('/export/activities', (req: AuthRequest, res: Response) => {
+  const data = db.prepare(`
+    SELECT a.*, u.name as runner_name
+    FROM activities a JOIN users u ON a.user_id = u.id
+    ORDER BY a.start_date DESC
+    LIMIT 1000
+  `).all();
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename=sprint-society-activities.json');
+  res.json(data);
+});
+
+// ===== SYSTEM HEALTH =====
+
+router.get('/health', (req: AuthRequest, res: Response) => {
+  const userCount = (db.prepare('SELECT COUNT(*) as c FROM users').get() as any).c;
+  const runCount = (db.prepare('SELECT COUNT(*) as c FROM activities').get() as any).c;
+  const lastRun = db.prepare('SELECT start_date FROM activities ORDER BY start_date DESC LIMIT 1').get() as any;
+  const lastSignup = db.prepare('SELECT created_at FROM users ORDER BY created_at DESC LIMIT 1').get() as any;
+
+  res.json({
+    status: 'healthy',
+    database: { users: userCount, activities: runCount },
+    last_activity: lastRun?.start_date || null,
+    last_signup: lastSignup?.created_at || null,
+    server_time: new Date().toISOString(),
+    uptime_seconds: Math.floor(process.uptime()),
+  });
+});
+
 // ===== CLUB STATS =====
 
 router.get('/stats', (req: AuthRequest, res: Response) => {

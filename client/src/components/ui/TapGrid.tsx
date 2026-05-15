@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-
 interface TapGridOption {
   value: string;
   label: string;
@@ -27,32 +25,21 @@ export function TapGrid({ options, selected, onSelect, columns = 3, multi = fals
   };
 
   return (
-    <div className={`grid ${gridCols[columns]} gap-3`}>
+    <div className={`grid ${gridCols[columns]} gap-2`}>
       {options.map((option) => (
-        <motion.button
+        <button
           key={option.value}
           type="button"
-          whileTap={{ scale: 0.92 }}
           onClick={() => onSelect(option.value)}
-          className={`relative p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-2
+          className={`p-3 rounded-lg border transition-all duration-100 flex flex-col items-center gap-1.5 active:scale-[0.95]
             ${isSelected(option.value)
-              ? 'border-accent-green bg-accent-green/10 shadow-[0_0_15px_rgba(57,255,20,0.2)]'
-              : 'border-white/10 bg-bg-secondary hover:border-white/20'
+              ? 'border-accent bg-accent/5 text-accent'
+              : 'border-bg-tertiary bg-bg-secondary text-zinc-400 hover:border-zinc-600'
             }`}
         >
-          {option.icon && <span className="text-2xl">{option.icon}</span>}
-          <span className={`text-sm font-medium ${isSelected(option.value) ? 'text-accent-green' : 'text-white/80'}`}>
-            {option.label}
-          </span>
-          {isSelected(option.value) && (
-            <motion.div
-              layoutId="selected-indicator"
-              className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent-green"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-            />
-          )}
-        </motion.button>
+          {option.icon && <span className="text-xl">{option.icon}</span>}
+          <span className="text-xs font-medium">{option.label}</span>
+        </button>
       ))}
     </div>
   );

@@ -33,8 +33,8 @@ function ChangePasswordSection() {
 
   if (!open) {
     return (
-      <div className="glass-card p-5">
-        <button onClick={() => setOpen(true)} className="text-sm text-white/50 hover:text-white transition-colors w-full text-left">
+      <div className="card p-5">
+        <button onClick={() => setOpen(true)} className="text-sm text-zinc-500 hover:text-white transition-colors w-full text-left">
           Change password →
         </button>
       </div>
@@ -42,8 +42,8 @@ function ChangePasswordSection() {
   }
 
   return (
-    <div className="glass-card p-5 space-y-3">
-      <h3 className="font-heading font-semibold text-sm text-white/50 uppercase tracking-wider">Change Password</h3>
+    <div className="card p-5 space-y-3">
+      <h3 className="label">Change Password</h3>
       <input
         type="password"
         placeholder="Current password"
@@ -111,14 +111,14 @@ export function ProfilePage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="glass-card p-5 text-center"
+          className="card p-5 text-center"
         >
-          <div className="w-16 h-16 rounded-full bg-accent-green/10 flex items-center justify-center mx-auto mb-3">
+          <div className="w-16 h-16 rounded-full bg-bg-tertiary flex items-center justify-center mx-auto mb-3">
             <span className="text-2xl">{user?.name?.[0]?.toUpperCase() || '?'}</span>
           </div>
           <h2 className="font-heading text-xl font-bold">{user?.name}</h2>
-          <p className="text-white/40 text-sm">{user?.email}</p>
-          <div className="flex items-center justify-center gap-4 mt-3 text-xs text-white/50">
+          <p className="text-zinc-500 text-sm">{user?.email}</p>
+          <div className="flex items-center justify-center gap-4 mt-3 text-xs text-zinc-500">
             <span>Level {xp?.current_level || 1}</span>
             <span>•</span>
             <span>{xp?.total_xp || 0} XP</span>
@@ -128,8 +128,8 @@ export function ProfilePage() {
         </motion.div>
 
         {/* Strava connection */}
-        <div className="glass-card p-5">
-          <h3 className="font-heading font-semibold text-sm text-white/50 uppercase tracking-wider mb-3">
+        <div className="card p-5">
+          <h3 className="font-heading font-semibold text-sm text-zinc-500 uppercase tracking-wider mb-3">
             Strava
           </h3>
           {stravaStatus?.connected ? (
@@ -152,7 +152,7 @@ export function ProfilePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm text-white/50">Connect Strava to auto-sync your runs</p>
+              <p className="text-sm text-zinc-500">Connect Strava to auto-sync your runs</p>
               <Button onClick={connectStrava} size="sm">
                 Connect Strava
               </Button>
@@ -161,8 +161,8 @@ export function ProfilePage() {
         </div>
 
         {/* Achievements */}
-        <div className="glass-card p-5">
-          <h3 className="font-heading font-semibold text-sm text-white/50 uppercase tracking-wider mb-3">
+        <div className="card p-5">
+          <h3 className="font-heading font-semibold text-sm text-zinc-500 uppercase tracking-wider mb-3">
             Achievements ({earnedAchievements.length}/{achievements?.length || 0})
           </h3>
           <div className="grid grid-cols-4 gap-3">
@@ -172,7 +172,7 @@ export function ProfilePage() {
                 className={`text-center p-2 rounded-xl ${achievement.earned ? 'bg-bg-tertiary' : 'bg-bg-tertiary/30 opacity-30'}`}
               >
                 <span className="text-2xl block">{achievement.icon}</span>
-                <p className="text-[9px] text-white/50 mt-1 line-clamp-1">{achievement.name}</p>
+                <p className="text-[9px] text-zinc-500 mt-1 line-clamp-1">{achievement.name}</p>
               </div>
             ))}
           </div>

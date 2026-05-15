@@ -11,8 +11,8 @@ export function PaceChart() {
 
   if (isLoading || !chartData || chartData.length === 0) {
     return (
-      <div className="h-40 flex items-center justify-center text-white/30 text-sm">
-        {isLoading ? 'Loading...' : 'Complete your first run to see trends'}
+      <div className="h-36 flex items-center justify-center text-zinc-600 text-sm">
+        {isLoading ? 'Loading...' : 'Run data will appear here'}
       </div>
     );
   }
@@ -24,35 +24,35 @@ export function PaceChart() {
   }));
 
   return (
-    <div className="h-40">
+    <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={formatted} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
           <XAxis
             dataKey="date"
-            tick={{ fill: '#6B6B80', fontSize: 10 }}
+            tick={{ fill: '#52525B', fontSize: 10 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             reversed
-            tick={{ fill: '#6B6B80', fontSize: 10 }}
+            tick={{ fill: '#52525B', fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => formatPace(v)}
             domain={['auto', 'auto']}
           />
           <Tooltip
-            contentStyle={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 }}
-            labelStyle={{ color: '#A0A0B0' }}
+            contentStyle={{ background: '#18181B', border: '1px solid #27272A', borderRadius: 8, fontSize: 12 }}
+            labelStyle={{ color: '#A1A1AA' }}
             formatter={(value: number) => [formatPace(value) + '/km', 'Pace']}
           />
           <Line
             type="monotone"
             dataKey="pace"
-            stroke="#39FF14"
+            stroke="#F97316"
             strokeWidth={2}
-            dot={{ fill: '#39FF14', r: 3 }}
-            activeDot={{ r: 5, fill: '#39FF14', stroke: '#0A0A0F', strokeWidth: 2 }}
+            dot={{ fill: '#F97316', r: 3 }}
+            activeDot={{ r: 5, fill: '#F97316', stroke: '#09090B', strokeWidth: 2 }}
           />
         </LineChart>
       </ResponsiveContainer>

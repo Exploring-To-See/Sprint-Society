@@ -11,7 +11,8 @@
     "render:video": "cd video && npx tsx scripts/render.ts",
     "build": "cd client && npm install --include=dev && npm run build && cd ../server && npm install --include=dev && npm run build",
     "start": "cd server && npm start",
-    "setup:admin": "cd server && npx tsx src/setup-admin.ts"
+    "setup:admin": "cd server && npx tsx src/setup-admin.ts",
+    "seed": "cd server && npx tsx src/scripts/seed-dummy-data.ts"
   },
   "engines": {
     "node": ">=18.0.0"

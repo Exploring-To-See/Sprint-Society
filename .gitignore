@@ -10,3 +10,11 @@ dist/
 output/
 video/public/assets/*
 !video/public/assets/.gitkeep
+
+# Studio assets (local only, too heavy for deploy)
+studio/assets/frames/
+studio/assets/overlays/
+__pycache__/
+
+# Preview files (local design reference)
+preview-*.html

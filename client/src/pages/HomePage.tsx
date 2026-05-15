@@ -4,6 +4,16 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+};
+
 export function HomePage() {
   const { login } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
@@ -26,41 +36,39 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center px-6 text-center">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        variants={stagger}
+        initial="hidden"
+        animate="show"
         className="space-y-8 w-full max-w-sm"
       >
-        <div>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', delay: 0.2 }}
-            className="text-6xl mb-4"
-          >
-            ⚡
-          </motion.div>
-          <h1 className="font-heading text-4xl font-bold">
-            Sprint <span className="text-accent-green">Society</span>
-          </h1>
-          <p className="text-white/50 mt-3 text-sm leading-relaxed">
-            AI-powered run club. Track your runs, level up your fitness, transform your pace.
+        <motion.div variants={fadeUp} className="flex flex-col items-center">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-10 h-10 rounded-[10px] bg-accent flex items-center justify-center">
+              <span className="text-lg font-heading font-bold text-black">K</span>
+            </div>
+            <h1 className="font-heading text-[26px] font-bold tracking-tight">
+              Sprint <span className="text-accent">Society</span>
+            </h1>
+          </div>
+          <p className="text-zinc-500 text-[13px]">
+            AI-powered run club
           </p>
-          <p className="text-white/30 text-xs mt-2">For the runners, by the runners.</p>
-        </div>
+        </motion.div>
 
         {!showLogin ? (
-          <div className="space-y-3">
+          <motion.div variants={fadeUp} className="space-y-3">
             <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
               Join Sprint Society
             </Button>
             <Button fullWidth variant="ghost" onClick={() => setShowLogin(true)}>
               Already a member? Log in
             </Button>
-          </div>
+          </motion.div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
             className="space-y-3"
           >
             <input
@@ -68,7 +76,7 @@ export function HomePage() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-white/10 text-white placeholder:text-white/30 focus:border-accent-green/50 focus:outline-none"
+              className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
               autoFocus
             />
             <input
@@ -76,23 +84,28 @@ export function HomePage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-white/10 text-white placeholder:text-white/30 focus:border-accent-green/50 focus:outline-none"
+              className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
             />
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>
               {loading ? 'Logging in...' : 'Log in'}
             </Button>
-            <Link to="/forgot-password" className="block text-center text-white/40 text-xs hover:text-white/60 transition-colors">
+            <Link to="/forgot-password" className="block text-center text-zinc-500 text-xs hover:text-zinc-300 transition-colors">
               Forgot password?
             </Link>
-            <Button fullWidth variant="ghost" onClick={() => setShowLogin(false)}>
+            <button
+              onClick={() => setShowLogin(false)}
+              className="w-full text-center text-zinc-500 text-sm py-2 hover:text-zinc-300 transition-colors"
+            >
               ← Back
-            </Button>
+            </button>
           </motion.div>
         )}
 
-        <p className="text-white/15 text-xs">A product by Kendu Entertainment</p>
+        <motion.p variants={fadeUp} className="text-zinc-700 text-[11px]">
+          by Kendu Entertainment
+        </motion.p>
       </motion.div>
     </div>
   );

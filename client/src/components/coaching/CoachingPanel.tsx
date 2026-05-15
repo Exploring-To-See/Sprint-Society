@@ -1,10 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
-import { formatPace } from '../../lib/formatters';
-import { ProgressBar } from '../ui/ProgressBar';
+import { useAuth } from '../../context/AuthContext';
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+};
 
 export function CoachingPanel() {
+  const { user } = useAuth();
+
   const { data: tier } = useQuery({
     queryKey: ['tier'],
     queryFn: () => api.get('/coaching/tier').then(r => r.data),
@@ -20,130 +31,148 @@ export function CoachingPanel() {
     queryFn: () => api.get('/coaching/transformation').then(r => r.data),
   });
 
-  const tierConfig: Record<string, { color: string; glow: string; badge: string }> = {
-    beginner: { color: 'text-tier-beginner', glow: 'glow-green', badge: '🌱' },
-    intermediate: { color: 'text-tier-intermediate', glow: 'glow-blue', badge: '⚡' },
-    advanced: { color: 'text-tier-advanced', glow: 'glow-gold', badge: '👑' },
+  const formatPace = (seconds: number) => {
+    if (!seconds) return '--:--';
+    const min = Math.floor(seconds / 60);
+    const sec = Math.round(seconds % 60);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const currentTier = tierConfig[tier?.tier || 'beginner'];
+  const milestones = transformation?.milestones || [];
+  const currentWeek = Math.ceil((Date.now() - new Date(transformation?.generated_at || Date.now()).getTime()) / (7 * 24 * 60 * 60 * 1000)) || 1;
 
   return (
-    <div className="space-y-5">
-      {/* Tier Badge */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={`glass-card p-6 text-center ${currentTier.glow}`}
-      >
-        <span className="text-5xl block mb-2">{currentTier.badge}</span>
-        <h2 className={`font-heading text-2xl font-bold capitalize ${currentTier.color}`}>
-          {tier?.tier || 'Beginner'}
-        </h2>
-        <p className="text-white/40 text-sm mt-1">
-          Score: {tier?.score?.toFixed(0) || 0}/100
-        </p>
-        {tier?.breakdown && (
-          <div className="grid grid-cols-2 gap-3 mt-4 text-left">
-            <div className="bg-bg-tertiary/50 rounded-lg p-2">
-              <p className="text-[10px] text-white/40 uppercase">Age Graded</p>
-              <p className="font-mono text-sm">{tier.breakdown.age_graded_score}%</p>
-            </div>
-            <div className="bg-bg-tertiary/50 rounded-lg p-2">
-              <p className="text-[10px] text-white/40 uppercase">VO2max</p>
-              <p className="font-mono text-sm">{tier.estimated_vo2max}</p>
-            </div>
-            <div className="bg-bg-tertiary/50 rounded-lg p-2">
-              <p className="text-[10px] text-white/40 uppercase">Distance</p>
-              <p className="font-mono text-sm">{tier.breakdown.distance_score}%</p>
-            </div>
-            <div className="bg-bg-tertiary/50 rounded-lg p-2">
-              <p className="text-[10px] text-white/40 uppercase">Consistency</p>
-              <p className="font-mono text-sm">{tier.breakdown.consistency_score}%</p>
-            </div>
-          </div>
-        )}
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+      {/* Header */}
+      <motion.div variants={fadeUp}>
+        <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-600">Your journey</p>
+        <h1 className="font-heading text-xl font-bold mt-0.5">Transformation</h1>
       </motion.div>
 
-      {/* Ideal Pace Zones */}
-      {pace && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-5"
-        >
-          <h3 className="font-heading font-semibold text-sm text-white/50 uppercase tracking-wider mb-1">
-            Your Pace Zones
-          </h3>
-          <p className="text-xs text-white/30 mb-4">{pace.pace_rating}</p>
-
-          <div className="space-y-3">
-            {[
-              { label: 'Easy', value: pace.ideal_zones.easy_pace_per_km, color: 'bg-green-500/20 border-green-500/30' },
-              { label: 'Tempo', value: pace.ideal_zones.tempo_pace_per_km, color: 'bg-blue-500/20 border-blue-500/30' },
-              { label: 'Interval', value: pace.ideal_zones.interval_pace_per_km, color: 'bg-orange-500/20 border-orange-500/30' },
-              { label: 'Race', value: pace.ideal_zones.race_pace_per_km, color: 'bg-red-500/20 border-red-500/30' },
-            ].map(zone => (
-              <div key={zone.label} className={`flex items-center justify-between p-3 rounded-xl border ${zone.color}`}>
-                <span className="text-sm text-white/70">{zone.label}</span>
-                <span className="font-mono font-bold">{formatPace(zone.value)}/km</span>
-              </div>
-            ))}
-          </div>
-
-          {pace.current_avg_pace > 0 && (
-            <div className="mt-4 p-3 rounded-xl bg-bg-tertiary/50">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-white/50">Current avg</span>
-                <span className="font-mono text-sm">{formatPace(pace.current_avg_pace)}/km</span>
-              </div>
-              {pace.improvement_needed_seconds > 0 && (
-                <p className="text-xs text-accent-blue mt-1">
-                  {pace.improvement_needed_seconds}s/km to reach tempo target
-                </p>
-              )}
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Transformation Journey */}
+      {/* Current → Target */}
       {transformation && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-5"
-        >
-          <h3 className="font-heading font-semibold text-sm text-white/50 uppercase tracking-wider mb-1">
-            Transformation Journey
-          </h3>
-          <p className="text-xs text-white/30 mb-4">
-            {formatPace(transformation.current_pace_per_km)} → {formatPace(transformation.target_pace_per_km)}/km
-            in ~{transformation.estimated_weeks} weeks
-          </p>
-
-          <div className="space-y-2">
-            {transformation.milestones.slice(0, 6).map((milestone: any, i: number) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-bg-tertiary flex items-center justify-center text-[10px] text-white/50 shrink-0">
-                  {milestone.week}
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-white/70">{milestone.focus_area}</p>
-                </div>
-                <span className="font-mono text-xs text-white/40">{formatPace(milestone.target_pace)}</span>
-              </div>
-            ))}
-            {transformation.milestones.length > 6 && (
-              <p className="text-xs text-white/30 text-center pt-1">
-                +{transformation.milestones.length - 6} more weeks...
-              </p>
-            )}
+        <motion.div variants={fadeUp} className="flex items-center justify-center gap-4 py-3">
+          <div className="text-center">
+            <p className="font-mono text-xl font-bold">{formatPace(transformation.current_pace_per_km)}</p>
+            <p className="text-[10px] text-zinc-500">now</p>
+          </div>
+          <div className="w-10 h-0.5 rounded bg-gradient-to-r from-zinc-600 to-accent-gold" />
+          <div className="text-center">
+            <p className="font-mono text-xl font-bold text-accent-gold">{formatPace(transformation.target_pace_per_km)}</p>
+            <p className="text-[10px] text-zinc-500">target</p>
           </div>
         </motion.div>
       )}
-    </div>
+
+      {/* Journey Path */}
+      {milestones.length > 0 && (
+        <motion.div variants={fadeUp} className="relative pl-10">
+          {/* Vertical line */}
+          <div className="absolute left-[18px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent-green via-accent to-bg-tertiary" />
+
+          {milestones.map((milestone: any, i: number) => {
+            const isCompleted = milestone.week < currentWeek;
+            const isCurrent = milestone.week === currentWeek || (i === 0 && currentWeek <= milestone.week);
+            const isCurrentNode = !isCompleted && (isCurrent || (i > 0 && milestones[i - 1]?.week < currentWeek && milestone.week >= currentWeek));
+
+            return (
+              <div key={i} className="relative mb-7 last:mb-0">
+                {/* Node */}
+                <div className="absolute -left-[22px] top-1">
+                  {isCompleted ? (
+                    <div className="w-5 h-5 rounded-full bg-accent-green flex items-center justify-center text-[10px]">✓</div>
+                  ) : isCurrentNode ? (
+                    <div className="w-7 h-7 -ml-1 rounded-full border-2 border-accent overflow-hidden bg-bg-tertiary">
+                      {(user as any)?.profile_image_url ? (
+                        <img src={(user as any).profile_image_url} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-accent">
+                          {user?.name?.[0]}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border border-bg-tertiary flex items-center justify-center text-[9px] text-zinc-600">
+                      {milestone.week}
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                {isCurrentNode ? (
+                  <div className="card border-accent p-3.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[13px] font-semibold text-accent">{milestone.focus_area}</p>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent">NOW</span>
+                    </div>
+                    <p className="text-[12px] text-zinc-400 mb-2">Target: {formatPace(milestone.target_pace)}/km</p>
+                    {milestone.tips && (
+                      <div className="space-y-1">
+                        {milestone.tips.slice(0, 3).map((tip: string, j: number) => (
+                          <p key={j} className="text-[11px] text-zinc-500">• {tip}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className={isCompleted ? 'opacity-40' : ''}>
+                    <p className={`text-[13px] ${isCompleted ? 'text-zinc-500' : 'text-zinc-300'}`}>
+                      {milestone.focus_area}
+                    </p>
+                    <p className="text-[11px] text-zinc-600">
+                      Week {milestone.week} • {formatPace(milestone.target_pace)}/km
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Finish node */}
+          <div className="relative">
+            <div className="absolute -left-[22px] top-1">
+              <div className="w-5 h-5 rounded-full bg-accent-gold flex items-center justify-center text-[10px]">🏆</div>
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-accent-gold">Goal: {formatPace(transformation?.target_pace_per_km)}/km</p>
+              <p className="text-[11px] text-zinc-600">
+                Week {transformation?.estimated_weeks} • {transformation?.target_tier} tier
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* VO2max */}
+      {tier?.estimated_vo2max && (
+        <motion.div variants={fadeUp} className="card text-center py-5">
+          <p className="label mb-1">Estimated VO2max</p>
+          <p className="font-mono text-4xl font-bold text-accent-gold">{tier.estimated_vo2max.toFixed(1)}</p>
+          <p className="text-[12px] text-zinc-500 mt-1">{tier.vo2max_category} — {tier.vo2max_percentile}</p>
+        </motion.div>
+      )}
+
+      {/* Pace Zones */}
+      {pace?.zones && (
+        <motion.div variants={fadeUp}>
+          <h3 className="font-heading font-semibold text-[15px] mb-3">Pace zones</h3>
+          <div className="card p-4 space-y-3">
+            {[
+              { label: 'Easy', value: pace.zones.easy },
+              { label: 'Tempo', value: pace.zones.tempo, highlight: true },
+              { label: 'Interval', value: pace.zones.interval },
+              { label: 'Race', value: pace.zones.race },
+            ].map((zone) => (
+              <div key={zone.label} className="flex items-center justify-between">
+                <span className="text-[13px] text-zinc-400">{zone.label}</span>
+                <span className={`font-mono text-sm font-medium ${zone.highlight ? 'text-accent' : 'text-white'}`}>
+                  {formatPace(zone.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
