@@ -167,6 +167,30 @@ CREATE TABLE IF NOT EXISTS session_attendance (
     UNIQUE(user_id, session_id)
 );
 
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id INTEGER PRIMARY KEY,
+    sleep_hours REAL,
+    sleep_quality TEXT,
+    available_days INTEGER,
+    preferred_time TEXT,
+    primary_goal TEXT,
+    target_race TEXT,
+    target_race_date TEXT,
+    target_race_distance REAL,
+    diet_type TEXT,
+    work_type TEXT,
+    stress_level TEXT,
+    has_gym_access INTEGER DEFAULT 0,
+    has_track_access INTEGER DEFAULT 0,
+    has_trail_access INTEGER DEFAULT 0,
+    medical_conditions TEXT DEFAULT '[]',
+    previous_sports TEXT DEFAULT '[]',
+    motivation_style TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,

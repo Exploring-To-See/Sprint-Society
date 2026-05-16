@@ -10,6 +10,9 @@ import passwordRoutes from './routes/password.routes';
 import stravaRoutes from './routes/strava.routes';
 import runsRoutes from './routes/runs.routes';
 import coachingRoutes from './routes/coaching.routes';
+import trainingRoutes from './routes/training.routes';
+import onboardingRoutes from './routes/onboarding.routes';
+import progressRoutes from './routes/progress.routes';
 import gamificationRoutes from './routes/gamification.routes';
 import adminRoutes from './routes/admin.routes';
 
@@ -24,6 +27,9 @@ app.use('/api/auth', passwordRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/runs', runsRoutes);
 app.use('/api/coaching', coachingRoutes);
+app.use('/api/training', trainingRoutes);
+app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/progress', progressRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/admin', adminRoutes);
 
