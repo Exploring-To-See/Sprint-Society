@@ -4,6 +4,8 @@ import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { PaceChart } from './PaceChart';
 import { ChallengeList } from './ChallengeList';
+import { ReadinessCard } from './ReadinessCard';
+import { TodaySession } from './TodaySession';
 
 const stagger = {
   hidden: {},
@@ -87,6 +89,10 @@ export function Dashboard() {
           )}
         </div>
       </motion.div>
+
+      {/* Readiness + Today's Session */}
+      <ReadinessCard />
+      <TodaySession />
 
       {/* Tier + XP */}
       <motion.div variants={fadeUp} className="card p-5">

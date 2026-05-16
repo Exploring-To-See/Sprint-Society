@@ -10,6 +10,8 @@ import { SharePage } from './pages/SharePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { StravaCallbackPage } from './pages/StravaCallbackPage';
+import { TrainingPage } from './pages/TrainingPage';
+import { ProgressPage } from './pages/ProgressPage';
 
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -68,6 +70,8 @@ function AppRoutes() {
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/coaching" element={<ProtectedRoute><CoachingPage /></ProtectedRoute>} />
+      <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+      <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
       <Route path="/runs" element={<ProtectedRoute><RunHistoryPage /></ProtectedRoute>} />
       <Route path="/share" element={<ProtectedRoute><SharePage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
