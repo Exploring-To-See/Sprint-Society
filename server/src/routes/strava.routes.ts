@@ -79,11 +79,81 @@ router.post('/webhook', async (req: Request, res: Response) => {
       const activity = await stravaService.fetchActivity(token.user_id, object_id);
       if (activity.type === 'Run') {
         stravaService.storeActivity(token.user_id, activity);
+        autoProcessActivity(token.user_id);
       }
     } catch (err) {
       console.error('Webhook processing error:', err);
     }
   }
 });
+
+function autoProcessActivity(userId: number) {
+  try {
+    const { processNewActivity } = require('../engine/autoDetection');
+
+    const latestActivity = db.prepare(
+      `SELECT * FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 1`
+    ).get(userId) as any;
+    if (!latestActivity) return;
+
+    // Get current week's planned sessions
+    const plan = db.prepare(
+      `SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
+    ).get(userId) as any;
+
+    let weekSessions: any[] = [];
+    if (plan?.plan_data) {
+      const planData = JSON.parse(plan.plan_data);
+      const weeksSinceStart = Math.floor((Date.now() - new Date(plan.generated_at).getTime()) / (7 * 86400000));
+      const currentWeek = planData.weeks?.[Math.min(weeksSinceStart, (planData.weeks?.length || 1) - 1)];
+      weekSessions = currentWeek?.sessions || [];
+    }
+
+    // Get active challenges
+    const challenges = db.prepare(
+      `SELECT * FROM challenges WHERE user_id = ? AND completed = 0`
+    ).all(userId) as any[];
+
+    // Get recent activities for challenge checking
+    const recentActivities = db.prepare(
+      `SELECT * FROM activities WHERE user_id = ? AND start_date > datetime('now', '-7 days') ORDER BY start_date DESC`
+    ).all(userId) as any[];
+
+    const result = processNewActivity(latestActivity, weekSessions, challenges, recentActivities);
+
+    // Award XP
+    if (result.xp_earned > 0) {
+      const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(userId) as any;
+      if (xp) {
+        db.prepare('UPDATE user_xp SET total_xp = total_xp + ?, last_activity_date = date("now") WHERE user_id = ?')
+          .run(result.xp_earned, userId);
+        db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)')
+          .run(userId, result.xp_earned, 'auto_run_sync', result.summary);
+      }
+    }
+
+    // Auto-complete challenges
+    for (const challengeId of result.challenges_completed) {
+      db.prepare('UPDATE challenges SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?')
+        .run(challengeId, userId);
+    }
+
+    // Update streak
+    const lastActivityDate = db.prepare('SELECT last_activity_date FROM user_xp WHERE user_id = ?').get(userId) as any;
+    if (lastActivityDate) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      if (lastActivityDate.last_activity_date === yesterday || lastActivityDate.last_activity_date === today) {
+        db.prepare('UPDATE user_xp SET current_streak_days = current_streak_days + 1 WHERE user_id = ? AND last_activity_date != ?')
+          .run(userId, today);
+      } else if (lastActivityDate.last_activity_date !== today) {
+        db.prepare('UPDATE user_xp SET current_streak_days = 1 WHERE user_id = ?').run(userId);
+      }
+      db.prepare('UPDATE user_xp SET longest_streak_days = MAX(longest_streak_days, current_streak_days) WHERE user_id = ?').run(userId);
+    }
+  } catch (err) {
+    console.error('[AutoProcess] Error:', err);
+  }
+}
 
 export default router;

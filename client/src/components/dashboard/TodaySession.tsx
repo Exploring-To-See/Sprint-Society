@@ -72,13 +72,9 @@ export function TodaySession() {
           )}
         </div>
         {!isRest && (
-          <button
-            onClick={() => completeMutation.mutate({ week_number: data.current_week, day: today })}
-            disabled={completeMutation.isPending}
-            className="shrink-0 text-[11px] font-medium text-accent hover:text-accent-warm transition-colors px-3 py-1.5 rounded-lg border border-accent/20 hover:border-accent/40"
-          >
-            {completeMutation.isPending ? '...' : 'Done ✓'}
-          </button>
+          <span className="shrink-0 text-[9px] font-medium text-zinc-500 px-2 py-1 rounded bg-bg-tertiary">
+            Auto-tracked
+          </span>
         )}
       </div>
     </motion.div>
