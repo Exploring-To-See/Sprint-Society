@@ -13,7 +13,7 @@ router.get('/plan', (req: AuthRequest, res: Response) => {
 
   // Check for existing active plan
   const existingPlan = db.prepare(
-    `SELECT * FROM training_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
+    `SELECT * FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
   ).get(req.userId) as any;
 
   if (existingPlan) {
@@ -39,7 +39,7 @@ router.get('/plan', (req: AuthRequest, res: Response) => {
 
   // Save to DB
   db.prepare(
-    `INSERT INTO training_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)
+    `INSERT INTO transformation_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(
     req.userId,
@@ -73,7 +73,7 @@ router.post('/plan', (req: AuthRequest, res: Response) => {
 
   // Save
   db.prepare(
-    `INSERT INTO training_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)
+    `INSERT INTO transformation_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(
     req.userId,
@@ -91,7 +91,7 @@ router.post('/plan', (req: AuthRequest, res: Response) => {
 // GET /training/week — Get this week's sessions
 router.get('/week', (req: AuthRequest, res: Response) => {
   const existingPlan = db.prepare(
-    `SELECT plan_data, generated_at FROM training_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
+    `SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
   ).get(req.userId) as any;
 
   if (!existingPlan) return res.json({ week: null, message: 'No active plan. Generate one first.' });
