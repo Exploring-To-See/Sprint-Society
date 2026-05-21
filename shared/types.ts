@@ -150,3 +150,85 @@ export interface CoachingRecommendation {
   description: string;
   priority: 'high' | 'medium' | 'low';
 }
+
+// ===== Adaptive Engine Types =====
+
+export type InjuryRisk = 'low' | 'moderate' | 'high' | 'critical';
+export type VDOTTrend = 'improving' | 'stable' | 'declining';
+
+export interface TrainingLoadMetrics {
+  acute_load: number;
+  chronic_load: number;
+  training_stress_balance: number;
+  monotony: number;
+  strain: number;
+  injury_risk: InjuryRisk;
+}
+
+export interface AdaptiveSummary {
+  status: 'active' | 'no_data';
+  training_load: {
+    acute: number;
+    chronic: number;
+    balance: number;
+    injury_risk: InjuryRisk;
+  };
+  fitness: {
+    current_vdot: number;
+    trend: VDOTTrend;
+    change_4w: number;
+  } | null;
+  weekly_runs: number;
+  message: string;
+}
+
+// ===== Heart Rate Zone Types =====
+
+export interface HRZone {
+  zone: number;
+  name: string;
+  min_bpm: number;
+  max_bpm: number;
+  min_percent: number;
+  max_percent: number;
+  description: string;
+  training_effect: string;
+  feel: string;
+}
+
+export interface HRProfile {
+  max_hr: number;
+  resting_hr: number;
+  hr_reserve: number;
+  zones: HRZone[];
+  lactate_threshold_hr: number;
+  aerobic_threshold_hr: number;
+  source: 'activity_based' | 'formula_estimated';
+}
+
+// ===== Personal Records Types =====
+
+export interface PersonalRecord {
+  id: string;
+  category: string;
+  distance_meters?: number;
+  value: number;
+  formatted: string;
+  activity_id: number;
+  date: string;
+  previous_best?: { value: number; formatted: string; date: string };
+  improvement?: { value: number; formatted: string; percent: number };
+}
+
+export interface PRSummary {
+  race_prs: PersonalRecord[];
+  effort_prs: PersonalRecord[];
+  total_count: number;
+  latest_pr?: PersonalRecord;
+}
+
+export interface PRCelebration {
+  title: string;
+  message: string;
+  type: 'gold' | 'silver' | 'bronze';
+}

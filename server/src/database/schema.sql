@@ -200,8 +200,57 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Social: Following system
+CREATE TABLE IF NOT EXISTS follows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    follower_id INTEGER NOT NULL,
+    following_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(follower_id, following_id)
+);
+
+-- Social: Kudos (likes on activities)
+CREATE TABLE IF NOT EXISTS kudos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    activity_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE,
+    UNIQUE(user_id, activity_id)
+);
+
+-- Social: Comments on activities
+CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    activity_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE
+);
+
+-- AI Chat: Conversation history
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    context TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, start_date DESC);
 CREATE INDEX IF NOT EXISTS idx_challenges_user_week ON challenges(user_id, week_start);
 CREATE INDEX IF NOT EXISTS idx_xp_transactions_user ON xp_transactions(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_strava_athlete ON strava_tokens(strava_athlete_id);
 CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_kudos_activity ON kudos(activity_id);
+CREATE INDEX IF NOT EXISTS idx_comments_activity ON comments(activity_id);
+CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages(user_id, created_at DESC);

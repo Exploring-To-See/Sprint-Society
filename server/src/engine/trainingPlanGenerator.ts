@@ -75,7 +75,7 @@ interface TrainingPlan {
   generated_at: string;
 }
 
-interface TrainingPaces {
+export interface TrainingPaces {
   easy_min: number;    // seconds per km
   easy_max: number;
   marathon: number;

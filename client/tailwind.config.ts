@@ -7,8 +7,8 @@ export default {
       colors: {
         bg: {
           primary: '#09090B',
-          secondary: '#18181B',
-          tertiary: '#27272A',
+          secondary: '#131316',
+          tertiary: '#1E1E22',
         },
         accent: {
           DEFAULT: '#F97316',
@@ -28,17 +28,22 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       animation: {
-        'slide-up': 'slide-up 0.15s ease-out',
-        'fade-in': 'fade-in 0.15s ease-out',
+        'slide-up': 'slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        'fade-in': 'fade-in 0.2s ease-out',
+        'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
       },
       keyframes: {
         'slide-up': {
-          from: { transform: 'translateY(8px)', opacity: '0' },
+          from: { transform: 'translateY(10px)', opacity: '0' },
           to: { transform: 'translateY(0)', opacity: '1' },
         },
         'fade-in': {
           from: { opacity: '0' },
           to: { opacity: '1' },
+        },
+        'pulse-soft': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.6' },
         },
       },
     },

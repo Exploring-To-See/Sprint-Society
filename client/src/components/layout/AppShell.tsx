@@ -1,13 +1,24 @@
 import { ReactNode } from 'react';
 import { BottomNav } from './BottomNav';
+import { ChatFAB } from '../chat/ChatFAB';
 
-export function AppShell({ children }: { children: ReactNode }) {
+interface AppShellProps {
+  children: ReactNode;
+  hideNav?: boolean;
+}
+
+export function AppShell({ children, hideNav }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-bg-primary pb-20">
-      <main className="max-w-lg mx-auto px-5 pt-5 pb-4">
+    <div className={`min-h-screen bg-bg-primary ${hideNav ? '' : 'pb-20'}`}>
+      <main className="max-w-lg mx-auto px-4 pt-5 pb-4">
         {children}
       </main>
-      <BottomNav />
+      {!hideNav && (
+        <>
+          <ChatFAB />
+          <BottomNav />
+        </>
+      )}
     </div>
   );
 }

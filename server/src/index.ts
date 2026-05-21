@@ -15,6 +15,11 @@ import onboardingRoutes from './routes/onboarding.routes';
 import progressRoutes from './routes/progress.routes';
 import gamificationRoutes from './routes/gamification.routes';
 import adminRoutes from './routes/admin.routes';
+import heartrateRoutes from './routes/heartrate.routes';
+import recordsRoutes from './routes/records.routes';
+import adaptiveRoutes from './routes/adaptive.routes';
+import socialRoutes from './routes/social.routes';
+import chatRoutes from './routes/chat.routes';
 
 const app = express();
 
@@ -32,6 +37,11 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/heartrate', heartrateRoutes);
+app.use('/api/records', recordsRoutes);
+app.use('/api/adaptive', adaptiveRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', name: 'Sprint Society API', version: '1.0.0' });

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -12,6 +13,10 @@ import { AdminPage } from './pages/AdminPage';
 import { StravaCallbackPage } from './pages/StravaCallbackPage';
 import { TrainingPage } from './pages/TrainingPage';
 import { ProgressPage } from './pages/ProgressPage';
+import { HRZonesPage } from './pages/HRZonesPage';
+import { RecordsPage } from './pages/RecordsPage';
+import { FeedPage } from './pages/FeedPage';
+import { ChatPage } from './pages/ChatPage';
 
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -74,6 +79,10 @@ function AppRoutes() {
       <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
       <Route path="/runs" element={<ProtectedRoute><RunHistoryPage /></ProtectedRoute>} />
       <Route path="/share" element={<ProtectedRoute><SharePage /></ProtectedRoute>} />
+      <Route path="/heart-rate" element={<ProtectedRoute><HRZonesPage /></ProtectedRoute>} />
+      <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
+      <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+      <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -82,8 +91,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
