@@ -244,6 +244,147 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- ===== Admin: Analytics =====
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    event_type TEXT NOT NULL,
+    event_name TEXT NOT NULL,
+    properties TEXT DEFAULT '{}',
+    session_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS daily_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date DATE NOT NULL UNIQUE,
+    dau INTEGER NOT NULL DEFAULT 0,
+    new_users INTEGER NOT NULL DEFAULT 0,
+    active_runners INTEGER NOT NULL DEFAULT 0,
+    total_distance_meters REAL NOT NULL DEFAULT 0,
+    total_runs INTEGER NOT NULL DEFAULT 0,
+    challenges_completed INTEGER NOT NULL DEFAULT 0,
+    retention_d1 REAL,
+    retention_d7 REAL,
+    retention_d30 REAL
+);
+
+-- ===== Admin: Feature Flags =====
+
+CREATE TABLE IF NOT EXISTS feature_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    enabled INTEGER NOT NULL DEFAULT 0,
+    rollout_percentage INTEGER DEFAULT 100,
+    target_segments TEXT DEFAULT '[]',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS feature_flag_overrides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    flag_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    enabled INTEGER NOT NULL,
+    FOREIGN KEY (flag_id) REFERENCES feature_flags(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(flag_id, user_id)
+);
+
+-- ===== Admin: User Segments =====
+
+CREATE TABLE IF NOT EXISTS segments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    criteria TEXT NOT NULL,
+    auto_refresh INTEGER DEFAULT 1,
+    member_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS segment_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    segment_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (segment_id) REFERENCES segments(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(segment_id, user_id)
+);
+
+-- ===== Admin: Push Notifications =====
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    endpoint TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    target_type TEXT NOT NULL CHECK(target_type IN ('all', 'segment', 'user')),
+    target_id INTEGER,
+    scheduled_at DATETIME,
+    sent_at DATETIME,
+    status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'scheduled', 'sent', 'failed')),
+    sent_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== Admin: Content CMS =====
+
+CREATE TABLE IF NOT EXISTS content_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK(type IN ('tip', 'article', 'quote', 'coaching_message')),
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    target_tier TEXT,
+    target_segment_id INTEGER,
+    published INTEGER DEFAULT 0,
+    scheduled_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (target_segment_id) REFERENCES segments(id) ON DELETE SET NULL
+);
+
+-- ===== Admin: Audit Log =====
+
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id INTEGER,
+    details TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES users(id)
+);
+
+-- ===== Admin: Sprint History (Engineering Hub) =====
+
+CREATE TABLE IF NOT EXISTS sprint_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sprint_date DATE NOT NULL,
+    proposed TEXT NOT NULL,
+    built TEXT,
+    auto_fixed TEXT,
+    status TEXT DEFAULT 'proposed' CHECK(status IN ('proposed', 'in_progress', 'completed', 'rejected')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== Indexes =====
+
 CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, start_date DESC);
 CREATE INDEX IF NOT EXISTS idx_challenges_user_week ON challenges(user_id, week_start);
 CREATE INDEX IF NOT EXISTS idx_xp_transactions_user ON xp_transactions(user_id, created_at DESC);
@@ -254,3 +395,10 @@ CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
 CREATE INDEX IF NOT EXISTS idx_kudos_activity ON kudos(activity_id);
 CREATE INDEX IF NOT EXISTS idx_comments_activity ON comments(activity_id);
 CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_user ON analytics_events(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type, event_name);
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_date ON daily_metrics(date DESC);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_key ON feature_flags(key);
+CREATE INDEX IF NOT EXISTS idx_segment_members_user ON segment_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_admin ON admin_audit_log(admin_id, created_at DESC);
