@@ -81,4 +81,23 @@ router.get('/dna', (req: AuthRequest, res: Response) => {
   res.json(dna);
 });
 
+// PUT /profiling/coach — switch AI coach
+router.put('/coach', (req: AuthRequest, res: Response) => {
+  const { ai_coach_name } = req.body;
+  const validCoaches = ['Kendu_Ishu', 'Kendu_Nainu', 'Kendu_Goggins', 'Kendu_Kip'];
+
+  if (!ai_coach_name || !validCoaches.includes(ai_coach_name)) {
+    return res.status(400).json({ error: 'Invalid coach. Choose: ' + validCoaches.join(', ') });
+  }
+
+  const existing = db.prepare('SELECT id FROM runner_profiles WHERE user_id = ?').get(req.userId) as any;
+  if (existing) {
+    db.prepare('UPDATE runner_profiles SET ai_coach_name = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?').run(ai_coach_name, req.userId);
+  } else {
+    db.prepare('INSERT INTO runner_profiles (user_id, ai_coach_name, profiling_complete) VALUES (?, ?, 0)').run(req.userId, ai_coach_name);
+  }
+
+  res.json({ success: true, ai_coach_name });
+});
+
 export default router;

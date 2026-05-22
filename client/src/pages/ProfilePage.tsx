@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
@@ -284,7 +284,9 @@ function CommunitiesList({ communities }: { communities: { id: number; name: str
 function SettingsSection() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
+  const [showCoachPicker, setShowCoachPicker] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
@@ -294,6 +296,19 @@ function SettingsSection() {
   const { data: stravaStatus } = useQuery({
     queryKey: ['strava-status'],
     queryFn: () => api.get('/strava/status').then(r => r.data),
+  });
+
+  const { data: dnaProfile } = useQuery({
+    queryKey: ['profiling-dna'],
+    queryFn: () => api.get('/profiling/dna').then(r => r.data).catch(() => null),
+  });
+
+  const coachMutation = useMutation({
+    mutationFn: (coachName: string) => api.put('/profiling/coach', { ai_coach_name: coachName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiling-dna'] });
+      setShowCoachPicker(false);
+    },
   });
 
   const connectStrava = async () => {
@@ -345,6 +360,56 @@ function SettingsSection() {
           </button>
         )}
       </div>
+
+      {/* AI Coach Selection */}
+      {!showCoachPicker ? (
+        <button
+          onClick={() => setShowCoachPicker(true)}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.99] transition-all"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+              <span className="text-[12px]">🧠</span>
+            </div>
+            <div>
+              <p className="text-[12px] font-medium text-white">AI Coach</p>
+              <p className="text-[9px] text-zinc-600">{dnaProfile?.ai_coach_name || 'Not assigned'}</p>
+            </div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
+            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      ) : (
+        <div className="px-4 py-4 rounded-xl bg-bg-secondary border border-bg-tertiary space-y-2">
+          <p className="text-[11px] font-semibold text-zinc-400 mb-2">Choose your Kendu Coach</p>
+          {[
+            { name: 'Kendu_Ishu', title: 'The Scientist', vibe: 'Data-driven. Logical.', color: 'text-blue-400' },
+            { name: 'Kendu_Nainu', title: 'The Energizer', vibe: 'Fun. Lively. Action.', color: 'text-pink-400' },
+            { name: 'Kendu_Goggins', title: 'The Warrior', vibe: 'No excuses. Grind.', color: 'text-red-400' },
+            { name: 'Kendu_Kip', title: 'The Sage', vibe: 'Patient. Wise. Recovery.', color: 'text-emerald-400' },
+          ].map(c => (
+            <button
+              key={c.name}
+              onClick={() => coachMutation.mutate(c.name)}
+              disabled={coachMutation.isPending}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] ${
+                dnaProfile?.ai_coach_name === c.name
+                  ? 'bg-accent/10 border-accent/30'
+                  : 'border-bg-tertiary hover:border-zinc-600'
+              }`}
+            >
+              <span className="text-[14px]">🧠</span>
+              <div className="flex-1 text-left">
+                <p className={`text-[12px] font-semibold ${c.color}`}>{c.name}</p>
+                <p className="text-[9px] text-zinc-600">{c.title} — {c.vibe}</p>
+              </div>
+              {dnaProfile?.ai_coach_name === c.name && <span className="text-accent text-[11px]">✓</span>}
+            </button>
+          ))}
+          <button onClick={() => setShowCoachPicker(false)} className="text-[11px] text-zinc-600 hover:text-zinc-400 mt-1">Cancel</button>
+        </div>
+      )}
 
       {/* Notifications */}
       <button

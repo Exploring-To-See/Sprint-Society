@@ -80,6 +80,33 @@ router.get('/weekly-summary', authenticate, (req: AuthRequest, res: Response) =>
   });
 });
 
+// GET /runs/trends — weekly volume + consistency for last 8 weeks
+router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) {
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() - (i * 7));
+    weekEnd.setHours(23, 59, 59, 999);
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 6);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const data = db.prepare(`
+      SELECT COUNT(*) as runs, COALESCE(SUM(distance_meters), 0) as distance,
+        COUNT(DISTINCT date(start_date)) as days_run
+      FROM activities WHERE user_id = ? AND start_date >= ? AND start_date <= ?
+    `).get(req.userId, weekStart.toISOString(), weekEnd.toISOString()) as any;
+
+    weeks.push({
+      week_start: weekStart.toISOString().split('T')[0],
+      km: Math.round(data.distance / 1000 * 10) / 10,
+      runs: data.runs,
+      days_run: data.days_run,
+    });
+  }
+  res.json(weeks);
+});
+
 router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   const run = db.prepare('SELECT * FROM activities WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!run) return res.status(404).json({ error: 'Run not found' });

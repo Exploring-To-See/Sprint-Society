@@ -101,7 +101,17 @@ export function Dashboard() {
   const totalChallenges = challenges?.length || 0;
 
   const greetingHour = new Date().getHours();
-  const greeting = greetingHour < 6 ? 'Late night' : greetingHour < 12 ? 'Morning' : greetingHour < 17 ? 'Afternoon' : 'Evening';
+  const timeGreeting = greetingHour < 6 ? 'Late night' : greetingHour < 12 ? 'Morning' : greetingHour < 17 ? 'Afternoon' : 'Evening';
+  const lastRun = recentRuns?.[0];
+  const greeting = lastRun
+    ? (() => {
+        const diffHours = (Date.now() - new Date(lastRun.start_date).getTime()) / 3600000;
+        const km = (lastRun.distance_meters / 1000).toFixed(1);
+        if (diffHours < 12) return `Back from your ${km}km? Nice`;
+        if (diffHours < 36) return `${km}km yesterday — solid`;
+        return timeGreeting;
+      })()
+    : timeGreeting;
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
@@ -245,6 +255,39 @@ export function Dashboard() {
         </div>
       </motion.div>
 
+      {/* AI Scorecard */}
+      {stats?.total_runs > 0 && (
+        <motion.div variants={fadeUp}>
+          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading font-semibold text-[14px]">AI Score</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="font-mono font-bold text-[24px] text-accent tabular-nums">
+                  {Math.min(100, Math.round(
+                    ((streak > 0 ? Math.min(streak * 10, 35) : 0) +
+                    (stats.total_runs > 10 ? 30 : stats.total_runs * 3) +
+                    (adaptive?.training_load?.balance === 'optimal' ? 35 : adaptive?.training_load?.balance === 'good' ? 25 : 15))
+                  ))}
+                </span>
+                <span className="text-[10px] text-zinc-600">/100</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Consistency', value: streak > 5 ? 'High' : streak > 2 ? 'Medium' : 'Low', color: streak > 5 ? 'text-accent-green' : streak > 2 ? 'text-amber-400' : 'text-zinc-500' },
+                { label: 'Improvement', value: stats.total_runs > 5 ? 'Trending ↑' : 'Building', color: stats.total_runs > 5 ? 'text-accent' : 'text-zinc-400' },
+                { label: 'Load Balance', value: adaptive?.training_load?.balance || 'N/A', color: adaptive?.training_load?.balance === 'optimal' ? 'text-accent-green' : 'text-zinc-400' },
+              ].map(s => (
+                <div key={s.label} className="text-center px-2 py-2 rounded-lg bg-bg-primary/50">
+                  <p className={`text-[11px] font-semibold ${s.color}`}>{s.value}</p>
+                  <p className="text-[8px] text-zinc-600 uppercase mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Readiness */}
       <ReadinessCard />
 
@@ -346,16 +389,8 @@ export function Dashboard() {
         </div>
         <div className="card p-4">
           {trendTab === 'pace' && <PaceChart />}
-          {trendTab === 'km' && (
-            <div className="h-[120px] flex items-center justify-center">
-              <p className="text-[11px] text-zinc-600">Weekly km trend coming with more data</p>
-            </div>
-          )}
-          {trendTab === 'consistency' && (
-            <div className="h-[120px] flex items-center justify-center">
-              <p className="text-[11px] text-zinc-600">Consistency trend coming with more data</p>
-            </div>
-          )}
+          {trendTab === 'km' && <WeeklyKmChart />}
+          {trendTab === 'consistency' && <ConsistencyChart />}
         </div>
       </motion.div>
 
@@ -423,6 +458,61 @@ export function Dashboard() {
         <ChallengeList />
       </motion.div>
     </motion.div>
+  );
+}
+
+function WeeklyKmChart() {
+  const { data: trends } = useQuery({
+    queryKey: ['run-trends'],
+    queryFn: () => api.get('/runs/trends').then(r => r.data),
+  });
+
+  if (!trends || trends.length === 0) {
+    return <div className="h-[120px] flex items-center justify-center"><p className="text-[11px] text-zinc-600">Need more runs to show trends</p></div>;
+  }
+
+  const maxKm = Math.max(...trends.map((w: any) => w.km), 1);
+
+  return (
+    <div className="h-[120px] flex items-end gap-[6px] px-1">
+      {trends.map((w: any, i: number) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+          <span className="text-[9px] font-mono text-zinc-500 tabular-nums">{w.km > 0 ? w.km : ''}</span>
+          <div
+            className="w-full rounded-t-md bg-gradient-to-t from-accent/60 to-accent/30 transition-all"
+            style={{ height: `${Math.max((w.km / maxKm) * 80, 4)}px` }}
+          />
+          <span className="text-[7px] text-zinc-700">{new Date(w.week_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).split(' ')[0]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ConsistencyChart() {
+  const { data: trends } = useQuery({
+    queryKey: ['run-trends'],
+    queryFn: () => api.get('/runs/trends').then(r => r.data),
+  });
+
+  if (!trends || trends.length === 0) {
+    return <div className="h-[120px] flex items-center justify-center"><p className="text-[11px] text-zinc-600">Need more runs to show trends</p></div>;
+  }
+
+  return (
+    <div className="h-[120px] flex items-end gap-[6px] px-1">
+      {trends.map((w: any, i: number) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+          <span className="text-[9px] font-mono text-zinc-500 tabular-nums">{w.days_run > 0 ? w.days_run : ''}</span>
+          <div className="w-full flex flex-col gap-[2px] justify-end" style={{ height: '80px' }}>
+            {Array.from({ length: 7 }).map((_, d) => (
+              <div key={d} className={`w-full h-[10px] rounded-sm ${d < w.days_run ? 'bg-accent-green/60' : 'bg-bg-tertiary/30'}`} />
+            )).reverse()}
+          </div>
+          <span className="text-[7px] text-zinc-700">W{i + 1}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
