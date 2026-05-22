@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Publish — Kendu Studio{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="font-heading text-3xl font-bold">Publish</h1>
+
+    <div class="glass rounded-2xl p-6 space-y-6">
+        <!-- Video Selection -->
+        <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider block mb-2">Video to publish</label>
+            <select id="pub-video" class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-sm">
+                <option value="">Select a video from library...</option>
+            </select>
+        </div>
+
+        <!-- Caption -->
+        <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider block mb-2">Caption</label>
+            <textarea id="pub-caption" rows="3" placeholder="Write your caption..."
+                class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-sm focus:border-accent-orange outline-none resize-none"></textarea>
+        </div>
+
+        <!-- Hashtags -->
+        <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider block mb-2">Hashtags</label>
+            <input id="pub-hashtags" placeholder="#running #fitness #ai (space separated)"
+                class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-sm focus:border-accent-orange outline-none">
+        </div>
+
+        <!-- Platform Selection -->
+        <div>
+            <label class="text-xs text-gray-400 uppercase tracking-wider block mb-3">Platforms</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <label class="glass rounded-lg p-4 cursor-pointer hover:border-pink-500/30 transition flex items-center gap-3">
+                    <input type="checkbox" value="instagram" class="pub-platform accent-pink-500">
+                    <div>
+                        <div class="text-sm font-medium">Instagram</div>
+                        <div class="text-xs text-gray-500">Reels</div>
+                    </div>
+                </label>
+                <label class="glass rounded-lg p-4 cursor-pointer hover:border-blue-400/30 transition flex items-center gap-3">
+                    <input type="checkbox" value="twitter" class="pub-platform accent-blue-400">
+                    <div>
+                        <div class="text-sm font-medium">X / Twitter</div>
+                        <div class="text-xs text-gray-500">Video post</div>
+                    </div>
+                </label>
+                <label class="glass rounded-lg p-4 cursor-pointer hover:border-red-500/30 transition flex items-center gap-3">
+                    <input type="checkbox" value="youtube" class="pub-platform accent-red-500">
+                    <div>
+                        <div class="text-sm font-medium">YouTube</div>
+                        <div class="text-xs text-gray-500">Shorts</div>
+                    </div>
+                </label>
+                <label class="glass rounded-lg p-4 cursor-pointer hover:border-green-500/30 transition flex items-center gap-3">
+                    <input type="checkbox" value="whatsapp" class="pub-platform accent-green-500">
+                    <div>
+                        <div class="text-sm font-medium">WhatsApp</div>
+                        <div class="text-xs text-gray-500">Status/Share</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <button onclick="publishVideo()" class="w-full py-3 bg-gradient-to-r from-accent-green to-accent-blue rounded-lg font-heading font-bold text-lg hover:opacity-90 transition">
+            Publish Now
+        </button>
+    </div>
+
+    <!-- Results -->
+    <div id="pub-results" class="hidden glass rounded-2xl p-6">
+        <h3 class="font-heading font-bold mb-3">Publishing Results</h3>
+        <div id="pub-results-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load library videos
+async function loadVideos() {
+    const res = await fetch('/api/library');
+    const clips = await res.json();
+    const select = document.getElementById('pub-video');
+    clips.forEach(clip => {
+        const opt = document.createElement('option');
+        opt.value = clip.path;
+        opt.textContent = `${clip.name} (${clip.size_mb}MB)`;
+        select.appendChild(opt);
+    });
+
+    // Check URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('video')) {
+        select.value = params.get('video');
+    }
+}
+
+async function publishVideo() {
+    const video_path = document.getElementById('pub-video').value;
+    const caption = document.getElementById('pub-caption').value;
+    const hashtags = document.getElementById('pub-hashtags').value.split(/\s+/).filter(h => h).map(h => h.replace('#', ''));
+    const platforms = [...document.querySelectorAll('.pub-platform:checked')].map(cb => cb.value);
+
+    if (!video_path) { alert('Select a video first'); return; }
+    if (!platforms.length) { alert('Select at least one platform'); return; }
+
+    const res = await fetch('/api/publish', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ video_path, platforms, caption, hashtags }),
+    });
+    const results = await res.json();
+
+    const el = document.getElementById('pub-results-content');
+    document.getElementById('pub-results').classList.remove('hidden');
+
+    el.innerHTML = Object.entries(results).map(([platform, result]) => `
+        <div class="flex items-center justify-between py-2 border-b border-white/5">
+            <span class="font-medium text-sm capitalize">${platform}</span>
+            <span class="text-xs px-2 py-1 rounded ${result.status === 'published' ? 'bg-accent-green/10 text-accent-green' : result.status === 'not_configured' ? 'bg-accent-orange/10 text-accent-orange' : 'bg-gray-500/10 text-gray-400'}">${result.status}</span>
+        </div>
+        ${result.instructions ? `<p class="text-xs text-gray-500 mt-1 mb-2">${result.instructions}</p>` : ''}
+        ${result.manual_url ? `<a href="${result.manual_url}" target="_blank" class="text-xs text-accent-blue hover:underline">Open manual share →</a>` : ''}
+    `).join('');
+}
+
+loadVideos();
+</script>
+{% endblock %}

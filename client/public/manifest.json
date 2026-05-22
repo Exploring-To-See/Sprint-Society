@@ -1,7 +1,7 @@
 {
   "name": "Sprint Society",
   "short_name": "Sprint",
-  "description": "AI-powered run club by Kendu Entertainment",
+  "description": "Run with the community",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

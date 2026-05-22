@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Kendu Studio — Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Hero -->
+    <div class="text-center py-12">
+        <h1 class="font-heading text-4xl font-bold mb-3">
+            <span class="text-accent-orange">AI</span> Video Studio
+        </h1>
+        <p class="text-gray-400 text-lg">Cinematic videos from text. One click.</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="/generate" class="glass rounded-2xl p-6 hover:border-accent-orange/30 transition group cursor-pointer">
+            <div class="w-10 h-10 rounded-lg bg-accent-orange/10 flex items-center justify-center mb-4 group-hover:glow-orange transition">
+                <svg class="w-5 h-5 text-accent-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            </div>
+            <h3 class="font-heading font-bold text-lg mb-1">Generate Video</h3>
+            <p class="text-sm text-gray-400">Create a cinematic clip or full film from a text prompt</p>
+        </a>
+
+        <a href="/generate#film" class="glass rounded-2xl p-6 hover:border-accent-blue/30 transition group cursor-pointer">
+            <div class="w-10 h-10 rounded-lg bg-accent-blue/10 flex items-center justify-center mb-4">
+                <svg class="w-5 h-5 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2m0 2a2 2 0 012 2v12a2 2 0 01-2 2m0-16a2 2 0 00-2 2v12a2 2 0 002 2m10-16V2m0 2a2 2 0 012 2v12a2 2 0 01-2 2m0-16a2 2 0 00-2 2v12a2 2 0 002 2"></path></svg>
+            </div>
+            <h3 class="font-heading font-bold text-lg mb-1">Full Film Pipeline</h3>
+            <p class="text-sm text-gray-400">Concept → Storyboard → Multi-shot → Assembly</p>
+        </a>
+
+        <a href="/publish" class="glass rounded-2xl p-6 hover:border-accent-green/30 transition group cursor-pointer">
+            <div class="w-10 h-10 rounded-lg bg-accent-green/10 flex items-center justify-center mb-4">
+                <svg class="w-5 h-5 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            </div>
+            <h3 class="font-heading font-bold text-lg mb-1">Publish</h3>
+            <p class="text-sm text-gray-400">Post to Instagram, X, YouTube, WhatsApp</p>
+        </a>
+    </div>
+
+    <!-- Recent Projects -->
+    <div>
+        <h2 class="font-heading font-bold text-xl mb-4">Recent Projects</h2>
+        {% if projects %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for project in projects %}
+            <div class="glass rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-mono text-xs text-gray-500">{{ project.id }}</span>
+                    {% if project.has_output %}
+                    <span class="text-xs text-accent-green bg-accent-green/10 px-2 py-0.5 rounded">Complete</span>
+                    {% else %}
+                    <span class="text-xs text-accent-orange bg-accent-orange/10 px-2 py-0.5 rounded">In Progress</span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-gray-300">{{ project.created[:10] }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass rounded-xl p-8 text-center">
+            <p class="text-gray-500">No projects yet. <a href="/generate" class="text-accent-orange hover:underline">Generate your first video</a></p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Models Available -->
+    <div>
+        <h2 class="font-heading font-bold text-xl mb-4">Available Models</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="glass rounded-lg p-3 text-center">
+                <div class="text-accent-orange font-bold text-sm">Wan2.1</div>
+                <div class="text-xs text-gray-500 mt-1">Best quality/price</div>
+            </div>
+            <div class="glass rounded-lg p-3 text-center">
+                <div class="text-accent-blue font-bold text-sm">Kling v2</div>
+                <div class="text-xs text-gray-500 mt-1">Best humans</div>
+            </div>
+            <div class="glass rounded-lg p-3 text-center">
+                <div class="text-accent-green font-bold text-sm">MiniMax</div>
+                <div class="text-xs text-gray-500 mt-1">Fast & cheap</div>
+            </div>
+            <div class="glass rounded-lg p-3 text-center">
+                <div class="text-accent-gold font-bold text-sm">Luma</div>
+                <div class="text-xs text-gray-500 mt-1">Dreamy aesthetic</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
