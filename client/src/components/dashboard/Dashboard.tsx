@@ -128,6 +128,11 @@ export function Dashboard() {
     : timeGreeting;
 
   return (
+    <>
+    <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
+    {levelUpToast && (
+      <CelebrationToast title={levelUpToast.title} message={levelUpToast.message} type="gold" visible={!!levelUpToast} onDismiss={() => setLevelUpToast(null)} />
+    )}
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
       {/* Header */}
       <motion.div variants={fadeUp} className="pt-1">
