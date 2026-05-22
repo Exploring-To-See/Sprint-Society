@@ -359,6 +359,45 @@ export function Dashboard() {
         </div>
       </motion.div>
 
+      {/* Streak Visual */}
+      {streak > 0 && (
+        <motion.div variants={fadeUp}>
+          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading font-semibold text-[14px]">Streak</h3>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[14px]">🔥</span>
+                <span className="font-mono font-bold text-[18px] text-accent tabular-nums">{streak}</span>
+                <span className="text-[10px] text-zinc-600">days</span>
+              </div>
+            </div>
+            <div className="flex gap-[3px]">
+              {Array.from({ length: 7 }).map((_, i) => {
+                const isActive = i < Math.min(streak, 7);
+                const dayLabel = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className={`w-full h-8 rounded-md transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-t from-accent/60 to-accent/20 border border-accent/30'
+                        : 'bg-bg-tertiary/30 border border-bg-tertiary/50'
+                    }`} />
+                    <span className={`text-[8px] font-semibold ${isActive ? 'text-accent' : 'text-zinc-700'}`}>
+                      {dayLabel[i]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {streak >= 7 && (
+              <p className="text-[10px] text-accent-gold mt-2 text-center font-medium">
+                {streak >= 30 ? '🌟 Legendary streak!' : streak >= 14 ? '⚡ On fire!' : '✓ Week complete!'}
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {/* Subtle Social Ticker */}
       <motion.div variants={fadeUp}>
         <div className="px-3 py-2 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
