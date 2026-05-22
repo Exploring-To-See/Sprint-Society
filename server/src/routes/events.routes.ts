@@ -195,6 +195,20 @@ router.post('/:id/comments', (req: AuthRequest, res: Response) => {
   res.json(comment);
 });
 
+// GET /events/:id/my-awards — user's awards from this event
+router.get('/:id/my-awards', (req: AuthRequest, res: Response) => {
+  const awards = db.prepare(`
+    SELECT * FROM event_awards WHERE event_id = ? AND user_id = ? ORDER BY rank_position ASC NULLS LAST
+  `).all(parseInt(req.params.id), req.userId) as any[];
+
+  const activity = db.prepare(`
+    SELECT * FROM activities WHERE user_id = ? AND date(start_date) = (SELECT date FROM events WHERE id = ?)
+    ORDER BY distance_meters DESC LIMIT 1
+  `).get(req.userId, parseInt(req.params.id)) as any;
+
+  res.json({ awards, activity });
+});
+
 // POST /events/:id/checkin — check in with organizer code
 router.post('/:id/checkin', (req: AuthRequest, res: Response) => {
   const eventId = parseInt(req.params.id);

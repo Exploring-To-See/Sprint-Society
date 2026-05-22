@@ -78,6 +78,12 @@ export function EventDetailPage() {
     },
   });
 
+  const { data: myAwards } = useQuery({
+    queryKey: ['event-awards', id],
+    queryFn: () => api.get(`/events/${id}/my-awards`).then(r => r.data),
+    enabled: !!id && event?.status === 'completed',
+  });
+
   const checkInMutation = useMutation({
     mutationFn: (code: string) => api.post(`/events/${id}/checkin`, { code }),
     onSuccess: (res) => {
@@ -327,6 +333,65 @@ export function EventDetailPage() {
                 )}
               </>
             )}
+          </motion.div>
+        )}
+
+        {/* Post-Event Results + Share Card (when completed) */}
+        {event.status === 'completed' && myAwards && (myAwards.awards?.length > 0 || myAwards.activity) && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl bg-gradient-to-b from-accent/10 via-bg-secondary to-bg-secondary border border-accent/20 p-5 space-y-4"
+          >
+            <div className="text-center">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1">YOUR RESULTS</p>
+              <h3 className="font-heading text-[18px] font-bold">{event.title}</h3>
+            </div>
+
+            {/* Awards */}
+            {myAwards.awards?.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {myAwards.awards.map((a: any) => (
+                  <div key={a.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-primary border border-bg-tertiary">
+                    <span className="text-[18px]">{a.award_icon}</span>
+                    <div>
+                      <p className="text-[11px] font-semibold text-white">{a.award_title}</p>
+                      {a.stat_value && <p className="text-[10px] text-zinc-500 font-mono">{a.stat_value}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Activity stats */}
+            {myAwards.activity && (
+              <div className="flex justify-center gap-6 py-2">
+                <div className="text-center">
+                  <p className="font-mono font-bold text-[20px] text-white">{(myAwards.activity.distance_meters / 1000).toFixed(1)}</p>
+                  <p className="text-[9px] text-zinc-600 uppercase">km</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-mono font-bold text-[20px] text-accent">
+                    {Math.floor(myAwards.activity.average_pace_per_km / 60)}:{String(Math.round(myAwards.activity.average_pace_per_km % 60)).padStart(2, '0')}
+                  </p>
+                  <p className="text-[9px] text-zinc-600 uppercase">pace/km</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-mono font-bold text-[20px] text-white">
+                    {Math.floor(myAwards.activity.moving_time_seconds / 60)}:{String(myAwards.activity.moving_time_seconds % 60).padStart(2, '0')}
+                  </p>
+                  <p className="text-[9px] text-zinc-600 uppercase">time</p>
+                </div>
+              </div>
+            )}
+
+            <div className="text-center">
+              <p className="text-[9px] text-zinc-700 uppercase tracking-wider">Sprint Society · {event.date}</p>
+            </div>
+
+            <button className="w-full py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent font-semibold text-[13px] active:scale-[0.98] transition-all">
+              Share to Instagram Story
+            </button>
           </motion.div>
         )}
 

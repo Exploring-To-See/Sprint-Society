@@ -628,6 +628,24 @@ CREATE TABLE IF NOT EXISTS user_notifications (
 CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, read, created_at DESC);
 
 -- Events indexes
+-- Event Awards (auto-generated on event completion)
+CREATE TABLE IF NOT EXISTS event_awards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    award_type TEXT NOT NULL,
+    award_title TEXT NOT NULL,
+    award_icon TEXT NOT NULL,
+    rank_position INTEGER,
+    stat_value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_awards_event ON event_awards(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_awards_user ON event_awards(user_id);
+
 -- Event Check-ins
 CREATE TABLE IF NOT EXISTS event_checkins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
