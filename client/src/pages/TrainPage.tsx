@@ -33,6 +33,52 @@ const KENDU_COACHES: Record<string, { name: string; title: string; color: string
   'Kendu_Kip': { name: 'Kendu_Kip', title: 'The Sage', color: 'text-emerald-400' },
 };
 
+function buildNodesFromPlan(plan: any): WorkoutNode[] {
+  const nodes: WorkoutNode[] = [];
+  const weeks = plan.weeks || [];
+  const planStart = new Date(plan.generated_at || plan.start_date || Date.now());
+  const today = new Date();
+  const daysSinceStart = Math.floor((today.getTime() - planStart.getTime()) / 86400000);
+
+  let nodeIdx = 0;
+  for (let weekIdx = 0; weekIdx < weeks.length; weekIdx++) {
+    const week = weeks[weekIdx];
+    const sessions = week.sessions || week.workouts || [];
+    const weekBiome: BiomeKey = week.phase === 'speed' || week.phase === 'build'
+      ? 'speed' : week.phase === 'race' || week.phase === 'peak'
+      ? 'race' : week.phase === 'recovery' || week.phase === 'taper'
+      ? 'recovery' : 'base';
+
+    for (const session of sessions) {
+      const isCompleted = nodeIdx < daysSinceStart - 1;
+      const isCurrent = nodeIdx === Math.max(0, daysSinceStart);
+      const type: WorkoutNode['type'] = session.type === 'easy' || session.type === 'recovery' ? 'easy'
+        : session.type === 'tempo' || session.type === 'threshold' ? 'tempo'
+        : session.type === 'interval' || session.type === 'speed' || session.type === 'vo2max' ? 'interval'
+        : session.type === 'long' || session.type === 'long_run' ? 'long'
+        : session.type === 'rest' || session.type === 'off' ? 'rest'
+        : session.type === 'race' ? 'race' : 'easy';
+
+      nodes.push({
+        id: nodeIdx,
+        day: nodeIdx + 1,
+        type,
+        title: session.title || session.name || `${type.charAt(0).toUpperCase() + type.slice(1)} Run`,
+        description: session.description || session.notes || '',
+        distance_km: session.distance_km || session.target_distance_km,
+        pace_zone: session.pace_zone || session.zone || type.charAt(0).toUpperCase() + type.slice(1),
+        completed: isCompleted,
+        current: isCurrent,
+        biome: weekBiome,
+      });
+      nodeIdx++;
+    }
+  }
+
+  if (nodes.length === 0) return generateSamplePath(4);
+  return nodes;
+}
+
 function generateSamplePath(daysPerWeek: number): WorkoutNode[] {
   const nodes: WorkoutNode[] = [];
   const biomeSequence: BiomeKey[] = ['base', 'base', 'speed', 'base', 'speed', 'race', 'recovery'];
@@ -75,10 +121,17 @@ export function TrainPage() {
     queryFn: () => api.get('/adaptive/summary').then(r => r.data).catch(() => null),
   });
 
+  const { data: trainingPlan } = useQuery({
+    queryKey: ['training-plan'],
+    queryFn: () => api.get('/training/plan').then(r => r.data).catch(() => null),
+  });
+
   const coachName = profile?.ai_coach_name || 'Kendu_Nainu';
   const coach = KENDU_COACHES[coachName] || KENDU_COACHES['Kendu_Nainu'];
   const trainingDays = profile?.training_days || 4;
-  const nodes = generateSamplePath(trainingDays);
+
+  // Use real plan data if available, otherwise fall back to sample
+  const nodes = trainingPlan?.weeks ? buildNodesFromPlan(trainingPlan) : generateSamplePath(trainingDays);
   const currentNodeIdx = nodes.findIndex(n => n.current);
   const completedCount = nodes.filter(n => n.completed).length;
   const currentBiome = nodes[currentNodeIdx]?.biome || 'base';

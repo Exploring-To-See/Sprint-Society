@@ -123,10 +123,11 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
   });
 });
 
-// POST /communities — create community (Level 5+ only)
+// POST /communities — admin-only community creation
 router.post('/', (req: AuthRequest, res: Response) => {
-  if (!canCreateCommunity(req.userId!)) {
-    return res.status(403).json({ error: `You need Level ${MIN_LEVEL_TO_CREATE} or ${MIN_XP_TO_CREATE} XP to create a community` });
+  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Community creation is admin-only. Submit a request via the form and it will be reviewed.' });
   }
 
   const { name, description, category } = req.body;
@@ -143,7 +144,6 @@ router.post('/', (req: AuthRequest, res: Response) => {
 
   const communityId = result.lastInsertRowid;
 
-  // Add creator as owner member
   db.prepare('INSERT INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(communityId, req.userId, 'owner');
 
   awardXP(req.userId!, 25, 'community_created', `Created community: ${name.trim()}`);
@@ -199,9 +199,14 @@ router.post('/:id/join', (req: AuthRequest, res: Response) => {
   }
 });
 
-// DELETE /communities/:id/leave — leave community
+// DELETE /communities/:id/leave — leave community (cannot leave Sprint Social Club)
 router.delete('/:id/leave', (req: AuthRequest, res: Response) => {
   const communityId = parseInt(req.params.id);
+
+  const community = db.prepare('SELECT name FROM communities WHERE id = ?').get(communityId) as any;
+  if (community?.name === 'Sprint Social Club') {
+    return res.status(403).json({ error: 'Sprint Social Club is mandatory — everyone stays in the crew.' });
+  }
 
   const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(communityId, req.userId) as any;
   if (!member) return res.json({ success: true, is_member: false });
