@@ -43,9 +43,7 @@ export function HomePage() {
       >
         <motion.div variants={fadeUp} className="flex flex-col items-center">
           <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-10 h-10 rounded-[10px] bg-accent flex items-center justify-center">
-              <span className="text-lg font-heading font-bold text-black">K</span>
-            </div>
+            <img src="/icons/logo.png" alt="Sprint Society" className="w-11 h-11 rounded-[10px] object-cover" />
             <h1 className="font-heading text-[26px] font-bold tracking-tight">
               Sprint <span className="text-accent">Society</span>
             </h1>
