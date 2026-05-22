@@ -33,6 +33,22 @@ const KENDU_COACHES: Record<string, { name: string; title: string; color: string
   'Kendu_Kip': { name: 'Kendu_Kip', title: 'The Sage', color: 'text-emerald-400' },
 };
 
+function generateWindingPath(nodeCount: number): string {
+  const rows = Math.ceil(nodeCount / 2);
+  const height = rows * 80;
+  let d = `M 50 20`;
+  for (let i = 0; i < rows; i++) {
+    const y = 20 + i * 80;
+    const nextY = y + 80;
+    if (i % 2 === 0) {
+      d += ` C 50 ${y + 30}, 250 ${y + 30}, 250 ${nextY}`;
+    } else {
+      d += ` C 250 ${y + 30}, 50 ${y + 30}, 50 ${nextY}`;
+    }
+  }
+  return d;
+}
+
 function buildNodesFromPlan(plan: any): WorkoutNode[] {
   const nodes: WorkoutNode[] = [];
   const weeks = plan.weeks || [];
@@ -191,77 +207,91 @@ export function TrainPage() {
         </div>
       </div>
 
-      {/* THE PATH — Gamified Visual */}
-      <div className="px-5">
+      {/* THE PATH — Animated SVG Winding Road */}
+      <div className="px-3">
         <div className="relative">
-          {/* Path connector line */}
-          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-accent/30 via-accent/10 to-bg-tertiary" />
+          {/* SVG Winding Path Background */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="pathGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgb(0, 200, 200)" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="rgb(0, 200, 200)" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+            <motion.path
+              d={generateWindingPath(nodes.length)}
+              stroke="url(#pathGrad)"
+              strokeWidth="3"
+              fill="none"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1.5, ease: 'easeInOut' }}
+            />
+          </svg>
 
-          {/* Nodes */}
-          <div className="space-y-3">
+          {/* Nodes on the winding path */}
+          <div className="relative grid grid-cols-2 gap-3 py-2">
             {nodes.map((node, idx) => {
               const biome = BIOMES[node.biome];
               const isCompleted = node.completed;
               const isCurrent = node.current;
               const isFuture = !isCompleted && !isCurrent;
+              const isLeft = idx % 2 === 0;
 
               return (
                 <motion.div
                   key={node.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.03 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: isFuture ? 0.5 : 1, scale: 1 }}
+                  transition={{ delay: idx * 0.04, type: 'spring', stiffness: 200 }}
                   onClick={() => setSelectedNode(node)}
-                  className={`relative flex items-center gap-4 cursor-pointer group ${isFuture ? 'opacity-50' : ''}`}
+                  className={`relative cursor-pointer active:scale-95 transition-transform ${isLeft ? '' : 'mt-6'}`}
                 >
-                  {/* Node Circle */}
-                  <div className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
-                    isCurrent ? 'bg-accent/20 border-accent scale-110 shadow-lg shadow-accent/20' :
-                    isCompleted ? 'bg-accent-green/20 border-accent-green/50' :
-                    'bg-bg-secondary border-bg-tertiary group-hover:border-zinc-600'
+                  <div className={`rounded-xl p-3 border transition-all ${
+                    isCurrent ? `bg-gradient-to-br ${biome.gradient} border-accent/30 shadow-lg shadow-accent/10` :
+                    isCompleted ? 'bg-bg-secondary/80 border-accent-green/20' :
+                    'bg-bg-secondary border-bg-tertiary'
                   }`}>
-                    {isCompleted ? (
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#10b981" strokeWidth="2">
-                        <path d="M3 8l3.5 3.5L13 5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    ) : isCurrent ? (
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="text-[14px]"
-                      >
-                        🏃
-                      </motion.div>
-                    ) : (
-                      <span className="text-[11px] font-mono text-zinc-600">{node.day}</span>
-                    )}
-                  </div>
+                    {/* Node indicator */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] border ${
+                        isCurrent ? 'bg-accent/20 border-accent' :
+                        isCompleted ? 'bg-accent-green/20 border-accent-green/40' :
+                        'bg-bg-tertiary border-bg-tertiary'
+                      }`}>
+                        {isCompleted ? '✓' : isCurrent ? (
+                          <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>🏃</motion.span>
+                        ) : (
+                          <span className="font-mono text-zinc-600">{node.day}</span>
+                        )}
+                      </div>
+                      <span className={`text-[9px] font-semibold ${biome.color}`}>{biome.icon}</span>
+                    </div>
 
-                  {/* Node Content */}
-                  <div className={`flex-1 rounded-xl p-3 border transition-all ${
-                    isCurrent ? `bg-gradient-to-r ${biome.gradient} border-accent/20` :
-                    isCompleted ? 'bg-bg-secondary/50 border-bg-tertiary/50' :
-                    'bg-bg-secondary border-bg-tertiary group-hover:border-zinc-700'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className={`text-[12px] font-semibold ${isCurrent ? 'text-white' : isCompleted ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                          {node.title}
-                        </p>
-                        <p className="text-[10px] text-zinc-600 mt-0.5">{node.description}</p>
-                      </div>
-                      <div className="text-right">
-                        {node.distance_km && (
-                          <p className={`text-[12px] font-mono font-semibold ${isCurrent ? 'text-accent' : 'text-zinc-500'}`}>
-                            {node.distance_km}km
-                          </p>
-                        )}
-                        {node.pace_zone && (
-                          <p className="text-[9px] text-zinc-600">{node.pace_zone} zone</p>
-                        )}
-                      </div>
+                    {/* Content */}
+                    <p className={`text-[11px] font-semibold leading-tight ${isCurrent ? 'text-white' : isCompleted ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                      {node.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {node.distance_km && (
+                        <span className={`text-[10px] font-mono ${isCurrent ? 'text-accent' : 'text-zinc-600'}`}>{node.distance_km}km</span>
+                      )}
+                      {node.pace_zone && (
+                        <span className="text-[8px] text-zinc-700 uppercase">{node.pace_zone}</span>
+                      )}
                     </div>
                   </div>
+
+                  {/* Milestone glow for completed */}
+                  {isCompleted && isCurrent === false && idx > 0 && idx % 7 === 0 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.5, 0] }}
+                      transition={{ delay: idx * 0.04 + 0.5, duration: 0.8 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-gold/40"
+                    />
+                  )}
                 </motion.div>
               );
             })}
@@ -271,11 +301,26 @@ export function TrainPage() {
 
       {/* What If Projection */}
       <div className="px-5 mt-6">
-        <div className="rounded-xl bg-gradient-to-r from-accent/5 to-transparent border border-accent/10 p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-1">If you stay consistent...</p>
-          <p className="text-[13px] text-zinc-300">
-            In 4 weeks: estimated 5K time drops by ~30s. In 8 weeks: you'll move from {profile?.tier || 'beginner'} towards the next tier.
-          </p>
+        <div className="rounded-xl bg-gradient-to-br from-accent/8 via-bg-secondary to-bg-secondary border border-accent/15 p-4 space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">What If You Stay Consistent</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center px-2 py-3 rounded-lg bg-bg-primary/50 border border-bg-tertiary">
+              <p className="text-[9px] text-zinc-600 mb-1">4 weeks</p>
+              <p className="font-mono font-bold text-[14px] text-white">-30s</p>
+              <p className="text-[8px] text-zinc-600">5K time</p>
+            </div>
+            <div className="text-center px-2 py-3 rounded-lg bg-bg-primary/50 border border-bg-tertiary">
+              <p className="text-[9px] text-zinc-600 mb-1">8 weeks</p>
+              <p className="font-mono font-bold text-[14px] text-accent">+2</p>
+              <p className="text-[8px] text-zinc-600">VO2max</p>
+            </div>
+            <div className="text-center px-2 py-3 rounded-lg bg-bg-primary/50 border border-bg-tertiary">
+              <p className="text-[9px] text-zinc-600 mb-1">12 weeks</p>
+              <p className="font-mono font-bold text-[14px] text-accent-gold">↑ Tier</p>
+              <p className="text-[8px] text-zinc-600">promotion</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-zinc-600 text-center">Based on your current {trainingDays}x/week at {profile?.running_experience || 'your'} level</p>
         </div>
       </div>
 
@@ -321,16 +366,27 @@ export function TrainPage() {
                   </div>
                 )}
 
-                {/* Why this workout */}
-                <div className="rounded-xl bg-accent/5 border border-accent/10 p-3">
-                  <p className="text-[10px] font-bold text-accent mb-1">Why this workout?</p>
-                  <p className="text-[11px] text-zinc-400">
-                    {selectedNode.type === 'easy' && 'Easy runs build your aerobic base — the engine behind every fast race. 80% of training should be here.'}
-                    {selectedNode.type === 'tempo' && 'Tempo runs push your lactate threshold higher. This is where your race pace improves most directly.'}
-                    {selectedNode.type === 'interval' && 'Intervals boost VO2max and running economy. Short bursts + recovery = speed gains.'}
-                    {selectedNode.type === 'long' && 'Long runs build endurance, fat oxidation, and mental toughness. The foundation for any distance.'}
-                    {selectedNode.type === 'rest' && 'Adaptation happens during rest. Your muscles rebuild stronger. Skip rest → skip gains.'}
-                    {selectedNode.type === 'race' && 'Race pace simulation trains your body and mind for the specific demands of race day.'}
+                {/* Science Explainer */}
+                <div className="rounded-xl bg-accent/5 border border-accent/10 p-3 space-y-1.5">
+                  <p className="text-[10px] font-bold text-accent">🔬 The Science</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    {selectedNode.type === 'easy' && 'Easy runs build mitochondria and strengthen connective tissue. At this effort, your body burns fat efficiently. 80% of elite training is here — Kipchoge runs easy 4 days/week.'}
+                    {selectedNode.type === 'tempo' && 'Tempo sits at your lactate threshold (~85-90% max HR). Training here pushes that threshold higher — directly improving race pace. Effect: +2-5s/km improvement after 4 weeks.'}
+                    {selectedNode.type === 'interval' && 'Intervals at 95-100% VO2max boost your oxygen ceiling. Recovery between reps lets you accumulate more time at max effort. Norwegian method: 4x4min at 90-95% HR.'}
+                    {selectedNode.type === 'long' && 'Long runs trigger fat oxidation, increase glycogen storage, build mental toughness. Your body learns to preserve carbs for when you need them. Always conversational pace.'}
+                    {selectedNode.type === 'rest' && "Supercompensation: you get stronger during REST, not during training. Muscle fibers rebuild 10-15% stronger post-stress. Sleep drives 95% of recovery (7-9hrs). Active recovery > total rest."}
+                    {selectedNode.type === 'race' && 'Race simulation teaches your neuromuscular system exact race demands. Pacing, fueling, mental rehearsal. Run at goal pace — not faster. Your body memorizes this effort.'}
+                  </p>
+                </div>
+
+                {/* Coach's Take */}
+                <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3">
+                  <p className={`text-[10px] font-bold ${coach.color}`}>{coach.name}:</p>
+                  <p className="text-[11px] text-zinc-400 italic mt-0.5">
+                    {coachName === 'Kendu_Ishu' && '"Track your HR drift. If it creeps above threshold, pull back. Data doesn\'t lie."'}
+                    {coachName === 'Kendu_Nainu' && '"Don\'t overthink it! Shoes on, go. You\'ll feel amazing after 🔥"'}
+                    {coachName === 'Kendu_Goggins' && '"Nobody cares about your excuses. Show up. Suffer. Grow."'}
+                    {coachName === 'Kendu_Kip' && '"This single run means nothing alone — but accumulated over weeks, it builds champions."'}
                   </p>
                 </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { ReadinessCard } from './ReadinessCard';
 import { TodaySession } from './TodaySession';
 import { TrainingLoadRing } from './TrainingLoadRing';
 import { PRBanner } from './PRBanner';
+import { Confetti, CelebrationToast } from '../celebrations/Confetti';
 
 const stagger = {
   hidden: {},
@@ -45,11 +46,24 @@ export function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [trendTab, setTrendTab] = useState<TrendTab>('pace');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [levelUpToast, setLevelUpToast] = useState<{ title: string; message: string } | null>(null);
+  const lastLevelRef = useRef<number | null>(null);
 
   const { data: xp } = useQuery({
     queryKey: ['xp'],
     queryFn: () => api.get('/gamification/xp').then(r => r.data),
   });
+
+  // Confetti on level-up detection
+  useEffect(() => {
+    if (!xp?.current_level) return;
+    if (lastLevelRef.current !== null && xp.current_level > lastLevelRef.current) {
+      setShowConfetti(true);
+      setLevelUpToast({ title: `Level ${xp.current_level}!`, message: `You just leveled up. Keep grinding.` });
+    }
+    lastLevelRef.current = xp.current_level;
+  }, [xp?.current_level]);
 
   const { data: tier } = useQuery({
     queryKey: ['tier'],
