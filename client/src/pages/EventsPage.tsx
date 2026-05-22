@@ -98,13 +98,82 @@ export function EventsPage() {
           </motion.div>
         )}
 
+        {/* Featured Hero Event (next upcoming) */}
+        {data?.events?.[0] && !isLoading && (
+          <motion.div variants={fadeUp}>
+            <button
+              onClick={() => navigate(`/events/${data.events[0].id}`)}
+              className="w-full text-left rounded-2xl overflow-hidden border border-accent/20 bg-gradient-to-br from-accent/15 via-bg-secondary to-bg-primary p-5 space-y-3 active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-accent">Featured Event</span>
+                <CountdownBadge date={data.events[0].date} time={data.events[0].time} />
+              </div>
+              <h2 className="font-heading text-[18px] font-bold text-white leading-snug">{data.events[0].title}</h2>
+              <p className="text-[12px] text-zinc-400">{data.events[0].location_name}</p>
+              <div className="flex items-center justify-between pt-2">
+                <AttendeeAvatars attendees={data.events[0].attendees} count={data.events[0].attendee_count} />
+                {data.events[0].max_attendees && (
+                  <span className="text-[10px] font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                    {Math.max(0, data.events[0].max_attendees - (data.events[0].attendee_count || 0))} spots left
+                  </span>
+                )}
+              </div>
+            </button>
+          </motion.div>
+        )}
+
         {/* Event cards */}
-        {data?.events?.map((event: any) => (
+        {data?.events?.slice(1).map((event: any) => (
           <motion.div key={event.id} variants={fadeUp}>
             <EventCard event={event} onClick={() => navigate(`/events/${event.id}`)} />
           </motion.div>
         ))}
       </motion.div>
     </AppShell>
+  );
+}
+
+function CountdownBadge({ date, time }: { date: string; time: string }) {
+  const eventDate = new Date(date + 'T' + (time || '00:00'));
+  const now = new Date();
+  const diffMs = eventDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full animate-pulse">TODAY!</span>;
+  if (diffDays === 1) return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">Tomorrow</span>;
+  if (diffDays <= 3) return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">{diffDays} days</span>;
+  if (diffDays <= 7) return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{diffDays} days</span>;
+  return <span className="text-[10px] font-semibold text-zinc-500 bg-bg-tertiary px-2 py-0.5 rounded-full">{diffDays} days</span>;
+}
+
+function AttendeeAvatars({ attendees, count }: { attendees?: any[]; count?: number }) {
+  const avatars = attendees?.slice(0, 4) || [];
+  const remaining = (count || 0) - avatars.length;
+
+  if (!count || count === 0) return <span className="text-[10px] text-zinc-600">Be the first!</span>;
+
+  return (
+    <div className="flex items-center">
+      <div className="flex -space-x-2">
+        {avatars.map((a: any, i: number) => (
+          <div key={i} className="w-6 h-6 rounded-full border-2 border-bg-primary overflow-hidden bg-bg-tertiary">
+            {a.profile_image_url ? (
+              <img src={a.profile_image_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+                {a.name?.[0] || '?'}
+              </div>
+            )}
+          </div>
+        ))}
+        {remaining > 0 && (
+          <div className="w-6 h-6 rounded-full border-2 border-bg-primary bg-bg-tertiary flex items-center justify-center">
+            <span className="text-[8px] font-bold text-zinc-400">+{remaining}</span>
+          </div>
+        )}
+      </div>
+      <span className="text-[10px] text-zinc-500 ml-2">{count} going</span>
+    </div>
   );
 }
