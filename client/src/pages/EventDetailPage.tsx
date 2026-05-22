@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { AttendeeAvatars } from '../components/events/AttendeeAvatars';
+import { generateShareCard, shareOrDownload } from '../lib/shareCard';
 
 const EVENT_COLORS: Record<string, string> = {
   group_run: 'from-orange-600/20 to-transparent',
@@ -389,7 +390,23 @@ export function EventDetailPage() {
               <p className="text-[9px] text-zinc-700 uppercase tracking-wider">Sprint Society · {event.date}</p>
             </div>
 
-            <button className="w-full py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent font-semibold text-[13px] active:scale-[0.98] transition-all">
+            <button
+              onClick={async () => {
+                const blob = await generateShareCard({
+                  title: event.title,
+                  subtitle: event.date,
+                  stats: myAwards.activity ? [
+                    { label: 'Distance', value: `${(myAwards.activity.distance_meters / 1000).toFixed(1)}km` },
+                    { label: 'Pace', value: `${Math.floor(myAwards.activity.average_pace_per_km / 60)}:${String(Math.round(myAwards.activity.average_pace_per_km % 60)).padStart(2, '0')}` },
+                    { label: 'Time', value: `${Math.floor(myAwards.activity.moving_time_seconds / 60)}m` },
+                  ] : [{ label: 'Status', value: 'Completed' }],
+                  awards: myAwards.awards?.map((a: any) => ({ icon: a.award_icon, title: a.award_title })),
+                  footer: `Sprint Society · ${event.date}`,
+                });
+                if (blob) await shareOrDownload(blob, `sprint-society-${event.id}.png`);
+              }}
+              className="w-full py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent font-semibold text-[13px] active:scale-[0.98] transition-all"
+            >
               Share to Instagram Story
             </button>
           </motion.div>

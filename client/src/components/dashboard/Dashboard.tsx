@@ -477,6 +477,7 @@ export function Dashboard() {
         <ChallengeList />
       </motion.div>
     </motion.div>
+    </>
   );
 }
 
