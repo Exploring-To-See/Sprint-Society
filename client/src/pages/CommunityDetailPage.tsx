@@ -124,8 +124,16 @@ export function CommunityDetailPage() {
           )}
         </div>
 
-        {/* Join/Leave + Members */}
+        {/* Mute + Join/Leave + Members */}
         <div className="flex gap-2">
+          {community.is_member && (
+            <button
+              onClick={() => api.post(`/communities/${id}/mute`).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
+              className="px-3 py-2.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-zinc-500 text-[10px] font-medium active:scale-95 transition-all"
+            >
+              🔕
+            </button>
+          )}
           {!community.is_member ? (
             <button
               onClick={() => joinMutation.mutate()}
@@ -208,6 +216,14 @@ export function CommunityDetailPage() {
           </div>
         )}
 
+        {/* Broadcast input (owner/admin only) */}
+        {(community.user_role === 'owner' || community.user_role === 'admin') && (
+          <BroadcastSection communityId={parseInt(id!)} queryClient={queryClient} />
+        )}
+
+        {/* Polls */}
+        <PollsSection communityId={parseInt(id!)} isMember={!!community.is_member} queryClient={queryClient} />
+
         {/* Posts feed */}
         <div className="space-y-3">
           {community.recent_posts?.length === 0 && (
@@ -239,24 +255,196 @@ export function CommunityDetailPage() {
               {post.image_url && (
                 <img src={post.image_url} alt="" className="w-full rounded-lg mt-2" />
               )}
-              <button
-                onClick={() => likeMutation.mutate(post.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-95 ${
-                  post.user_liked
-                    ? 'bg-accent/10 text-accent'
-                    : 'text-zinc-600 hover:text-zinc-400 hover:bg-bg-tertiary/50'
-                }`}
-              >
-                <svg width="13" height="13" viewBox="0 0 16 16" fill={post.user_liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                  <path d="M8 14s-5.5-3.5-5.5-7.5C2.5 4 4.5 2.5 6 2.5c1 0 1.7.5 2 1 .3-.5 1-1 2-1 1.5 0 3.5 1.5 3.5 4S8 14 8 14z"/>
-                </svg>
-                <span className="text-[11px] font-semibold">{post.likes_count || ''}</span>
-              </button>
+              {/* Emoji Reactions */}
+              <div className="flex items-center gap-1 flex-wrap">
+                {['🏃', '🔥', '💪', '👏'].map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => api.post(`/communities/${id}/posts/${post.id}/react`, { emoji }).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
+                    className="px-2 py-1 rounded-md text-[13px] hover:bg-bg-tertiary/50 active:scale-90 transition-all"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+                <button
+                  onClick={() => likeMutation.mutate(post.id)}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all active:scale-95 ${
+                    post.user_liked ? 'bg-accent/10 text-accent' : 'text-zinc-600 hover:bg-bg-tertiary/50'
+                  }`}
+                >
+                  <span className="text-[12px]">❤️</span>
+                  {post.likes_count > 0 && <span className="text-[10px] font-semibold">{post.likes_count}</span>}
+                </button>
+                {/* Pin toggle for owner/admin */}
+                {(community.user_role === 'owner' || community.user_role === 'admin') && (
+                  <button
+                    onClick={() => api.post(`/communities/${id}/posts/${post.id}/pin`).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
+                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all active:scale-95 ${
+                      post.pinned ? 'bg-amber-400/10 text-amber-400' : 'text-zinc-700 hover:text-zinc-400'
+                    }`}
+                  >
+                    📌{post.pinned ? '' : ' Pin'}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </motion.div>
     </AppShell>
+  );
+}
+
+function BroadcastSection({ communityId, queryClient }: { communityId: number; queryClient: any }) {
+  const [text, setText] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const broadcastMutation = useMutation({
+    mutationFn: (body: string) => api.post(`/communities/${communityId}/broadcasts`, { body }),
+    onSuccess: (res) => {
+      setText('');
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+    },
+  });
+
+  return (
+    <div className="rounded-xl bg-gradient-to-r from-accent/5 to-transparent border border-accent/10 p-3 space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">📢 Broadcast to all members</p>
+      {sent ? (
+        <p className="text-[12px] text-accent-green">Sent! All members notified.</p>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Type announcement..."
+            maxLength={500}
+            className="flex-1 px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-accent/30 focus:outline-none"
+          />
+          <button
+            onClick={() => text.trim() && broadcastMutation.mutate(text)}
+            disabled={!text.trim() || broadcastMutation.isPending}
+            className="px-4 py-2 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95"
+          >
+            Send
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PollsSection({ communityId, isMember, queryClient }: { communityId: number; isMember: boolean; queryClient: any }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState(['', '']);
+
+  const { data: polls } = useQuery({
+    queryKey: ['community-polls', communityId],
+    queryFn: () => api.get(`/communities/${communityId}/polls`).then(r => r.data),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post(`/communities/${communityId}/polls`, { question, options: options.filter(o => o.trim()) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community-polls', communityId] });
+      setShowCreate(false);
+      setQuestion('');
+      setOptions(['', '']);
+    },
+  });
+
+  const voteMutation = useMutation({
+    mutationFn: ({ pollId, optionIndex }: { pollId: number; optionIndex: number }) =>
+      api.post(`/communities/${communityId}/polls/${pollId}/vote`, { option_index: optionIndex }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['community-polls', communityId] }),
+  });
+
+  if (!polls || polls.length === 0) {
+    if (!isMember) return null;
+    return (
+      <div>
+        {!showCreate ? (
+          <button onClick={() => setShowCreate(true)} className="text-[11px] text-accent font-medium active:scale-95">
+            + Create Poll
+          </button>
+        ) : (
+          <CreatePollForm question={question} setQuestion={setQuestion} options={options} setOptions={setOptions}
+            onSubmit={() => createMutation.mutate()} onCancel={() => setShowCreate(false)} pending={createMutation.isPending} />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {isMember && !showCreate && (
+        <button onClick={() => setShowCreate(true)} className="text-[11px] text-accent font-medium active:scale-95">
+          + Create Poll
+        </button>
+      )}
+      {showCreate && (
+        <CreatePollForm question={question} setQuestion={setQuestion} options={options} setOptions={setOptions}
+          onSubmit={() => createMutation.mutate()} onCancel={() => setShowCreate(false)} pending={createMutation.isPending} />
+      )}
+      {polls.map((poll: any) => (
+        <div key={poll.id} className="card p-4 space-y-2">
+          <p className="text-[13px] font-semibold text-white">{poll.question}</p>
+          <p className="text-[9px] text-zinc-600">by {poll.author_name} · {poll.total_votes} votes</p>
+          <div className="space-y-1.5">
+            {poll.options.map((opt: string, i: number) => {
+              const voteCount = poll.votes.find((v: any) => v.option_index === i)?.count || 0;
+              const percent = poll.total_votes > 0 ? Math.round((voteCount / poll.total_votes) * 100) : 0;
+              const isVoted = poll.user_vote === i;
+              const hasVoted = poll.user_vote !== null;
+              return (
+                <button
+                  key={i}
+                  onClick={() => !hasVoted && voteMutation.mutate({ pollId: poll.id, optionIndex: i })}
+                  disabled={hasVoted}
+                  className={`w-full relative px-3 py-2 rounded-lg text-left text-[12px] overflow-hidden transition-all ${
+                    isVoted ? 'border border-accent/30 text-accent' : hasVoted ? 'border border-bg-tertiary text-zinc-400' : 'border border-bg-tertiary text-zinc-300 hover:border-zinc-600 active:scale-[0.99]'
+                  }`}
+                >
+                  {hasVoted && (
+                    <div className="absolute inset-y-0 left-0 bg-accent/10 rounded-lg" style={{ width: `${percent}%` }} />
+                  )}
+                  <span className="relative">{opt}</span>
+                  {hasVoted && <span className="relative float-right font-mono text-[10px] text-zinc-500">{percent}%</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CreatePollForm({ question, setQuestion, options, setOptions, onSubmit, onCancel, pending }: any) {
+  return (
+    <div className="card p-4 space-y-2">
+      <input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ask a question..."
+        className="w-full px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600" />
+      {options.map((opt: string, i: number) => (
+        <input key={i} value={opt} onChange={e => { const o = [...options]; o[i] = e.target.value; setOptions(o); }}
+          placeholder={`Option ${i + 1}`}
+          className="w-full px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600" />
+      ))}
+      <div className="flex gap-2">
+        {options.length < 4 && (
+          <button onClick={() => setOptions([...options, ''])} className="text-[10px] text-accent font-medium">+ Add option</button>
+        )}
+        <div className="flex-1" />
+        <button onClick={onCancel} className="text-[10px] text-zinc-600">Cancel</button>
+        <button onClick={onSubmit} disabled={!question.trim() || options.filter((o: string) => o.trim()).length < 2 || pending}
+          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[10px] font-semibold disabled:opacity-30 active:scale-95">
+          Create Poll
+        </button>
+      </div>
+    </div>
   );
 }
 

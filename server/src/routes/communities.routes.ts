@@ -300,6 +300,166 @@ router.get('/:id/members', (req: AuthRequest, res: Response) => {
   res.json(members);
 });
 
+// POST /communities/:id/posts/:postId/react — emoji reaction
+router.post('/:id/posts/:postId/react', (req: AuthRequest, res: Response) => {
+  const postId = parseInt(req.params.postId);
+  const { emoji } = req.body;
+  const validEmojis = ['🏃', '🔥', '💪', '👏', '❤️', '😂'];
+  if (!emoji || !validEmojis.includes(emoji)) return res.status(400).json({ error: 'Invalid emoji' });
+
+  try {
+    db.prepare('INSERT INTO community_post_reactions (post_id, user_id, emoji) VALUES (?, ?, ?)').run(postId, req.userId, emoji);
+  } catch (e: any) {
+    if (e.message?.includes('UNIQUE')) {
+      db.prepare('DELETE FROM community_post_reactions WHERE post_id = ? AND user_id = ? AND emoji = ?').run(postId, req.userId, emoji);
+    }
+  }
+
+  const reactions = db.prepare('SELECT emoji, COUNT(*) as count FROM community_post_reactions WHERE post_id = ? GROUP BY emoji').all(postId) as any[];
+  const userReactions = db.prepare('SELECT emoji FROM community_post_reactions WHERE post_id = ? AND user_id = ?').all(postId, req.userId) as any[];
+  res.json({ reactions, user_reactions: userReactions.map((r: any) => r.emoji) });
+});
+
+// POST /communities/:id/posts/:postId/pin — toggle pin (owner/admin only)
+router.post('/:id/posts/:postId/pin', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const postId = parseInt(req.params.postId);
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(communityId, req.userId) as any;
+  if (!member || !['owner', 'admin'].includes(member.role)) {
+    return res.status(403).json({ error: 'Only owners/admins can pin posts' });
+  }
+
+  const post = db.prepare('SELECT pinned FROM community_posts WHERE id = ? AND community_id = ?').get(postId, communityId) as any;
+  if (!post) return res.status(404).json({ error: 'Post not found' });
+
+  const newPinned = post.pinned ? 0 : 1;
+  db.prepare('UPDATE community_posts SET pinned = ? WHERE id = ?').run(newPinned, postId);
+  res.json({ success: true, pinned: !!newPinned });
+});
+
+// POST /communities/:id/polls — create poll
+router.post('/:id/polls', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const { question, options, closes_at } = req.body;
+
+  if (!question || !options || !Array.isArray(options) || options.length < 2) {
+    return res.status(400).json({ error: 'Question and at least 2 options required' });
+  }
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(communityId, req.userId) as any;
+  if (!member) return res.status(403).json({ error: 'Must be a member to create polls' });
+
+  const result = db.prepare('INSERT INTO community_polls (community_id, author_id, question, options, closes_at) VALUES (?, ?, ?, ?, ?)')
+    .run(communityId, req.userId, question, JSON.stringify(options), closes_at || null);
+
+  res.status(201).json({ id: result.lastInsertRowid, success: true });
+});
+
+// GET /communities/:id/polls — list polls
+router.get('/:id/polls', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const polls = db.prepare(`
+    SELECT p.*, u.name as author_name,
+      (SELECT option_index FROM community_poll_votes WHERE poll_id = p.id AND user_id = ?) as user_vote
+    FROM community_polls p
+    JOIN users u ON p.author_id = u.id
+    WHERE p.community_id = ?
+    ORDER BY p.created_at DESC LIMIT 10
+  `).all(req.userId, communityId) as any[];
+
+  const pollsWithResults = polls.map((p: any) => {
+    const votes = db.prepare('SELECT option_index, COUNT(*) as count FROM community_poll_votes WHERE poll_id = ? GROUP BY option_index').all(p.id) as any[];
+    const totalVotes = votes.reduce((sum: number, v: any) => sum + v.count, 0);
+    return {
+      ...p,
+      options: JSON.parse(p.options),
+      votes,
+      total_votes: totalVotes,
+      user_vote: p.user_vote !== null ? p.user_vote : null,
+    };
+  });
+
+  res.json(pollsWithResults);
+});
+
+// POST /communities/:id/polls/:pollId/vote — vote on poll
+router.post('/:id/polls/:pollId/vote', (req: AuthRequest, res: Response) => {
+  const pollId = parseInt(req.params.pollId);
+  const { option_index } = req.body;
+
+  if (option_index === undefined || option_index < 0) return res.status(400).json({ error: 'option_index required' });
+
+  try {
+    db.prepare('INSERT INTO community_poll_votes (poll_id, user_id, option_index) VALUES (?, ?, ?)').run(pollId, req.userId, option_index);
+    res.json({ success: true });
+  } catch (e: any) {
+    if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Already voted' });
+    throw e;
+  }
+});
+
+// POST /communities/:id/broadcasts — send broadcast (owner/admin only)
+router.post('/:id/broadcasts', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const { body } = req.body;
+
+  if (!body || body.trim().length === 0) return res.status(400).json({ error: 'Broadcast cannot be empty' });
+
+  const member = db.prepare('SELECT role FROM community_members WHERE community_id = ? AND user_id = ?').get(communityId, req.userId) as any;
+  if (!member || !['owner', 'admin'].includes(member.role)) {
+    return res.status(403).json({ error: 'Only owners/admins can broadcast' });
+  }
+
+  db.prepare('INSERT INTO community_broadcasts (community_id, author_id, body) VALUES (?, ?, ?)').run(communityId, req.userId, body.trim());
+
+  // Notify non-muted members
+  const community = db.prepare('SELECT name FROM communities WHERE id = ?').get(communityId) as any;
+  const members = db.prepare(`
+    SELECT user_id FROM community_members WHERE community_id = ? AND user_id != ?
+    AND user_id NOT IN (SELECT user_id FROM community_mutes WHERE community_id = ?)
+  `).all(communityId, req.userId, communityId) as any[];
+
+  for (const m of members) {
+    db.prepare("INSERT INTO user_notifications (user_id, type, title, body, actor_id, target_type, target_id) VALUES (?, 'community_post', ?, ?, ?, 'community', ?)")
+      .run(m.user_id, `📢 ${community.name}`, body.trim().slice(0, 100), req.userId, communityId);
+  }
+
+  res.json({ success: true, notified: members.length });
+});
+
+// GET /communities/:id/broadcasts — list broadcasts
+router.get('/:id/broadcasts', (req: AuthRequest, res: Response) => {
+  const broadcasts = db.prepare(`
+    SELECT b.*, u.name as author_name, u.profile_image_url as author_image
+    FROM community_broadcasts b
+    JOIN users u ON b.author_id = u.id
+    WHERE b.community_id = ?
+    ORDER BY b.created_at DESC LIMIT 20
+  `).all(parseInt(req.params.id)) as any[];
+  res.json(broadcasts);
+});
+
+// POST /communities/:id/mute — toggle mute
+router.post('/:id/mute', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+
+  const existing = db.prepare('SELECT id FROM community_mutes WHERE community_id = ? AND user_id = ?').get(communityId, req.userId) as any;
+  if (existing) {
+    db.prepare('DELETE FROM community_mutes WHERE community_id = ? AND user_id = ?').run(communityId, req.userId);
+    res.json({ success: true, muted: false });
+  } else {
+    db.prepare('INSERT INTO community_mutes (community_id, user_id) VALUES (?, ?)').run(communityId, req.userId);
+    res.json({ success: true, muted: true });
+  }
+});
+
+// GET /communities/:id/mute — check mute status
+router.get('/:id/mute', (req: AuthRequest, res: Response) => {
+  const muted = !!(db.prepare('SELECT id FROM community_mutes WHERE community_id = ? AND user_id = ?').get(parseInt(req.params.id), req.userId) as any);
+  res.json({ muted });
+});
+
 // POST /communities/request — submit request for admin approval
 router.post('/request', (req: AuthRequest, res: Response) => {
   const { name, purpose, category, leader_name, contact } = req.body;

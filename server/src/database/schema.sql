@@ -665,6 +665,64 @@ CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id, status
 CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps(user_id);
 CREATE INDEX IF NOT EXISTS idx_event_comments_event ON event_comments(event_id);
 
+-- Community reactions (emoji-based)
+CREATE TABLE IF NOT EXISTS community_post_reactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    emoji TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(post_id, user_id, emoji)
+);
+
+-- Community polls
+CREATE TABLE IF NOT EXISTS community_polls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    community_id INTEGER NOT NULL,
+    author_id INTEGER NOT NULL,
+    question TEXT NOT NULL,
+    options TEXT NOT NULL,
+    closes_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS community_poll_votes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    poll_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    option_index INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (poll_id) REFERENCES community_polls(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(poll_id, user_id)
+);
+
+-- Community broadcasts (one-way from owner/admin)
+CREATE TABLE IF NOT EXISTS community_broadcasts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    community_id INTEGER NOT NULL,
+    author_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Community mute preferences
+CREATE TABLE IF NOT EXISTS community_mutes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    community_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    muted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(community_id, user_id)
+);
+
 -- Communities indexes
 CREATE INDEX IF NOT EXISTS idx_communities_category ON communities(category);
 CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(community_id, role);
