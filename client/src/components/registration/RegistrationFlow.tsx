@@ -61,7 +61,7 @@ export function RegistrationFlow() {
   const [stravaConnected, setStravaConnected] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalSteps = 3;
+  const totalSteps = 2;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
@@ -101,7 +101,6 @@ export function RegistrationFlow() {
     switch (step) {
       case 0: return form.name.trim().length >= 2 && isValidEmail(form.email) && form.phone.length >= 10 && form.password.length >= 6 && form.password === form.confirmPassword && form.invite_code.length >= 3;
       case 1: return true;
-      case 2: return true;
       default: return false;
     }
   };
@@ -370,83 +369,6 @@ export function RegistrationFlow() {
               </>
             )}
 
-            {/* STEP 2: Connect Tracking App */}
-            {step === 2 && (
-              <>
-                <motion.div variants={fadeUp}>
-                  <h2 className="font-heading text-2xl font-bold mb-1">Connect your runs</h2>
-                  <p className="text-zinc-500 text-sm">Real data makes your AI coach smarter</p>
-                </motion.div>
-                <motion.div variants={fadeUp} className="space-y-3 pt-2">
-                  <button
-                    onClick={handleStravaConnect}
-                    disabled={stravaConnecting || stravaConnected}
-                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border transition-all active:scale-[0.98] ${
-                      stravaConnected
-                        ? 'bg-emerald-500/10 border-emerald-500/30'
-                        : 'bg-[#FC4C02]/10 border-[#FC4C02]/30 hover:border-[#FC4C02]/50'
-                    }`}
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stravaConnected ? 'bg-emerald-500/20' : 'bg-[#FC4C02]/20'}`}>
-                      {stravaConnected ? (
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#10b981" strokeWidth="2">
-                          <path d="M4 10l4 4 8-8" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      ) : (
-                        <span className="text-[#FC4C02] font-bold text-[14px]">S</span>
-                      )}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className={`text-[14px] font-semibold ${stravaConnected ? 'text-emerald-400' : 'text-[#FC4C02]'}`}>
-                        {stravaConnected ? 'Strava Connected' : 'Connect Strava'}
-                      </p>
-                      <p className="text-[11px] text-zinc-500">
-                        {stravaConnected ? 'Your runs will sync automatically' : 'Auto-sync all your runs & activities'}
-                      </p>
-                    </div>
-                    {stravaConnecting && (
-                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                        className="w-5 h-5 rounded-full border-2 border-[#FC4C02]/30 border-t-[#FC4C02]"
-                      />
-                    )}
-                  </button>
-
-                  <button
-                    disabled
-                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-bg-tertiary opacity-50 cursor-not-allowed"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
-                      <span className="text-zinc-500 text-[14px]">❤️</span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="text-[14px] font-semibold text-zinc-500">Apple Health</p>
-                      <p className="text-[11px] text-zinc-700">Coming soon</p>
-                    </div>
-                  </button>
-
-                  <button
-                    disabled
-                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-bg-tertiary opacity-50 cursor-not-allowed"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
-                      <span className="text-zinc-500 text-[14px]">🟢</span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="text-[14px] font-semibold text-zinc-500">Google Fit</p>
-                      <p className="text-[11px] text-zinc-700">Coming soon</p>
-                    </div>
-                  </button>
-                </motion.div>
-
-                <motion.div variants={fadeUp} className="pt-3">
-                  <div className="rounded-xl bg-accent/5 border border-accent/10 p-4">
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">
-                      <span className="text-accent font-semibold">Why connect?</span> Your AI coach uses real run data to calculate accurate pace zones, VO2max, and personalized training plans. The more data, the smarter it gets.
-                    </p>
-                  </div>
-                </motion.div>
-              </>
-            )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -464,14 +386,6 @@ export function RegistrationFlow() {
         >
           {submitting ? 'Creating account...' : step === totalSteps - 1 ? "Let's go" : 'Continue'}
         </Button>
-        {step === 2 && !stravaConnected && (
-          <button
-            onClick={handleSubmit}
-            className="w-full mt-3 text-[12px] text-zinc-600 hover:text-zinc-400 transition-colors text-center"
-          >
-            Skip — I'll connect later
-          </button>
-        )}
       </div>
     </div>
   );

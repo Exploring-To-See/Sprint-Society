@@ -106,7 +106,7 @@ export function AIProfilingPage() {
   const [dna, setDna] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   const mutation = useMutation({
     mutationFn: () => api.post('/profiling/generate', data),
@@ -130,13 +130,14 @@ export function AIProfilingPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 0: return data.gender;
-      case 1: return data.fitness_level && data.running_experience;
-      case 2: return data.dream_race;
-      case 3: return data.running_why;
-      case 4: return data.preferred_time && data.training_days > 0;
-      case 5: return data.bad_run_response;
-      case 6: return true;
+      case 0: return true; // Strava connect is optional
+      case 1: return data.gender;
+      case 2: return data.fitness_level && data.running_experience;
+      case 3: return data.dream_race;
+      case 4: return data.running_why;
+      case 5: return data.preferred_time && data.training_days > 0;
+      case 6: return data.bad_run_response;
+      case 7: return true;
       default: return false;
     }
   };
@@ -200,8 +201,58 @@ export function AIProfilingPage() {
             exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
             className="space-y-5"
           >
-            {/* STEP 0: Physical Profile */}
+            {/* STEP 0: Connect Tracking App */}
             {step === 0 && (
+              <>
+                <motion.div variants={fadeUp}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">First things first</p>
+                  <h2 className="font-heading text-[22px] font-bold leading-tight">Connect your runs</h2>
+                  <p className="text-zinc-500 text-[12px] mt-1">Real data = smarter AI coach. Skip if you don't have Strava yet.</p>
+                </motion.div>
+                <motion.div variants={fadeUp} className="space-y-3 pt-2">
+                  <button
+                    onClick={() => { window.location.href = '/api/strava/auth'; }}
+                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-[#FC4C02]/30 bg-[#FC4C02]/10 hover:border-[#FC4C02]/50 transition-all active:scale-[0.98]"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-[#FC4C02]/20 flex items-center justify-center">
+                      <span className="text-[#FC4C02] font-bold text-[14px]">S</span>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-[14px] font-semibold text-[#FC4C02]">Connect Strava</p>
+                      <p className="text-[11px] text-zinc-500">Auto-sync all your runs & activities</p>
+                    </div>
+                  </button>
+                  <button disabled className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-bg-tertiary opacity-50 cursor-not-allowed">
+                    <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
+                      <span className="text-[14px]">❤️</span>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-[14px] font-semibold text-zinc-500">Apple Health</p>
+                      <p className="text-[11px] text-zinc-700">Coming soon</p>
+                    </div>
+                  </button>
+                  <button disabled className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-bg-tertiary opacity-50 cursor-not-allowed">
+                    <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
+                      <span className="text-[14px]">🟢</span>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-[14px] font-semibold text-zinc-500">Google Fit</p>
+                      <p className="text-[11px] text-zinc-700">Coming soon</p>
+                    </div>
+                  </button>
+                </motion.div>
+                <motion.div variants={fadeUp} className="pt-2">
+                  <div className="rounded-xl bg-accent/5 border border-accent/10 p-3">
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      <span className="text-accent font-semibold">Why connect?</span> Your AI uses real run data for accurate VO2max, pace zones, and training plans. No data? No problem — we'll estimate from your answers.
+                    </p>
+                  </div>
+                </motion.div>
+              </>
+            )}
+
+            {/* STEP 1: Physical Profile */}
+            {step === 1 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Step 1 of {totalSteps}</p>
@@ -253,8 +304,8 @@ export function AIProfilingPage() {
               </>
             )}
 
-            {/* STEP 1: Running Background */}
-            {step === 1 && (
+            {/* STEP 2: Running Background */}
+            {step === 2 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Step 2 of {totalSteps}</p>
@@ -337,8 +388,8 @@ export function AIProfilingPage() {
               </>
             )}
 
-            {/* STEP 2: Dream Race */}
-            {step === 2 && (
+            {/* STEP 3: Dream Race */}
+            {step === 3 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Your goals</p>
@@ -364,8 +415,8 @@ export function AIProfilingPage() {
               </>
             )}
 
-            {/* STEP 3: Why Run */}
-            {step === 3 && (
+            {/* STEP 4: Why Run */}
+            {step === 4 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Your motivation</p>
@@ -391,8 +442,8 @@ export function AIProfilingPage() {
               </>
             )}
 
-            {/* STEP 4: Schedule */}
-            {step === 4 && (
+            {/* STEP 5: Schedule */}
+            {step === 5 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Your schedule</p>
@@ -435,8 +486,8 @@ export function AIProfilingPage() {
               </>
             )}
 
-            {/* STEP 5: Mindset */}
-            {step === 5 && (
+            {/* STEP 6: Mindset */}
+            {step === 6 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Your mindset</p>
@@ -462,8 +513,8 @@ export function AIProfilingPage() {
               </>
             )}
 
-            {/* STEP 6: Optional 5K Time */}
-            {step === 6 && (
+            {/* STEP 7: Optional 5K Time */}
+            {step === 7 && (
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Almost done</p>
