@@ -32,8 +32,9 @@ router.get('/', (req: AuthRequest, res: Response) => {
   });
 });
 
-// GET /notifications/unread-count — just the badge number
+// GET /notifications/unread-count — just the badge number + generate proactive notifications
 router.get('/unread-count', (req: AuthRequest, res: Response) => {
+  generateProactiveNotifications(req.userId!);
   const count = (db.prepare(
     'SELECT COUNT(*) as c FROM user_notifications WHERE user_id = ? AND read = 0'
   ).get(req.userId) as any).c;
@@ -55,6 +56,45 @@ router.post('/:id/read', (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
+// Proactive notifications: streak warning + event reminders
+function generateProactiveNotifications(userId: number) {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Streak warning: if streak > 2 and last activity was yesterday (at risk today)
+  const xp = db.prepare('SELECT current_streak_days, last_activity_date FROM user_xp WHERE user_id = ?').get(userId) as any;
+  if (xp && xp.current_streak_days >= 3 && xp.last_activity_date) {
+    const lastDate = new Date(xp.last_activity_date);
+    const diffDays = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
+    if (diffDays === 1) {
+      const existing = db.prepare(
+        "SELECT id FROM user_notifications WHERE user_id = ? AND type = 'event_reminder' AND title LIKE '%streak%' AND date(created_at) = ?"
+      ).get(userId, today) as any;
+      if (!existing) {
+        db.prepare("INSERT INTO user_notifications (user_id, type, title, body) VALUES (?, 'event_reminder', ?, ?)")
+          .run(userId, `Your ${xp.current_streak_days}-day streak is at risk!`, 'Run today to keep it alive. Even a short one counts.');
+      }
+    }
+  }
+
+  // Event reminder: event tomorrow that user RSVP'd to
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const upcomingEvents = db.prepare(`
+    SELECT e.title, e.time FROM event_rsvps er
+    JOIN events e ON er.event_id = e.id
+    WHERE er.user_id = ? AND er.status = 'going' AND e.date = ? AND e.status = 'upcoming'
+  `).all(userId, tomorrow) as any[];
+
+  for (const ev of upcomingEvents) {
+    const existing = db.prepare(
+      "SELECT id FROM user_notifications WHERE user_id = ? AND type = 'event_reminder' AND title LIKE ? AND date(created_at) = ?"
+    ).get(userId, `%${ev.title}%`, today) as any;
+    if (!existing) {
+      db.prepare("INSERT INTO user_notifications (user_id, type, title, body) VALUES (?, 'event_reminder', ?, ?)")
+        .run(userId, `${ev.title} is tomorrow!`, `${ev.time} — don't forget your running shoes.`);
+    }
+  }
+}
 
 // Helper: create a notification (used by other route files)
 export function createNotification(

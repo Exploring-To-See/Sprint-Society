@@ -138,6 +138,22 @@ function autoProcessActivity(userId: number) {
         .run(challengeId, userId);
     }
 
+    // First run AI insight notification
+    const runCount = (db.prepare('SELECT COUNT(*) as c FROM activities WHERE user_id = ?').get(userId) as any).c;
+    if (runCount === 1) {
+      const pace = latestActivity.average_pace_per_km;
+      const dist = (latestActivity.distance_meters / 1000).toFixed(1);
+      const paceMin = Math.floor(pace / 60);
+      const paceSec = Math.round(pace % 60);
+      const insightBody = pace < 330
+        ? `${dist}km at ${paceMin}:${String(paceSec).padStart(2, '0')}/km — fast start! Your AI is now calibrating training zones.`
+        : pace < 420
+        ? `${dist}km at ${paceMin}:${String(paceSec).padStart(2, '0')}/km — solid foundation. Your AI coach is building your personalized plan.`
+        : `${dist}km at ${paceMin}:${String(paceSec).padStart(2, '0')}/km — great first step! Your pace zones are now set. Consistency wins.`;
+      db.prepare("INSERT INTO user_notifications (user_id, type, title, body) VALUES (?, 'achievement', ?, ?)")
+        .run(userId, 'Your first run is in!', insightBody);
+    }
+
     // Update streak
     const lastActivityDate = db.prepare('SELECT last_activity_date FROM user_xp WHERE user_id = ?').get(userId) as any;
     if (lastActivityDate) {
