@@ -182,6 +182,49 @@ export function Dashboard() {
         )}
       </motion.div>
 
+      {/* Onboarding Checklist (for new users) */}
+      {stats?.total_runs === 0 && (
+        <motion.div variants={fadeUp}>
+          <div className="rounded-xl bg-gradient-to-br from-accent/8 via-bg-secondary to-bg-secondary border border-accent/15 p-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-accent mb-3">Get Started</p>
+            <div className="space-y-2.5">
+              {[
+                { done: true, label: 'Create your account', icon: '✓' },
+                { done: !!(user as any)?.profile_image_url, label: 'Add a profile photo', icon: '📸', action: () => navigate('/profile') },
+                { done: false, label: 'Complete AI profiling', icon: '🧬', action: () => navigate('/profiling') },
+                { done: false, label: 'Connect Strava', icon: '🔗', action: () => navigate('/profile') },
+                { done: false, label: 'RSVP to your first event', icon: '📅', action: () => navigate('/events') },
+              ].map((step, i) => (
+                <button
+                  key={i}
+                  onClick={step.action}
+                  disabled={step.done}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                    step.done
+                      ? 'bg-accent-green/5 border border-accent-green/10'
+                      : 'bg-bg-primary/50 border border-bg-tertiary hover:border-accent/30 active:scale-[0.98]'
+                  }`}
+                >
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                    step.done ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-tertiary text-zinc-500'
+                  }`}>
+                    {step.done ? '✓' : step.icon}
+                  </span>
+                  <span className={`text-[12px] font-medium ${step.done ? 'text-zinc-500 line-through' : 'text-zinc-300'}`}>
+                    {step.label}
+                  </span>
+                  {!step.done && (
+                    <svg className="w-3.5 h-3.5 text-zinc-600 ml-auto" fill="none" viewBox="0 0 16 16">
+                      <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Daily AI Insight */}
       <motion.div variants={fadeUp}>
         <div className="rounded-xl bg-gradient-to-r from-accent/5 to-transparent border border-accent/10 p-4">

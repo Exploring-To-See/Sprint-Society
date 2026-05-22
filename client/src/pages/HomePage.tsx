@@ -51,7 +51,7 @@ export function HomePage() {
             </h1>
           </div>
           <p className="text-zinc-500 text-[13px]">
-            Run with the community
+            Powered by AI. Built for runners.
           </p>
         </motion.div>
 

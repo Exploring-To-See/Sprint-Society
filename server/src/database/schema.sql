@@ -405,6 +405,7 @@ CREATE TABLE IF NOT EXISTS events (
     cover_image_url TEXT,
     visibility TEXT NOT NULL DEFAULT 'public' CHECK(visibility IN ('public', 'followers_only', 'invite_only')),
     status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'live', 'completed', 'cancelled')),
+    check_in_code TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
@@ -627,6 +628,18 @@ CREATE TABLE IF NOT EXISTS user_notifications (
 CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, read, created_at DESC);
 
 -- Events indexes
+-- Event Check-ins
+CREATE TABLE IF NOT EXISTS event_checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    checked_in_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(event_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_checkins_event ON event_checkins(event_id);
 CREATE INDEX IF NOT EXISTS idx_events_date ON events(date, time);
 CREATE INDEX IF NOT EXISTS idx_events_creator ON events(creator_id);
 CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, date);

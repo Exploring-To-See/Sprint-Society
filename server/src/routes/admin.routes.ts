@@ -9,6 +9,12 @@ const router = Router();
 router.use(authenticate);
 router.use(requireAdmin);
 
+function awardXP(userId: number, amount: number, source: string, description: string) {
+  db.prepare('INSERT OR IGNORE INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
+  db.prepare('UPDATE user_xp SET total_xp = total_xp + ? WHERE user_id = ?').run(amount, userId);
+  db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)').run(userId, amount, source, description);
+}
+
 // ===== ALL RUNNERS =====
 
 router.get('/runners', (req: AuthRequest, res: Response) => {
@@ -148,6 +154,28 @@ router.put('/events/:id', (req: AuthRequest, res: Response) => {
 router.delete('/events/:id', (req: AuthRequest, res: Response) => {
   db.prepare("UPDATE events SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
   res.json({ success: true });
+});
+
+// Set check-in code + go live
+router.post('/events/:id/go-live', (req: AuthRequest, res: Response) => {
+  const { check_in_code } = req.body;
+  if (!check_in_code) return res.status(400).json({ error: 'Check-in code required' });
+
+  db.prepare("UPDATE events SET status = 'live', check_in_code = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+    .run(check_in_code.toUpperCase(), req.params.id);
+  res.json({ success: true, message: `Event is LIVE. Code: ${check_in_code.toUpperCase()}` });
+});
+
+// Complete event
+router.post('/events/:id/complete', (req: AuthRequest, res: Response) => {
+  db.prepare("UPDATE events SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
+
+  const checkins = db.prepare('SELECT user_id FROM event_checkins WHERE event_id = ?').all(parseInt(req.params.id)) as any[];
+  for (const c of checkins) {
+    awardXP(c.user_id, 100, 'event_completed', 'Completed an event');
+  }
+
+  res.json({ success: true, message: `Event completed. ${checkins.length} runners awarded 100 XP.` });
 });
 
 router.post('/events/:id/hosts', (req: AuthRequest, res: Response) => {

@@ -62,16 +62,30 @@ export function EventCard({ event, onClick }: EventCardProps) {
         </div>
       )}
 
-      {/* Bottom row: attendees + RSVP status */}
+      {/* Bottom row: attendees + spots left + RSVP status */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2">
           {event.attendee_count > 0 && (
             <span className="text-[10px] text-zinc-500 font-medium">
-              {event.attendee_count} going{event.maybe_count > 0 ? ` · ${event.maybe_count} maybe` : ''}
+              {event.attendee_count} going
+            </span>
+          )}
+          {event.max_attendees && !event.is_full && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+              (event.max_attendees - (event.attendee_count || 0)) <= 10
+                ? 'bg-red-500/10 text-red-400'
+                : 'bg-zinc-800 text-zinc-500'
+            }`}>
+              {event.max_attendees - (event.attendee_count || 0)} spots left
             </span>
           )}
         </div>
-        {event.user_rsvp && (
+        {event.status === 'live' && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 animate-pulse">
+            LIVE
+          </span>
+        )}
+        {event.user_rsvp && event.status !== 'live' && (
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
             event.user_rsvp === 'going'
               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'

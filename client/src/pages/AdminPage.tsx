@@ -210,6 +210,8 @@ function RunnersTab({ runners }: { runners: any[] }) {
 
 function EventsTab({ events, queryClient }: { events: any[]; queryClient: any }) {
   const [showForm, setShowForm] = useState(false);
+  const [goLiveId, setGoLiveId] = useState<number | null>(null);
+  const [liveCode, setLiveCode] = useState('');
   const [form, setForm] = useState({
     title: '', description: '', event_type: 'group_run', date: '', time: '06:00',
     duration_minutes: '60', location_name: '', max_attendees: '50', visibility: 'public',
@@ -226,6 +228,20 @@ function EventsTab({ events, queryClient }: { events: any[]; queryClient: any })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/admin/events/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-events'] }),
+  });
+
+  const goLiveMutation = useMutation({
+    mutationFn: ({ id, code }: { id: number; code: string }) => api.post(`/admin/events/${id}/go-live`, { check_in_code: code }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      setGoLiveId(null);
+      setLiveCode('');
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: (id: number) => api.post(`/admin/events/${id}/complete`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-events'] }),
   });
 
@@ -297,10 +313,44 @@ function EventsTab({ events, queryClient }: { events: any[]; queryClient: any })
                 {e.attendee_count || 0} going • {e.event_type} • {e.visibility}
               </p>
             </div>
-            <button onClick={() => deleteMutation.mutate(e.id)} className="text-zinc-600 hover:text-red-400 text-[11px] ml-3 transition-colors">
-              Cancel
-            </button>
+            <div className="flex flex-col gap-1 ml-3">
+              {e.status === 'upcoming' && (
+                <button onClick={() => setGoLiveId(goLiveId === e.id ? null : e.id)} className="text-green-400 hover:text-green-300 text-[11px] font-medium transition-colors">
+                  Go Live
+                </button>
+              )}
+              {e.status === 'live' && (
+                <button onClick={() => completeMutation.mutate(e.id)} className="text-accent hover:text-accent/80 text-[11px] font-medium transition-colors">
+                  Complete
+                </button>
+              )}
+              {e.status === 'upcoming' && (
+                <button onClick={() => deleteMutation.mutate(e.id)} className="text-zinc-600 hover:text-red-400 text-[11px] transition-colors">
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Go Live form */}
+          {goLiveId === e.id && (
+            <div className="mt-3 pt-3 border-t border-bg-tertiary flex gap-2">
+              <input
+                type="text"
+                value={liveCode}
+                onChange={ev => setLiveCode(ev.target.value.toUpperCase())}
+                placeholder="CHECK-IN CODE (e.g. SPRINT31)"
+                className="flex-1 px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] font-mono text-white placeholder:text-zinc-600 focus:border-green-500/50 focus:outline-none uppercase"
+              />
+              <button
+                onClick={() => goLiveMutation.mutate({ id: e.id, code: liveCode })}
+                disabled={!liveCode.trim() || goLiveMutation.isPending}
+                className="px-4 py-2 rounded-lg bg-green-500 text-white text-[11px] font-semibold disabled:opacity-40 active:scale-95"
+              >
+                {goLiveMutation.isPending ? '...' : 'Activate'}
+              </button>
+            </div>
+          )}
         </motion.div>
       ))}
     </motion.div>

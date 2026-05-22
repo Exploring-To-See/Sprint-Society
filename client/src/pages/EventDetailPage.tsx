@@ -33,6 +33,9 @@ export function EventDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState('');
+  const [checkInCode, setCheckInCode] = useState('');
+  const [checkInStatus, setCheckInStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [checkInMessage, setCheckInMessage] = useState('');
 
   const { data: event, isLoading } = useQuery({
     queryKey: ['event', id],
@@ -72,6 +75,19 @@ export function EventDetailPage() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['event', id] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+
+  const checkInMutation = useMutation({
+    mutationFn: (code: string) => api.post(`/events/${id}/checkin`, { code }),
+    onSuccess: (res) => {
+      setCheckInStatus('success');
+      setCheckInMessage(res.data.message);
+      queryClient.invalidateQueries({ queryKey: ['event', id] });
+    },
+    onError: (err: any) => {
+      setCheckInStatus('error');
+      setCheckInMessage(err.response?.data?.error || 'Check-in failed');
     },
   });
 
@@ -265,6 +281,54 @@ export function EventDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Check-in (when event is live) */}
+        {event.status === 'live' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 p-5"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <p className="text-[12px] font-bold uppercase tracking-wider text-emerald-400">EVENT IS LIVE</p>
+            </div>
+
+            {checkInStatus === 'success' ? (
+              <div className="text-center py-3">
+                <span className="text-3xl">✓</span>
+                <p className="text-[14px] font-semibold text-emerald-400 mt-2">{checkInMessage}</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-[12px] text-zinc-400 mb-3">Enter the code shared by the organizer to check in:</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={checkInCode}
+                    onChange={e => {
+                      setCheckInCode(e.target.value.toUpperCase());
+                      setCheckInStatus('idle');
+                    }}
+                    placeholder="ENTER CODE"
+                    maxLength={10}
+                    className="flex-1 px-4 py-3 rounded-lg bg-bg-primary border border-bg-tertiary text-center text-[16px] font-mono font-bold tracking-[0.3em] text-white placeholder:text-zinc-700 focus:border-emerald-500/50 focus:outline-none uppercase"
+                  />
+                  <button
+                    onClick={() => checkInMutation.mutate(checkInCode)}
+                    disabled={!checkInCode.trim() || checkInMutation.isPending}
+                    className="px-5 py-3 rounded-lg bg-emerald-500 text-white font-semibold text-[13px] disabled:opacity-40 active:scale-95 transition-all"
+                  >
+                    {checkInMutation.isPending ? '...' : 'Check In'}
+                  </button>
+                </div>
+                {checkInStatus === 'error' && (
+                  <p className="text-[11px] text-red-400 mt-2">{checkInMessage}</p>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
 
         {/* Comments */}
         <div className="space-y-3 pt-2 border-t border-bg-tertiary/50">

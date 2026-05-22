@@ -195,4 +195,41 @@ router.post('/:id/comments', (req: AuthRequest, res: Response) => {
   res.json(comment);
 });
 
+// POST /events/:id/checkin — check in with organizer code
+router.post('/:id/checkin', (req: AuthRequest, res: Response) => {
+  const eventId = parseInt(req.params.id);
+  const { code } = req.body;
+
+  if (!code) return res.status(400).json({ error: 'Check-in code required' });
+
+  const event = db.prepare('SELECT * FROM events WHERE id = ?').get(eventId) as any;
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (event.status !== 'live') return res.status(400).json({ error: 'Event is not live yet' });
+  if (!event.check_in_code) return res.status(400).json({ error: 'Check-in not enabled for this event' });
+  if (code.toUpperCase() !== event.check_in_code.toUpperCase()) {
+    return res.status(403).json({ error: 'Invalid check-in code' });
+  }
+
+  const existing = db.prepare('SELECT id FROM event_checkins WHERE event_id = ? AND user_id = ?').get(eventId, req.userId) as any;
+  if (existing) return res.json({ success: true, already_checked_in: true, message: 'Already checked in!' });
+
+  db.prepare('INSERT INTO event_checkins (event_id, user_id) VALUES (?, ?)').run(eventId, req.userId);
+  awardXP(req.userId!, 50, 'event_checkin', `Checked in at: ${event.title}`);
+
+  res.json({ success: true, already_checked_in: false, message: 'Checked in! +50 XP' });
+});
+
+// GET /events/:id/checkins — list checked-in users
+router.get('/:id/checkins', (req: AuthRequest, res: Response) => {
+  const checkins = db.prepare(`
+    SELECT ec.*, u.name, u.profile_image_url
+    FROM event_checkins ec
+    JOIN users u ON ec.user_id = u.id
+    WHERE ec.event_id = ?
+    ORDER BY ec.checked_in_at ASC
+  `).all(parseInt(req.params.id)) as any[];
+
+  res.json(checkins);
+});
+
 export default router;
