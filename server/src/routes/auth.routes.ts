@@ -10,7 +10,9 @@ const router = Router();
 const registerSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email(),
+  phone: z.string().min(10).max(15),
   password: z.string().min(6),
+  invite_code: z.string().min(1),
   gender: z.enum(['male', 'female', 'non-binary']),
   age: z.number().int().min(13).max(100),
   height_cm: z.number().min(100).max(250),
@@ -23,6 +25,22 @@ const registerSchema = z.object({
 router.post('/register', async (req, res: Response) => {
   try {
     const data = registerSchema.parse(req.body);
+
+    // Validate invite code
+    const code = db.prepare(`
+      SELECT * FROM invite_codes WHERE code = ? AND active = 1
+    `).get(data.invite_code) as any;
+
+    if (!code) {
+      return res.status(403).json({ error: 'Invalid invite code' });
+    }
+    if (code.expires_at && new Date(code.expires_at) < new Date()) {
+      return res.status(403).json({ error: 'Invite code has expired' });
+    }
+    if (code.max_uses && code.used_count >= code.max_uses) {
+      return res.status(403).json({ error: 'Invite code has reached its limit' });
+    }
+
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
     if (existing) {
       return res.status(409).json({ error: 'Email already registered' });
@@ -30,15 +48,19 @@ router.post('/register', async (req, res: Response) => {
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const result = db.prepare(`
-      INSERT INTO users (name, email, password_hash, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (name, email, phone, password_hash, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, invite_code_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      data.name, data.email, passwordHash, data.gender, data.age,
+      data.name, data.email, data.phone, passwordHash, data.gender, data.age,
       data.height_cm, data.weight_kg, data.fitness_level, data.running_experience,
-      JSON.stringify(data.injury_history)
+      JSON.stringify(data.injury_history), code.id
     );
 
     const userId = result.lastInsertRowid as number;
+
+    // Update invite code usage
+    db.prepare('UPDATE invite_codes SET used_count = used_count + 1 WHERE id = ?').run(code.id);
+    db.prepare('INSERT INTO invite_code_usage (code_id, user_id) VALUES (?, ?)').run(code.id, userId);
 
     db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
 

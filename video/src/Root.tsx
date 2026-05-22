@@ -5,6 +5,7 @@ import { AchievementUnlocked } from "./compositions/AchievementUnlocked/Achievem
 import { TransformationJourney } from "./compositions/TransformationJourney/TransformationJourney";
 import { WeeklyMontage } from "./compositions/WeeklyMontage/WeeklyMontage";
 import { ComingSoon } from "./compositions/ComingSoon/ComingSoon";
+import { LaunchTrailer } from "./compositions/LaunchTrailer/LaunchTrailer";
 import { aspectRatios, fps } from "./styles/theme";
 
 const defaultRunRecapProps = {
@@ -61,6 +62,22 @@ const defaultComingSoonProps = {
   ],
   tagline: "For the runners, by the runners.",
   launchText: "COMING SOON",
+  style: "hype" as const,
+};
+
+const defaultLaunchTrailerProps = {
+  clips: [
+    "assets/demo-run/clips/VIDEO-2025-07-23-10-23-24.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-54-39.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-55-34.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-53-25.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-54-00.mp4",
+    "assets/demo-run/clips/VIDEO-2025-07-06-13-53-35.mp4",
+  ],
+  aiClips: [],
+  tagline: "For the runners, by the runners.",
+  ctaText: "JOIN THE WAITLIST",
+  ctaUrl: "sprintsociety.run",
   style: "hype" as const,
 };
 
@@ -197,6 +214,26 @@ export const Root: React.FC = () => {
         width={aspectRatios.landscape.width}
         height={aspectRatios.landscape.height}
         defaultProps={defaultWeeklyMontageProps}
+      />
+
+      {/* LaunchTrailer — all aspect ratios */}
+      <Composition
+        id="LaunchTrailer-Story"
+        component={LaunchTrailer}
+        durationInFrames={1350}
+        fps={fps}
+        width={aspectRatios.story.width}
+        height={aspectRatios.story.height}
+        defaultProps={defaultLaunchTrailerProps}
+      />
+      <Composition
+        id="LaunchTrailer-Landscape"
+        component={LaunchTrailer}
+        durationInFrames={1350}
+        fps={fps}
+        width={aspectRatios.landscape.width}
+        height={aspectRatios.landscape.height}
+        defaultProps={defaultLaunchTrailerProps}
       />
 
       {/* ComingSoon — all aspect ratios */}

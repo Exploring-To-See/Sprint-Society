@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Home', icon: HomeIcon },
-  { path: '/feed', label: 'Club', icon: FeedIcon },
-  { path: '/training', label: 'Train', icon: TrainIcon },
-  { path: '/progress', label: 'Progress', icon: ProgressIcon },
+  { path: '/events', label: 'Events', icon: EventsIcon },
+  { path: '/communities', label: 'Society', icon: SocietyIcon },
+  { path: '/train', label: 'Train', icon: TrainIcon },
   { path: '/profile', label: 'Profile', icon: ProfileIcon },
 ];
 
@@ -17,7 +17,7 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/95 backdrop-blur-lg border-t border-bg-tertiary/50">
       <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-1.5 pb-[calc(env(safe-area-inset-bottom,6px)+4px)]">
         {NAV_ITEMS.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
           const Icon = item.icon;
           return (
             <button
@@ -72,24 +72,29 @@ function TrainIcon({ active }: { active: boolean }) {
   );
 }
 
-function ProgressIcon({ active }: { active: boolean }) {
+function EventsIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <path d="M3 15L7 10L10.5 12.5L17 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M14 5H17V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      {active && <path d="M3 15L7 10L10.5 12.5L17 5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.15"/>}
+      <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"
+        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
+      />
+      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 2.5V5M13 2.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="10" cy="12.5" r="1.5" fill="currentColor"/>
     </svg>
   );
 }
 
-function FeedIcon({ active }: { active: boolean }) {
+function SocietyIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <path d="M5 4H15C16.1046 4 17 4.89543 17 6V14C17 15.1046 16.1046 16 15 16H5C3.89543 16 3 15.1046 3 14V6C3 4.89543 3.89543 4 5 4Z"
-        stroke="currentColor" strokeWidth="1.5"
+      <circle cx="10" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5"
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
       />
-      <path d="M7 8H13M7 11H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="5" cy="9" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="15" cy="9" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M3 16c0-2 1.5-3.5 3.5-3.5M17 16c0-2-1.5-3.5-3.5-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M6 17c0-2.5 1.8-4 4-4s4 1.5 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }

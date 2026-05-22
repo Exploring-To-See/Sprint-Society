@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { PaceChart } from './PaceChart';
@@ -20,9 +22,7 @@ const fadeUp = {
 };
 
 function Skeleton({ className = '' }: { className?: string }) {
-  return (
-    <div className={`animate-pulse rounded-lg bg-bg-tertiary/50 ${className}`} />
-  );
+  return <div className={`animate-pulse rounded-lg bg-bg-tertiary/50 ${className}`} />;
 }
 
 function StatCard({ label, value, unit, accent }: { label: string; value: string | number; unit?: string; accent?: boolean }) {
@@ -39,10 +39,14 @@ function StatCard({ label, value, unit, accent }: { label: string; value: string
   );
 }
 
+type TrendTab = 'pace' | 'km' | 'consistency';
+
 export function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [trendTab, setTrendTab] = useState<TrendTab>('pace');
 
-  const { data: xp, isLoading: xpLoading } = useQuery({
+  const { data: xp } = useQuery({
     queryKey: ['xp'],
     queryFn: () => api.get('/gamification/xp').then(r => r.data),
   });
@@ -72,8 +76,23 @@ export function Dashboard() {
     queryFn: () => api.get('/records').then(r => r.data).catch(() => null),
   });
 
+  const { data: recentRuns } = useQuery({
+    queryKey: ['recent-runs'],
+    queryFn: () => api.get('/runs?limit=5').then(r => r.data).catch(() => []),
+  });
+
+  const { data: unreadNotifs } = useQuery({
+    queryKey: ['unread-notifications'],
+    queryFn: () => api.get('/notifications/unread-count').then(r => r.data),
+    refetchInterval: 30000,
+  });
+
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription-status'],
+    queryFn: () => api.get('/subscription/status').then(r => r.data),
+  });
+
   const level = xp?.current_level || 1;
-  const totalXp = xp?.total_xp || 0;
   const streak = xp?.current_streak_days || 0;
   const progressPercent = xp?.level_progress_percent || 0;
   const xpToNext = xp?.xp_to_next_level || 100;
@@ -85,13 +104,8 @@ export function Dashboard() {
   const greeting = greetingHour < 6 ? 'Late night' : greetingHour < 12 ? 'Morning' : greetingHour < 17 ? 'Afternoon' : 'Evening';
 
   return (
-    <motion.div
-      variants={stagger}
-      initial="hidden"
-      animate="show"
-      className="space-y-5 pb-6"
-    >
-      {/* Header — asymmetric, editorial feel */}
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
+      {/* Header */}
       <motion.div variants={fadeUp} className="pt-1">
         <div className="flex items-start justify-between">
           <div>
@@ -109,19 +123,33 @@ export function Dashboard() {
                 <span className="text-[11px] font-bold text-accent tabular-nums">{streak}</span>
               </div>
             )}
-            <div className="w-8 h-8 rounded-full bg-bg-secondary border border-bg-tertiary overflow-hidden flex items-center justify-center">
+            <button
+              onClick={() => navigate('/notifications')}
+              className="relative w-8 h-8 rounded-full bg-bg-secondary border border-bg-tertiary flex items-center justify-center active:scale-95 transition-all"
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" className="text-zinc-500">
+                <path d="M8 1.5a4 4 0 014 4v2.5l1.5 2.5H2.5L4 8V5.5a4 4 0 014-4zM6 12.5a2 2 0 004 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {(unreadNotifs?.count || 0) > 0 && (
+                <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent flex items-center justify-center">
+                  <span className="text-[8px] font-bold text-white">{unreadNotifs.count > 9 ? '9+' : unreadNotifs.count}</span>
+                </div>
+              )}
+            </button>
+            <div
+              onClick={() => navigate('/profile')}
+              className="w-8 h-8 rounded-full bg-bg-secondary border border-bg-tertiary overflow-hidden flex items-center justify-center cursor-pointer"
+            >
               {(user as any)?.profile_image_url ? (
                 <img src={(user as any).profile_image_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[11px] font-bold text-zinc-500">
-                  {user?.name?.[0]?.toUpperCase() || '?'}
-                </span>
+                <span className="text-[11px] font-bold text-zinc-500">{user?.name?.[0]?.toUpperCase() || '?'}</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Tier + Level — inline, not a big card */}
+        {/* Level + Tier + Progress */}
         <div className="flex items-center gap-3 mt-3">
           <span className={`text-[10px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-md ${
             tierName === 'advanced' ? 'bg-accent-gold/10 text-accent-gold border border-accent-gold/20' :
@@ -130,6 +158,13 @@ export function Dashboard() {
           }`}>
             {tierName}
           </span>
+          {subscription?.plan_key && subscription.plan_key !== 'free' && (
+            <span className={`text-[9px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded ${
+              subscription.plan_key === 'premium' ? 'bg-accent-gold/10 text-accent-gold border border-accent-gold/20' : 'bg-accent/10 text-accent border border-accent/20'
+            }`}>
+              {subscription.plan_key === 'premium' ? '👑 Premium' : '⚡ Pro'}
+            </span>
+          )}
           <div className="flex-1 flex items-center gap-2">
             <div className="flex-1 h-[3px] rounded-full bg-bg-tertiary overflow-hidden">
               <motion.div
@@ -142,15 +177,38 @@ export function Dashboard() {
             <span className="text-[10px] font-mono text-zinc-600 tabular-nums">L{level}</span>
           </div>
         </div>
+        {xpToNext > 0 && (
+          <p className="text-[10px] text-zinc-600 mt-1">{xpToNext} XP to Level {level + 1}</p>
+        )}
       </motion.div>
 
-      {/* Readiness — the daily hook */}
+      {/* Daily AI Insight */}
+      <motion.div variants={fadeUp}>
+        <div className="rounded-xl bg-gradient-to-r from-accent/5 to-transparent border border-accent/10 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-[14px]">💡</span>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-accent uppercase tracking-wider mb-1">Daily Insight</p>
+              <p className="text-[13px] text-zinc-300 leading-relaxed">
+                {stats?.total_runs > 0
+                  ? `You've run ${stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0}km total. ${streak > 3 ? `${streak}-day streak — consistency is your superpower.` : 'Build your streak — consistency beats intensity.'}`
+                  : 'Connect Strava to unlock personalized insights from your run data.'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Readiness */}
       <ReadinessCard />
 
       {/* Today's Session */}
       <TodaySession />
 
-      {/* Training Load + VDOT (new adaptive engine data) */}
+      {/* Training Load */}
       {adaptive?.status === 'active' && (
         <motion.div variants={fadeUp}>
           <TrainingLoadRing
@@ -164,7 +222,7 @@ export function Dashboard() {
         </motion.div>
       )}
 
-      {/* Quick Stats — horizontal scroll, not grid */}
+      {/* Quick Stats */}
       <motion.div variants={fadeUp}>
         {statsLoading ? (
           <div className="flex gap-1">
@@ -181,42 +239,103 @@ export function Dashboard() {
         )}
       </motion.div>
 
-      {/* Latest PR Banner */}
+      {/* Latest PR */}
       {records?.latest_pr && (
         <motion.div variants={fadeUp}>
           <PRBanner pr={records.latest_pr} totalPRs={records.total_count} />
         </motion.div>
       )}
 
-      {/* Pace Trend Chart */}
+      {/* Recent Runs (Run Log) */}
       <motion.div variants={fadeUp}>
         <div className="flex items-baseline justify-between mb-3">
-          <h3 className="font-heading font-semibold text-[14px]">Pace trend</h3>
-          <span className="text-[10px] text-zinc-600 font-mono">12 weeks</span>
+          <h3 className="font-heading font-semibold text-[14px]">Recent runs</h3>
+          <button onClick={() => navigate('/runs')} className="text-[10px] text-accent font-medium">View all</button>
+        </div>
+        {recentRuns && recentRuns.length > 0 ? (
+          <div className="space-y-2">
+            {recentRuns.slice(0, 5).map((run: any) => (
+              <div key={run.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <span className="text-[12px]">🏃</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-white truncate">
+                    {(run.distance_meters / 1000).toFixed(1)} km
+                  </p>
+                  <p className="text-[10px] text-zinc-600">
+                    {new Date(run.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[12px] font-mono font-semibold text-accent tabular-nums">
+                    {formatPace(run.average_pace_per_km)}<span className="text-[9px] text-zinc-600">/km</span>
+                  </p>
+                  <p className="text-[10px] text-zinc-600">{formatDuration(run.moving_time_seconds)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-6 text-center">
+            <p className="text-[12px] text-zinc-500">No runs yet. Connect Strava or complete your first run!</p>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Trends (Tabbed) */}
+      <motion.div variants={fadeUp}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-heading font-semibold text-[14px]">Trends</h3>
+          <div className="flex gap-1">
+            {(['pace', 'km', 'consistency'] as TrendTab[]).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setTrendTab(tab)}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-colors ${
+                  trendTab === tab ? 'bg-accent/10 text-accent' : 'text-zinc-600 hover:text-zinc-400'
+                }`}
+              >
+                {tab === 'pace' ? 'Pace' : tab === 'km' ? 'Volume' : 'Consistency'}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="card p-4">
-          <PaceChart />
+          {trendTab === 'pace' && <PaceChart />}
+          {trendTab === 'km' && (
+            <div className="h-[120px] flex items-center justify-center">
+              <p className="text-[11px] text-zinc-600">Weekly km trend coming with more data</p>
+            </div>
+          )}
+          {trendTab === 'consistency' && (
+            <div className="h-[120px] flex items-center justify-center">
+              <p className="text-[11px] text-zinc-600">Consistency trend coming with more data</p>
+            </div>
+          )}
         </div>
       </motion.div>
 
-      {/* Challenges */}
+      {/* Subtle Social Ticker */}
+      <motion.div variants={fadeUp}>
+        <div className="px-3 py-2 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
+          <p className="text-[11px] text-zinc-600 text-center">
+            <span className="text-zinc-500">👟</span> 3 runners in your community ran today
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Challenges / Tips */}
       <motion.div variants={fadeUp}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-heading font-semibold text-[14px]">This week</h3>
           <div className="flex items-center gap-2">
             <div className="flex gap-[3px]">
               {Array.from({ length: totalChallenges }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-[6px] h-[6px] rounded-full ${
-                    i < completedChallenges ? 'bg-accent-green' : 'bg-bg-tertiary'
-                  }`}
-                />
+                <div key={i} className={`w-[6px] h-[6px] rounded-full ${i < completedChallenges ? 'bg-accent-green' : 'bg-bg-tertiary'}`} />
               ))}
             </div>
-            <span className="text-[10px] font-mono text-zinc-600 tabular-nums">
-              {completedChallenges}/{totalChallenges}
-            </span>
+            <span className="text-[10px] font-mono text-zinc-600 tabular-nums">{completedChallenges}/{totalChallenges}</span>
           </div>
         </div>
         <ChallengeList />
@@ -230,4 +349,12 @@ function formatPace(seconds: number): string {
   const min = Math.floor(seconds / 60);
   const sec = Math.round(seconds % 60);
   return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+function formatDuration(seconds: number): string {
+  if (!seconds) return '--';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 }

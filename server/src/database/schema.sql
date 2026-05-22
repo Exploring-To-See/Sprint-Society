@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
+    phone TEXT,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'runner' CHECK(role IN ('admin', 'runner')),
     gender TEXT NOT NULL CHECK(gender IN ('male', 'female', 'non-binary')),
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     running_experience TEXT NOT NULL CHECK(running_experience IN ('none', 'beginner', 'intermediate', 'advanced')),
     injury_history TEXT DEFAULT '[]',
     profile_image_url TEXT,
+    invite_code_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -383,6 +385,113 @@ CREATE TABLE IF NOT EXISTS sprint_history (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ===== Events & Meetups =====
+
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    creator_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    event_type TEXT NOT NULL CHECK(event_type IN ('group_run', 'coffee_meetup', 'workout', 'social', 'custom')),
+    date DATE NOT NULL,
+    time TEXT NOT NULL,
+    duration_minutes INTEGER NOT NULL DEFAULT 60,
+    location_name TEXT,
+    latitude REAL,
+    longitude REAL,
+    max_attendees INTEGER,
+    is_recurring INTEGER DEFAULT 0,
+    recurrence_rule TEXT,
+    cover_image_url TEXT,
+    visibility TEXT NOT NULL DEFAULT 'public' CHECK(visibility IN ('public', 'followers_only', 'invite_only')),
+    status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'live', 'completed', 'cancelled')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS event_rsvps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'going' CHECK(status IN ('going', 'maybe', 'not_going')),
+    rsvped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS event_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS event_hosts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role_label TEXT NOT NULL DEFAULT 'Host',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(event_id, user_id)
+);
+
+-- ===== Communities =====
+
+CREATE TABLE IF NOT EXISTS communities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'custom' CHECK(category IN ('run_club', 'training', 'nutrition', 'wellness', 'social', 'brand', 'custom')),
+    avatar_url TEXT,
+    cover_url TEXT,
+    is_verified INTEGER DEFAULT 0,
+    member_count INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS community_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    community_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('owner', 'admin', 'member')),
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(community_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS community_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    community_id INTEGER NOT NULL,
+    author_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    image_url TEXT,
+    pinned INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS community_post_likes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(post_id, user_id)
+);
+
 -- ===== Indexes =====
 
 CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, start_date DESC);
@@ -402,3 +511,132 @@ CREATE INDEX IF NOT EXISTS idx_feature_flags_key ON feature_flags(key);
 CREATE INDEX IF NOT EXISTS idx_segment_members_user ON segment_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_log_admin ON admin_audit_log(admin_id, created_at DESC);
+
+-- ===== Invite Codes =====
+
+CREATE TABLE IF NOT EXISTS invite_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    max_uses INTEGER,
+    used_count INTEGER DEFAULT 0,
+    expires_at DATETIME,
+    created_by INTEGER NOT NULL,
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS invite_code_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (code_id) REFERENCES invite_codes(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_invite_codes_code ON invite_codes(code, active);
+
+-- ===== AI Runner Profile =====
+
+CREATE TABLE IF NOT EXISTS runner_profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    dream_race TEXT,
+    dream_race_distance_km REAL,
+    running_why TEXT,
+    run_feeling TEXT,
+    bad_run_response TEXT,
+    preferred_time TEXT,
+    training_days_per_week INTEGER,
+    coach_style TEXT CHECK(coach_style IN ('motivator', 'analyst', 'zen', 'drill_sergeant')),
+    estimated_vo2max REAL,
+    estimated_5k_time_sec INTEGER,
+    personality_tags TEXT DEFAULT '[]',
+    ai_coach_name TEXT DEFAULT 'Kai',
+    weekly_plan_generated INTEGER DEFAULT 0,
+    profiling_complete INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ===== Subscriptions =====
+
+CREATE TABLE IF NOT EXISTS subscription_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    price_inr INTEGER NOT NULL,
+    duration_days INTEGER NOT NULL DEFAULT 30,
+    features TEXT NOT NULL DEFAULT '[]',
+    razorpay_plan_id TEXT,
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    plan_key TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'expired', 'cancelled', 'pending')),
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    razorpay_subscription_id TEXT,
+    razorpay_payment_id TEXT,
+    auto_renew INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payment_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    plan_key TEXT NOT NULL,
+    amount_inr INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'success', 'failed', 'refunded')),
+    razorpay_order_id TEXT,
+    razorpay_payment_id TEXT,
+    razorpay_signature TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user ON user_subscriptions(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_expiry ON user_subscriptions(expires_at, status);
+CREATE INDEX IF NOT EXISTS idx_payment_history_user ON payment_history(user_id, created_at DESC);
+
+-- ===== In-App Notifications =====
+
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('kudos', 'comment', 'follow', 'event_reminder', 'event_rsvp', 'community_post', 'community_join', 'achievement', 'level_up', 'xp_award')),
+    title TEXT NOT NULL,
+    body TEXT,
+    actor_id INTEGER,
+    target_type TEXT,
+    target_id INTEGER,
+    read INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, read, created_at DESC);
+
+-- Events indexes
+CREATE INDEX IF NOT EXISTS idx_events_date ON events(date, time);
+CREATE INDEX IF NOT EXISTS idx_events_creator ON events(creator_id);
+CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, date);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id, status);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps(user_id);
+CREATE INDEX IF NOT EXISTS idx_event_comments_event ON event_comments(event_id);
+
+-- Communities indexes
+CREATE INDEX IF NOT EXISTS idx_communities_category ON communities(category);
+CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(community_id, role);
+CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_community ON community_posts(community_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_community_post_likes_post ON community_post_likes(post_id);

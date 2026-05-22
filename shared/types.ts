@@ -232,3 +232,185 @@ export interface PRCelebration {
   message: string;
   type: 'gold' | 'silver' | 'bronze';
 }
+
+// ===== Events & Meetups Types =====
+
+export type EventType = 'group_run' | 'coffee_meetup' | 'workout' | 'social' | 'custom';
+export type EventVisibility = 'public' | 'followers_only' | 'invite_only';
+export type EventStatus = 'upcoming' | 'live' | 'completed' | 'cancelled';
+export type RSVPStatus = 'going' | 'maybe' | 'not_going';
+
+export interface Event {
+  id: number;
+  creator_id: number;
+  title: string;
+  description?: string;
+  event_type: EventType;
+  date: string;
+  time: string;
+  duration_minutes: number;
+  location_name?: string;
+  latitude?: number;
+  longitude?: number;
+  max_attendees?: number;
+  is_recurring: boolean;
+  recurrence_rule?: string;
+  cover_image_url?: string;
+  visibility: EventVisibility;
+  status: EventStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventHost {
+  user_id: number;
+  name: string;
+  profile_image_url?: string;
+  role_label: string;
+}
+
+export interface EventWithDetails extends Event {
+  creator_name: string;
+  creator_image?: string;
+  attendee_count: number;
+  maybe_count: number;
+  user_rsvp?: RSVPStatus;
+  attendees: EventAttendee[];
+  hosts: EventHost[];
+  is_full: boolean;
+}
+
+export interface EventAttendee {
+  user_id: number;
+  name: string;
+  profile_image_url?: string;
+  rsvp_status: RSVPStatus;
+}
+
+export interface EventComment {
+  id: number;
+  event_id: number;
+  user_id: number;
+  user_name: string;
+  profile_image_url?: string;
+  body: string;
+  created_at: string;
+}
+
+// ===== Communities Types =====
+
+export type CommunityCategory = 'run_club' | 'training' | 'nutrition' | 'wellness' | 'social' | 'brand' | 'custom';
+export type CommunityMemberRole = 'owner' | 'admin' | 'member';
+
+export interface Community {
+  id: number;
+  owner_id: number;
+  name: string;
+  description?: string;
+  category: CommunityCategory;
+  avatar_url?: string;
+  cover_url?: string;
+  is_verified: boolean;
+  member_count: number;
+  created_at: string;
+}
+
+export interface CommunityWithDetails extends Community {
+  owner_name: string;
+  owner_image?: string;
+  user_role?: CommunityMemberRole;
+  is_member: boolean;
+  recent_posts: CommunityPost[];
+}
+
+export interface CommunityMember {
+  user_id: number;
+  name: string;
+  profile_image_url?: string;
+  role: CommunityMemberRole;
+  joined_at: string;
+}
+
+export interface CommunityPost {
+  id: number;
+  community_id: number;
+  author_id: number;
+  author_name: string;
+  author_image?: string;
+  body: string;
+  image_url?: string;
+  pinned: boolean;
+  likes_count: number;
+  user_liked: boolean;
+  created_at: string;
+}
+
+export interface CreateCommunityPayload {
+  name: string;
+  description?: string;
+  category: CommunityCategory;
+}
+
+// ===== Subscription Types =====
+
+export type PlanKey = 'free' | 'pro' | 'premium';
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'pending';
+
+export interface SubscriptionPlan {
+  id: number;
+  key: PlanKey;
+  name: string;
+  price_inr: number;
+  duration_days: number;
+  features: string[];
+}
+
+export interface UserSubscription {
+  plan_key: PlanKey;
+  plan_name: string;
+  status: SubscriptionStatus;
+  started_at: string;
+  expires_at: string;
+  auto_renew: boolean;
+  days_remaining: number;
+}
+
+// ===== Notifications Types =====
+
+export type NotificationType = 'kudos' | 'comment' | 'follow' | 'event_reminder' | 'event_rsvp' | 'community_post' | 'community_join' | 'achievement' | 'level_up' | 'xp_award';
+
+export interface UserNotification {
+  id: number;
+  user_id: number;
+  type: NotificationType;
+  title: string;
+  body?: string;
+  actor_id?: number;
+  actor_name?: string;
+  actor_image?: string;
+  target_type?: string;
+  target_id?: number;
+  read: boolean;
+  created_at: string;
+}
+
+// ===== Public Profile Types =====
+
+export interface PublicProfile {
+  id: number;
+  name: string;
+  profile_image_url?: string;
+  running_experience: RunningExperience;
+  current_tier?: Tier;
+  current_level: number;
+  total_xp: number;
+  total_runs: number;
+  total_distance_km: number;
+  current_streak_days: number;
+  joined_at: string;
+  is_following: boolean;
+  followers_count: number;
+  following_count: number;
+  communities: { id: number; name: string; category: string }[];
+  recent_achievements: Achievement[];
+}

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { createNotification } from './notifications.routes';
 
 const router = Router();
 router.use(authenticate);
@@ -60,6 +61,8 @@ router.post('/kudos/:activityId', (req: AuthRequest, res: Response) => {
       db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)').run(
         activity.user_id, 5, 'kudos_received', 'Received kudos from a club member'
       );
+      const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
+      createNotification(activity.user_id, 'kudos', `${actorName} gave you kudos`, 'On your recent run', req.userId, 'activity', activityId);
     }
 
     const count = db.prepare('SELECT COUNT(*) as count FROM kudos WHERE activity_id = ?').get(activityId) as any;
@@ -108,6 +111,8 @@ router.post('/comments/:activityId', (req: AuthRequest, res: Response) => {
   // Award XP for receiving a comment
   if (activity.user_id !== req.userId) {
     db.prepare('UPDATE user_xp SET total_xp = total_xp + 3 WHERE user_id = ?').run(activity.user_id);
+    const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
+    createNotification(activity.user_id, 'comment', `${actorName} commented on your run`, body.trim().slice(0, 80), req.userId, 'activity', activityId);
   }
 
   const comment = db.prepare(`
@@ -128,6 +133,8 @@ router.post('/follow/:userId', (req: AuthRequest, res: Response) => {
 
   try {
     db.prepare('INSERT INTO follows (follower_id, following_id) VALUES (?, ?)').run(req.userId, targetId);
+    const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
+    createNotification(targetId, 'follow', `${actorName} started following you`, undefined, req.userId, 'user', req.userId);
     res.json({ success: true, following: true });
   } catch (e: any) {
     if (e.message?.includes('UNIQUE')) {

@@ -50,6 +50,128 @@ router.get('/runners/:id', (req: AuthRequest, res: Response) => {
   res.json({ ...runner, recent_runs: recentRuns, tier_history: tierHistory });
 });
 
+// ===== INVITE CODES =====
+
+router.get('/invite-codes', (req: AuthRequest, res: Response) => {
+  const codes = db.prepare(`
+    SELECT ic.*, u.name as created_by_name,
+      (SELECT COUNT(*) FROM invite_code_usage WHERE code_id = ic.id) as actual_uses
+    FROM invite_codes ic
+    JOIN users u ON ic.created_by = u.id
+    ORDER BY ic.created_at DESC
+  `).all();
+  res.json(codes);
+});
+
+router.post('/invite-codes', (req: AuthRequest, res: Response) => {
+  const { code, name, max_uses, expires_at } = req.body;
+  if (!code || !name) return res.status(400).json({ error: 'Code and name are required' });
+
+  const existing = db.prepare('SELECT id FROM invite_codes WHERE code = ?').get(code);
+  if (existing) return res.status(409).json({ error: 'Code already exists' });
+
+  const result = db.prepare(`
+    INSERT INTO invite_codes (code, name, max_uses, expires_at, created_by)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(code, name, max_uses || null, expires_at || null, req.userId);
+
+  res.status(201).json({ id: result.lastInsertRowid, code, name, success: true });
+});
+
+router.put('/invite-codes/:id', (req: AuthRequest, res: Response) => {
+  const { active, max_uses, expires_at } = req.body;
+  db.prepare(`
+    UPDATE invite_codes SET active = COALESCE(?, active), max_uses = COALESCE(?, max_uses), expires_at = COALESCE(?, expires_at) WHERE id = ?
+  `).run(active !== undefined ? (active ? 1 : 0) : null, max_uses || null, expires_at || null, req.params.id);
+  res.json({ success: true });
+});
+
+router.delete('/invite-codes/:id', (req: AuthRequest, res: Response) => {
+  db.prepare('UPDATE invite_codes SET active = 0 WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+router.get('/invite-codes/:id/usage', (req: AuthRequest, res: Response) => {
+  const usage = db.prepare(`
+    SELECT icu.*, u.name, u.email, u.phone, u.created_at as joined_at
+    FROM invite_code_usage icu
+    JOIN users u ON icu.user_id = u.id
+    WHERE icu.code_id = ?
+    ORDER BY icu.used_at DESC
+  `).all(req.params.id);
+  res.json(usage);
+});
+
+// ===== EVENTS (Admin-only creation) =====
+
+router.get('/events', (req: AuthRequest, res: Response) => {
+  const events = db.prepare(`
+    SELECT e.*,
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count
+    FROM events e ORDER BY e.date DESC
+  `).all();
+  res.json(events);
+});
+
+router.post('/events', (req: AuthRequest, res: Response) => {
+  const { title, description, event_type, date, time, duration_minutes, location_name, latitude, longitude, max_attendees, visibility } = req.body;
+  if (!title || !event_type || !date || !time) {
+    return res.status(400).json({ error: 'Title, event_type, date, and time are required' });
+  }
+
+  const result = db.prepare(`
+    INSERT INTO events (creator_id, title, description, event_type, date, time, duration_minutes, location_name, latitude, longitude, max_attendees, visibility)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    req.userId, title, description || null, event_type, date, time,
+    duration_minutes || 60, location_name || null, latitude || null, longitude || null,
+    max_attendees || null, visibility || 'public'
+  );
+
+  res.status(201).json({ id: result.lastInsertRowid, success: true });
+});
+
+router.put('/events/:id', (req: AuthRequest, res: Response) => {
+  const { title, description, event_type, date, time, duration_minutes, location_name, max_attendees, status, visibility } = req.body;
+  db.prepare(`
+    UPDATE events SET
+      title = COALESCE(?, title), description = COALESCE(?, description),
+      event_type = COALESCE(?, event_type), date = COALESCE(?, date), time = COALESCE(?, time),
+      duration_minutes = COALESCE(?, duration_minutes), location_name = COALESCE(?, location_name),
+      max_attendees = COALESCE(?, max_attendees), status = COALESCE(?, status),
+      visibility = COALESCE(?, visibility), updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(title, description, event_type, date, time, duration_minutes, location_name, max_attendees, status, visibility, req.params.id);
+  res.json({ success: true });
+});
+
+router.delete('/events/:id', (req: AuthRequest, res: Response) => {
+  db.prepare("UPDATE events SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
+  res.json({ success: true });
+});
+
+router.post('/events/:id/hosts', (req: AuthRequest, res: Response) => {
+  const { user_id, role_label } = req.body;
+  if (!user_id || !role_label) return res.status(400).json({ error: 'user_id and role_label required' });
+
+  try {
+    db.prepare('INSERT INTO event_hosts (event_id, user_id, role_label) VALUES (?, ?, ?)').run(
+      parseInt(req.params.id), user_id, role_label
+    );
+    res.status(201).json({ success: true });
+  } catch (e: any) {
+    if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: 'Host already added' });
+    throw e;
+  }
+});
+
+router.delete('/events/:id/hosts/:userId', (req: AuthRequest, res: Response) => {
+  db.prepare('DELETE FROM event_hosts WHERE event_id = ? AND user_id = ?').run(
+    parseInt(req.params.id), parseInt(req.params.userId)
+  );
+  res.json({ success: true });
+});
+
 // ===== CLUB SESSIONS =====
 
 router.get('/sessions', (req: AuthRequest, res: Response) => {

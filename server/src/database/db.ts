@@ -18,6 +18,32 @@ export function initializeDatabase() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   db.exec(schema);
   seedAchievements();
+  seedSubscriptionPlans();
+}
+
+function seedSubscriptionPlans() {
+  const count = db.prepare('SELECT COUNT(*) as count FROM subscription_plans').get() as { count: number };
+  if (count.count > 0) return;
+
+  const plans = [
+    {
+      key: 'free', name: 'Starter', price_inr: 9, duration_days: 36500,
+      features: JSON.stringify(['Track runs', 'Join events', 'Join communities', 'Social feed', 'Basic stats', 'Leaderboard']),
+    },
+    {
+      key: 'pro', name: 'Pro', price_inr: 19, duration_days: 30,
+      features: JSON.stringify(['Everything in Starter', 'AI coaching', 'Training plans', 'HR zones', 'Personal records', 'Weekly challenges', 'Pace zones']),
+    },
+    {
+      key: 'premium', name: 'Premium', price_inr: 199, duration_days: 30,
+      features: JSON.stringify(['Everything in Pro', 'Adaptive training engine', 'Transformation plans', 'Injury risk detection', 'Create communities', 'Priority event RSVPs', 'Advanced analytics', 'Custom challenges']),
+    },
+  ];
+
+  const stmt = db.prepare('INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES (?, ?, ?, ?, ?)');
+  for (const p of plans) {
+    stmt.run(p.key, p.name, p.price_inr, p.duration_days, p.features);
+  }
 }
 
 function seedAchievements() {
@@ -41,6 +67,11 @@ function seedAchievements() {
     { name: 'Elite', description: 'Reach Advanced tier', icon: '👑', category: 'tier', requirement_type: 'tier_reached', requirement_value: 3, xp_reward: 1000 },
     { name: '50K Total', description: 'Run 50km total distance', icon: '🗺️', category: 'distance', requirement_type: 'total_distance_km', requirement_value: 50, xp_reward: 250 },
     { name: '100K Club', description: 'Run 100km total distance', icon: '🌍', category: 'distance', requirement_type: 'total_distance_km', requirement_value: 100, xp_reward: 500 },
+    { name: 'Event Goer', description: 'Attend your first event', icon: '🎉', category: 'social', requirement_type: 'events_attended', requirement_value: 1, xp_reward: 100 },
+    { name: 'Social Butterfly', description: 'Attend 5 events', icon: '🦋', category: 'social', requirement_type: 'events_attended', requirement_value: 5, xp_reward: 300 },
+    { name: 'Regular', description: 'Attend 20 events', icon: '🏠', category: 'social', requirement_type: 'events_attended', requirement_value: 20, xp_reward: 750 },
+    { name: 'Community Builder', description: 'Create a community', icon: '🏘️', category: 'social', requirement_type: 'communities_created', requirement_value: 1, xp_reward: 500 },
+    { name: 'Community Leader', description: 'Grow a community to 50 members', icon: '👑', category: 'social', requirement_type: 'community_members', requirement_value: 50, xp_reward: 1000 },
   ];
 
   const stmt = db.prepare(`INSERT INTO achievements (name, description, icon, category, requirement_type, requirement_value, xp_reward) VALUES (?, ?, ?, ?, ?, ?, ?)`);

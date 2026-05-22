@@ -15,4 +15,6 @@ export const config = {
     redirectUri: process.env.STRAVA_REDIRECT_URI || 'http://localhost:5173/strava/callback',
     webhookVerifyToken: process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || 'sprint-society-webhook',
   },
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
 };

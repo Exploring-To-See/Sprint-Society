@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ASCII Diagram Intermediate Representation",
+  "description": "Renderer-agnostic semantic model of an ASCII/Unicode diagram. Populate from the source ASCII, then hand to any renderer (HTML/Tailwind, Mermaid, diagrams, DOT).",
+  "type": "object",
+  "required": ["title", "diagram_type", "nodes", "edges"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Inferred or user-provided title shown as the infographic heading."
+    },
+    "diagram_type": {
+      "type": "string",
+      "enum": ["architecture", "pipeline", "sequence", "hierarchy", "flow", "mixed"]
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "overall_direction": {
+          "type": "string",
+          "enum": ["top-to-bottom", "left-to-right", "bottom-to-top", "right-to-left"]
+        },
+        "container_internal_directions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["top-to-bottom", "left-to-right"]
+          }
+        },
+        "vertical_ordering": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Container/node IDs ordered top-to-bottom (or primary axis)."
+        }
+      }
+    },
+    "containers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": "string"},
+          "subtitle": {"type": "string", "description": "Platform/tech badge (e.g. 'AWS', 'Dataiku')."},
+          "children": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Node or container IDs nested inside this container."
+          },
+          "description": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "tags": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Technology/ownership pill badges."
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": "string"},
+          "subtitle": {"type": "string"},
+          "type": {
+            "type": "string",
+            "enum": ["stage", "consumer", "system", "actor", "store", "service", "step"],
+            "description": "Semantic role — drives color coding."
+          },
+          "tags": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "label": {"type": "string"},
+          "direction": {
+            "type": "string",
+            "enum": ["up", "down", "left", "right"],
+            "description": "Direction in the source ASCII; bidirectional flows = two edges."
+          },
+          "style": {
+            "type": "string",
+            "enum": ["solid", "dashed", "dotted"]
+          }
+        }
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Free-text footnotes that don't belong on any specific node."
+    },
+    "style": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["enterprise-dark", "editorial", "blueprint", "light", "paper"]
+        },
+        "palette": {"type": "string"}
+      }
+    }
+  }
+}

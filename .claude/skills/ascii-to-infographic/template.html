@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Infographic</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!--
+  TEMPLATE: ASCII → Infographic
+  Adapt this file — do NOT ship verbatim. Rewrite the grid to match the IR.
+  Design rules:
+    * CSS grid / flexbox only; no absolute coordinates.
+    * Semantic color coding: actor=sky, platform=slate, stage=medallion,
+      consumer=emerald. Pick one theme and commit.
+    * Readable typography hierarchy: bold titles, uppercase tracking-wider
+      subtitles, muted italic annotations.
+    * Arrows: small inline SVG or CSS triangles, with labels.
+    * High DPI: render with `--scale 2` via render_infographic.py.
+-->
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  .arrow-down { width: 0; height: 0; border-left: 10px solid transparent;
+    border-right: 10px solid transparent; border-top: 14px solid currentColor; }
+  .arrow-up   { width: 0; height: 0; border-left: 10px solid transparent;
+    border-right: 10px solid transparent; border-bottom: 14px solid currentColor; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<main class="mx-auto max-w-[1200px] px-10 py-12 space-y-8">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-800 pb-6">
+    <p class="text-xs uppercase tracking-[0.3em] text-sky-400 mb-2">Architecture</p>
+    <h1 class="text-3xl font-semibold">Data Platform Architecture</h1>
+    <p class="text-slate-400 mt-2 text-sm">Medallion pattern · Business ↔ Platform ↔ Consumers</p>
+  </header>
+
+  <!-- ROW 1: ACTOR / BUSINESS -->
+  <section class="grid grid-cols-1">
+    <div class="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-6 shadow-lg">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-sky-400">Business</p>
+          <h2 class="text-xl font-semibold mt-1">Dataiku</h2>
+        </div>
+        <span class="rounded-full bg-sky-500/15 text-sky-300 text-xs px-3 py-1">Actor</span>
+      </div>
+      <ul class="text-sm text-slate-300 mt-4 space-y-1">
+        <li>• Actuaries build ETL logic &amp; data frames</li>
+        <li>• Submit: data frame + manifest file</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- BIDIRECTIONAL FLOW -->
+  <div class="flex items-center justify-center gap-10 text-slate-400 text-xs uppercase tracking-wider">
+    <div class="flex flex-col items-center gap-1 text-sky-400">
+      <div class="arrow-down"></div>
+      <span>Publish (data + manifest)</span>
+    </div>
+    <div class="flex flex-col items-center gap-1 text-emerald-400">
+      <span>Consume silver/gold</span>
+      <div class="arrow-up"></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: PLATFORM CONTAINER WITH MEDALLION STAGES -->
+  <section class="rounded-2xl border border-slate-700 bg-slate-900/60 p-6 shadow-xl">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-slate-400">IT Data Platform</p>
+        <h2 class="text-xl font-semibold">AWS</h2>
+      </div>
+      <div class="flex gap-2">
+        <span class="rounded-full bg-slate-800 text-slate-300 text-xs px-3 py-1">Iceberg</span>
+        <span class="rounded-full bg-slate-800 text-slate-300 text-xs px-3 py-1">Glue</span>
+        <span class="rounded-full bg-slate-800 text-slate-300 text-xs px-3 py-1">IaC</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-3">
+      <!-- Bronze -->
+      <div class="rounded-xl border border-[#CD7F32]/40 bg-[#CD7F32]/10 p-5">
+        <p class="text-xs uppercase tracking-wider" style="color:#CD7F32">Stage</p>
+        <h3 class="text-lg font-semibold mt-1">Bronze</h3>
+        <p class="text-sm text-slate-400 mt-1">Raw</p>
+      </div>
+      <span class="text-slate-500 text-xl">→</span>
+      <!-- Silver -->
+      <div class="rounded-xl border border-slate-400/40 bg-slate-400/10 p-5">
+        <p class="text-xs uppercase tracking-wider text-slate-300">Stage</p>
+        <h3 class="text-lg font-semibold mt-1">Silver</h3>
+        <p class="text-sm text-slate-400 mt-1">Cleansed · Conformed</p>
+      </div>
+      <span class="text-slate-500 text-xl">→</span>
+      <!-- Gold -->
+      <div class="rounded-xl border border-yellow-400/40 bg-yellow-400/10 p-5">
+        <p class="text-xs uppercase tracking-wider text-yellow-300">Stage</p>
+        <h3 class="text-lg font-semibold mt-1">Gold</h3>
+        <p class="text-sm text-slate-400 mt-1">Business Ready</p>
+      </div>
+    </div>
+
+    <p class="mt-4 text-xs italic text-slate-500">
+      IT owns data models in ADR/CDR. IaC-managed control + data plane.
+    </p>
+  </section>
+
+  <!-- FAN-OUT ARROW -->
+  <div class="flex justify-center text-slate-500">
+    <div class="arrow-down"></div>
+  </div>
+
+  <!-- ROW 3: CONSUMERS FAN-OUT -->
+  <section class="grid grid-cols-3 gap-4">
+    <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">
+      <p class="text-xs uppercase tracking-wider text-emerald-400">Consumer</p>
+      <h3 class="text-lg font-semibold mt-1">ADR</h3>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">
+      <p class="text-xs uppercase tracking-wider text-emerald-400">Consumer</p>
+      <h3 class="text-lg font-semibold mt-1">CDR</h3>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-center">
+      <p class="text-xs uppercase tracking-wider text-emerald-400">Consumer</p>
+      <h3 class="text-lg font-semibold mt-1">FinIQ</h3>
+    </div>
+  </section>
+
+  <footer class="pt-6 text-xs text-slate-500 text-center border-t border-slate-800">
+    Generated from ASCII diagram · ascii-to-infographic skill
+  </footer>
+</main>
+</body>
+</html>

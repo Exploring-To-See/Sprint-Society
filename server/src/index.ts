@@ -20,6 +20,12 @@ import recordsRoutes from './routes/records.routes';
 import adaptiveRoutes from './routes/adaptive.routes';
 import socialRoutes from './routes/social.routes';
 import chatRoutes from './routes/chat.routes';
+import eventsRoutes from './routes/events.routes';
+import communitiesRoutes from './routes/communities.routes';
+import notificationsRoutes from './routes/notifications.routes';
+import profileRoutes from './routes/profile.routes';
+import subscriptionRoutes from './routes/subscription.routes';
+import profilingRoutes from './routes/profiling.routes';
 
 const app = express();
 
@@ -42,6 +48,12 @@ app.use('/api/records', recordsRoutes);
 app.use('/api/adaptive', adaptiveRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/communities', communitiesRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/profiling', profilingRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', name: 'Sprint Society API', version: '1.0.0' });
