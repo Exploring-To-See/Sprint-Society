@@ -1,4 +1,5 @@
 import Database, { type Database as DatabaseType } from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
 
@@ -17,8 +18,40 @@ db.pragma('foreign_keys = ON');
 export function initializeDatabase() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   db.exec(schema);
+  seedAdmin();
+  seedSprintSocialClub();
   seedAchievements();
   seedSubscriptionPlans();
+}
+
+function seedAdmin() {
+  const existing = db.prepare("SELECT id FROM users WHERE email = 'admin@sprintsociety.com'").get() as any;
+  if (existing) return;
+
+  const hash = bcrypt.hashSync('kendusprintsociety', 10);
+  db.prepare(`
+    INSERT INTO users (name, email, phone, password_hash, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history)
+    VALUES (?, ?, ?, ?, 'admin', 'male', 28, 178, 72, 'very_active', 'advanced', '[]')
+  `).run('Ishan (Admin)', 'admin@sprintsociety.com', '+919999999999', hash);
+
+  const adminId = (db.prepare("SELECT id FROM users WHERE email = 'admin@sprintsociety.com'").get() as any).id;
+  db.prepare('INSERT OR IGNORE INTO user_xp (user_id, total_xp, current_level, current_streak_days, longest_streak_days) VALUES (?, ?, ?, ?, ?)').run(adminId, 5000, 12, 21, 45);
+}
+
+function seedSprintSocialClub() {
+  const existing = db.prepare("SELECT id FROM communities WHERE name = 'Sprint Social Club'").get() as any;
+  if (existing) return;
+
+  const admin = db.prepare("SELECT id FROM users WHERE email = 'admin@sprintsociety.com'").get() as any;
+  if (!admin) return;
+
+  const result = db.prepare(`
+    INSERT INTO communities (owner_id, name, description, category, is_verified, member_count)
+    VALUES (?, 'Sprint Social Club', 'The official Sprint Society community. Everyone''s in. Announcements, events, vibes.', 'social', 1, 1)
+  `).run(admin.id);
+
+  db.prepare('INSERT INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)')
+    .run(result.lastInsertRowid, admin.id, 'owner');
 }
 
 function seedSubscriptionPlans() {

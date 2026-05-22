@@ -64,6 +64,13 @@ router.post('/register', async (req, res: Response) => {
 
     db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
 
+    // Auto-join Sprint Social Club (mandatory community)
+    const socialClub = db.prepare("SELECT id FROM communities WHERE name = 'Sprint Social Club'").get() as any;
+    if (socialClub) {
+      db.prepare('INSERT OR IGNORE INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(socialClub.id, userId, 'member');
+      db.prepare('UPDATE communities SET member_count = member_count + 1 WHERE id = ?').run(socialClub.id);
+    }
+
     const token = signToken(userId);
     res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email } });
   } catch (err: any) {

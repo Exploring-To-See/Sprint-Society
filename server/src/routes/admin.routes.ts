@@ -319,6 +319,35 @@ router.delete('/runners/:id', (req: AuthRequest, res: Response) => {
   res.json({ message: 'User and all associated data deleted' });
 });
 
+// ===== COMMUNITIES =====
+
+router.get('/communities', (req: AuthRequest, res: Response) => {
+  const communities = db.prepare(`
+    SELECT c.*, u.name as owner_name
+    FROM communities c
+    JOIN users u ON c.owner_id = u.id
+    ORDER BY c.member_count DESC
+  `).all();
+  res.json(communities);
+});
+
+router.put('/communities/:id', (req: AuthRequest, res: Response) => {
+  const { name, description, category, is_verified } = req.body;
+  db.prepare(`
+    UPDATE communities SET
+      name = COALESCE(?, name), description = COALESCE(?, description),
+      category = COALESCE(?, category), is_verified = COALESCE(?, is_verified),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(name, description, category, is_verified !== undefined ? (is_verified ? 1 : 0) : null, req.params.id);
+  res.json({ success: true });
+});
+
+router.delete('/communities/:id', (req: AuthRequest, res: Response) => {
+  db.prepare('DELETE FROM communities WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
 // ===== DATA EXPORT =====
 
 router.get('/export/runners', (req: AuthRequest, res: Response) => {

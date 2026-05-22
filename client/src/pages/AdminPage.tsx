@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { Button } from '../components/ui/Button';
 
-type Tab = 'overview' | 'runners' | 'sessions' | 'announcements';
+type Tab = 'overview' | 'runners' | 'events' | 'communities' | 'sessions' | 'announcements';
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
@@ -31,6 +31,18 @@ export function AdminPage() {
     enabled: tab === 'runners' || tab === 'overview',
   });
 
+  const { data: events } = useQuery({
+    queryKey: ['admin-events'],
+    queryFn: () => api.get('/admin/events').then(r => r.data),
+    enabled: tab === 'events',
+  });
+
+  const { data: communities } = useQuery({
+    queryKey: ['admin-communities'],
+    queryFn: () => api.get('/admin/communities').then(r => r.data),
+    enabled: tab === 'communities',
+  });
+
   const { data: sessions } = useQuery({
     queryKey: ['admin-sessions'],
     queryFn: () => api.get('/admin/sessions').then(r => r.data),
@@ -46,6 +58,8 @@ export function AdminPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'runners', label: 'Runners' },
+    { key: 'events', label: 'Events' },
+    { key: 'communities', label: 'Communities' },
     { key: 'sessions', label: 'Sessions' },
     { key: 'announcements', label: 'Posts' },
   ];
@@ -65,7 +79,7 @@ export function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-bg-tertiary">
+        <div className="flex gap-1 border-b border-bg-tertiary overflow-x-auto scrollbar-none">
           {tabs.map(t => (
             <button
               key={t.key}
@@ -86,6 +100,8 @@ export function AdminPage() {
       <main className="max-w-2xl mx-auto px-5 py-5">
         {tab === 'overview' && <OverviewTab stats={stats} runners={runners} />}
         {tab === 'runners' && <RunnersTab runners={runners} />}
+        {tab === 'events' && <EventsTab events={events} queryClient={queryClient} />}
+        {tab === 'communities' && <CommunitiesTab communities={communities} queryClient={queryClient} />}
         {tab === 'sessions' && <SessionsTab sessions={sessions} queryClient={queryClient} />}
         {tab === 'announcements' && <AnnouncementsTab announcements={announcements} queryClient={queryClient} />}
       </main>
@@ -184,6 +200,141 @@ function RunnersTab({ runners }: { runners: any[] }) {
             <div>
               <p className="font-mono text-sm font-bold">{runner.current_level || 1}</p>
               <p className="text-[9px] text-zinc-600">level</p>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
+function EventsTab({ events, queryClient }: { events: any[]; queryClient: any }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    title: '', description: '', event_type: 'group_run', date: '', time: '06:00',
+    duration_minutes: '60', location_name: '', max_attendees: '50', visibility: 'public',
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.post('/admin/events', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      setShowForm(false);
+      setForm({ title: '', description: '', event_type: 'group_run', date: '', time: '06:00', duration_minutes: '60', location_name: '', max_attendees: '50', visibility: 'public' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/admin/events/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-events'] }),
+  });
+
+  const inputClass = "w-full px-4 py-3 rounded-lg bg-bg-primary border border-bg-tertiary text-white text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors";
+
+  return (
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
+      <motion.div variants={fadeUp} className="flex justify-between items-center">
+        <p className="text-zinc-500 text-sm">{events?.length || 0} events</p>
+        <Button size="sm" onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Cancel' : '+ New Event'}
+        </Button>
+      </motion.div>
+
+      {showForm && (
+        <motion.div variants={fadeUp} className="card p-5 space-y-3">
+          <input type="text" placeholder="Event title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className={inputClass} />
+          <textarea placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className={`${inputClass} resize-none`} />
+          <div className="grid grid-cols-2 gap-3">
+            <select value={form.event_type} onChange={e => setForm(f => ({ ...f, event_type: e.target.value }))} className={inputClass}>
+              <option value="group_run">Group Run</option>
+              <option value="coffee_meetup">Coffee Meetup</option>
+              <option value="workout">Workout</option>
+              <option value="social">Social</option>
+              <option value="custom">Custom</option>
+            </select>
+            <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value }))} className={inputClass}>
+              <option value="public">Public</option>
+              <option value="followers_only">Followers Only</option>
+              <option value="invite_only">Invite Only</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputClass} />
+            <input type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="number" placeholder="Duration (min)" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} className={inputClass} />
+            <input type="number" placeholder="Max attendees" value={form.max_attendees} onChange={e => setForm(f => ({ ...f, max_attendees: e.target.value }))} className={inputClass} />
+          </div>
+          <input type="text" placeholder="Location" value={form.location_name} onChange={e => setForm(f => ({ ...f, location_name: e.target.value }))} className={inputClass} />
+          <Button fullWidth onClick={() => createMutation.mutate({
+            ...form,
+            duration_minutes: Number(form.duration_minutes),
+            max_attendees: Number(form.max_attendees) || null,
+          })} disabled={!form.title || !form.date || createMutation.isPending}>
+            {createMutation.isPending ? 'Creating...' : 'Create Event'}
+          </Button>
+        </motion.div>
+      )}
+
+      {events?.map((e: any) => (
+        <motion.div key={e.id} variants={fadeUp} className="card p-4">
+          <div className="flex justify-between items-start">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[14px] font-medium">{e.title}</p>
+                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${
+                  e.status === 'upcoming' ? 'bg-accent/10 text-accent' :
+                  e.status === 'live' ? 'bg-green-500/10 text-green-400' :
+                  e.status === 'completed' ? 'bg-zinc-500/10 text-zinc-400' :
+                  'bg-red-500/10 text-red-400'
+                }`}>{e.status}</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-1">
+                {e.date} at {e.time} • {e.location_name || 'No location'}
+              </p>
+              <p className="text-[11px] text-zinc-600 mt-0.5">
+                {e.attendee_count || 0} going • {e.event_type} • {e.visibility}
+              </p>
+            </div>
+            <button onClick={() => deleteMutation.mutate(e.id)} className="text-zinc-600 hover:text-red-400 text-[11px] ml-3 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
+function CommunitiesTab({ communities, queryClient }: { communities: any[]; queryClient: any }) {
+  const { data: allCommunities, isLoading } = useQuery({
+    queryKey: ['admin-all-communities'],
+    queryFn: () => api.get('/admin/communities').then(r => r.data),
+  });
+
+  const displayCommunities = communities || allCommunities;
+
+  return (
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
+      <motion.div variants={fadeUp}>
+        <p className="text-zinc-500 text-sm">{displayCommunities?.length || 0} communities</p>
+      </motion.div>
+
+      {isLoading && <div className="text-zinc-600 text-sm py-10 text-center">Loading...</div>}
+
+      {displayCommunities?.map((c: any) => (
+        <motion.div key={c.id} variants={fadeUp} className="card p-4">
+          <div className="flex justify-between items-start">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[14px] font-medium">{c.name}</p>
+                {c.is_verified && <span className="text-[10px]">✓</span>}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5">{c.description || 'No description'}</p>
+              <p className="text-[11px] text-zinc-600 mt-1">
+                {c.member_count || 0} members • {c.category} • Owner: {c.owner_name || 'Unknown'}
+              </p>
             </div>
           </div>
         </motion.div>
