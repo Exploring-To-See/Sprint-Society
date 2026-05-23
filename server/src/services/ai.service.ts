@@ -1,8 +1,14 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config';
 import db from '../database/db';
 
-const anthropic = config.anthropic.apiKey
+let Anthropic: any = null;
+try {
+  Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+} catch {
+  console.log('[AI Service] @anthropic-ai/sdk not available — AI features disabled');
+}
+
+const anthropic = (Anthropic && config.anthropic.apiKey)
   ? new Anthropic({ apiKey: config.anthropic.apiKey })
   : null;
 
