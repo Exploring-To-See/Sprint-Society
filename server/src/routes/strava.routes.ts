@@ -3,6 +3,7 @@ import db from '../database/db';
 import { config } from '../config';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import * as stravaService from '../services/strava.service';
+import { evaluateTrainingWithHaiku } from '../services/ai.service';
 
 const router = Router();
 
@@ -166,6 +167,16 @@ function autoProcessActivity(userId: number) {
         db.prepare('UPDATE user_xp SET current_streak_days = 1 WHERE user_id = ?').run(userId);
       }
       db.prepare('UPDATE user_xp SET longest_streak_days = MAX(longest_streak_days, current_streak_days) WHERE user_id = ?').run(userId);
+    }
+
+    // Trigger Haiku background AI evaluation (non-blocking)
+    if (config.anthropic.apiKey) {
+      evaluateTrainingWithHaiku(userId).then(result => {
+        if (result?.insight_text) {
+          db.prepare("INSERT INTO user_notifications (user_id, type, title, body) VALUES (?, 'ai_insight', ?, ?)")
+            .run(userId, 'AI Coach Insight', result.insight_text);
+        }
+      }).catch(() => { /* silent — AI eval is non-critical */ });
     }
   } catch (err) {
     console.error('[AutoProcess] Error:', err);

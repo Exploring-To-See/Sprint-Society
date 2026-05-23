@@ -4,6 +4,8 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { estimateVDOT, getTrainingPaces, calculateReadiness } from '../engine/trainingPlanGenerator';
 import { calculateTrainingLoad } from '../engine/adaptiveEngine';
 import { calculateHRZones, estimateMaxHR } from '../engine/heartRateZones';
+import { config } from '../config';
+import { chatWithSonnet, extractAndStoreInsights } from '../services/ai.service';
 
 const router = Router();
 router.use(authenticate);
@@ -31,8 +33,22 @@ router.post('/message', async (req: AuthRequest, res: Response) => {
     `SELECT role, content FROM chat_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`
   ).all(req.userId) as any[];
 
-  // Generate AI response
-  const response = generateCoachResponse(message.trim(), context, history.reverse());
+  // Check if user has pro subscription AND API key exists → use Sonnet
+  const subscription = db.prepare('SELECT plan_key FROM subscriptions WHERE user_id = ? AND status = ?').get(req.userId, 'active') as any;
+  const useAI = config.anthropic.apiKey && (subscription?.plan_key === 'pro' || subscription?.plan_key === 'premium');
+
+  let response: string;
+
+  if (useAI) {
+    try {
+      const aiResult = await chatWithSonnet(req.userId!, message.trim(), history.reverse());
+      response = aiResult.response || generateCoachResponse(message.trim(), context, history);
+    } catch {
+      response = generateCoachResponse(message.trim(), context, history);
+    }
+  } else {
+    response = generateCoachResponse(message.trim(), context, history.reverse());
+  }
 
   // Save assistant message
   db.prepare('INSERT INTO chat_messages (user_id, role, content) VALUES (?, ?, ?)').run(
@@ -46,6 +62,7 @@ router.post('/message', async (req: AuthRequest, res: Response) => {
       current_vdot: context.vdot,
       injury_risk: context.injuryRisk,
     },
+    ai_powered: !!useAI,
   });
 });
 

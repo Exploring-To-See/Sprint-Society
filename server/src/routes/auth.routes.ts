@@ -29,7 +29,7 @@ router.post('/register', async (req, res: Response) => {
     // Validate invite code
     const code = db.prepare(`
       SELECT * FROM invite_codes WHERE code = ? AND active = 1
-    `).get(data.invite_code) as any;
+    `).get(data.invite_code.toUpperCase().trim()) as any;
 
     if (!code) {
       return res.status(403).json({ error: 'Invalid invite code' });

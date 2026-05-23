@@ -70,21 +70,22 @@ router.get('/invite-codes', (req: AuthRequest, res: Response) => {
 });
 
 router.post('/invite-codes', (req: AuthRequest, res: Response) => {
-  const { code, name, max_uses, expires_at } = req.body;
+  const { code, name, max_uses, source, expires_at } = req.body;
   if (!code || !name) return res.status(400).json({ error: 'Code and name are required' });
 
-  const existing = db.prepare('SELECT id FROM invite_codes WHERE code = ?').get(code);
+  const upperCode = code.toUpperCase().trim();
+  const existing = db.prepare('SELECT id FROM invite_codes WHERE code = ?').get(upperCode);
   if (existing) return res.status(409).json({ error: 'Code already exists' });
 
   const result = db.prepare(`
-    INSERT INTO invite_codes (code, name, max_uses, expires_at, created_by)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(code, name, max_uses || null, expires_at || null, req.userId);
+    INSERT INTO invite_codes (code, name, max_uses, source, expires_at, created_by)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(upperCode, name, max_uses || 50, source || null, expires_at || null, req.userId);
 
-  res.status(201).json({ id: result.lastInsertRowid, code, name, success: true });
+  res.status(201).json({ id: result.lastInsertRowid, code: upperCode, name, success: true });
 });
 
-router.put('/invite-codes/:id', (req: AuthRequest, res: Response) => {
+router.patch('/invite-codes/:id', (req: AuthRequest, res: Response) => {
   const { active, max_uses, expires_at } = req.body;
   db.prepare(`
     UPDATE invite_codes SET active = COALESCE(?, active), max_uses = COALESCE(?, max_uses), expires_at = COALESCE(?, expires_at) WHERE id = ?
@@ -513,6 +514,129 @@ router.get('/stats', (req: AuthRequest, res: Response) => {
     runs_this_week: thisWeekRuns.count,
     tier_breakdown: tierBreakdown,
   });
+});
+
+// ===== ANALYTICS DASHBOARD =====
+
+router.get('/analytics', (req: AuthRequest, res: Response) => {
+  const signupsPerDay = db.prepare(`
+    SELECT DATE(created_at) as date, COUNT(*) as count
+    FROM users WHERE role = 'runner'
+    GROUP BY DATE(created_at)
+    ORDER BY date DESC LIMIT 30
+  `).all();
+
+  const activeUsersLast7 = (db.prepare(`
+    SELECT COUNT(DISTINCT user_id) as count FROM activities
+    WHERE start_date >= datetime('now', '-7 days')
+  `).get() as any).count;
+
+  const activeUsersLast30 = (db.prepare(`
+    SELECT COUNT(DISTINCT user_id) as count FROM activities
+    WHERE start_date >= datetime('now', '-30 days')
+  `).get() as any).count;
+
+  const totalRunners = (db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'runner'").get() as any).c;
+
+  const chatUsage = (db.prepare(`
+    SELECT COUNT(DISTINCT user_id) as users, COUNT(*) as messages
+    FROM chat_messages WHERE created_at >= datetime('now', '-7 days')
+  `).get() as any);
+
+  const retentionWeek1 = db.prepare(`
+    SELECT COUNT(DISTINCT a.user_id) as retained
+    FROM activities a JOIN users u ON a.user_id = u.id
+    WHERE u.created_at <= datetime('now', '-7 days')
+    AND a.start_date >= datetime('now', '-7 days')
+  `).get() as any;
+
+  const usersOlderThan7Days = (db.prepare(`
+    SELECT COUNT(*) as c FROM users
+    WHERE role = 'runner' AND created_at <= datetime('now', '-7 days')
+  `).get() as any).c;
+
+  res.json({
+    signups_per_day: signupsPerDay,
+    active_users: { last_7_days: activeUsersLast7, last_30_days: activeUsersLast30 },
+    total_runners: totalRunners,
+    retention_7day: usersOlderThan7Days > 0
+      ? Math.round((retentionWeek1.retained / usersOlderThan7Days) * 100)
+      : 0,
+    chat_usage_7day: { unique_users: chatUsage.users, total_messages: chatUsage.messages },
+  });
+});
+
+// ===== DOWNLOAD DATABASE =====
+
+router.get('/download-db', (req: AuthRequest, res: Response) => {
+  const dbPath = require('path').resolve(__dirname, '../../../data/sprint-society.db');
+  const fs = require('fs');
+
+  if (!fs.existsSync(dbPath)) {
+    return res.status(404).json({ error: 'Database file not found' });
+  }
+
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename=sprint-society-${new Date().toISOString().split('T')[0]}.db`);
+  const stream = fs.createReadStream(dbPath);
+  stream.pipe(res);
+});
+
+// ===== WAITLIST =====
+
+router.get('/waitlist', (req: AuthRequest, res: Response) => {
+  const entries = db.prepare(`
+    SELECT * FROM waitlist ORDER BY created_at DESC
+  `).all();
+  res.json(entries);
+});
+
+router.delete('/waitlist/:id', (req: AuthRequest, res: Response) => {
+  db.prepare('DELETE FROM waitlist WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+// ===== FEEDBACK =====
+
+router.get('/feedback', (req: AuthRequest, res: Response) => {
+  const feedback = db.prepare(`
+    SELECT f.*, u.name as user_name
+    FROM feedback f
+    LEFT JOIN users u ON f.user_id = u.id
+    ORDER BY f.created_at DESC
+  `).all();
+  res.json(feedback);
+});
+
+router.patch('/feedback/:id', (req: AuthRequest, res: Response) => {
+  const { status, admin_notes } = req.body;
+
+  if (status) {
+    const validStatuses = ['new', 'reviewed', 'resolved', 'wontfix'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+  }
+
+  if (!status && admin_notes === undefined) {
+    return res.status(400).json({ error: 'Provide status or admin_notes to update' });
+  }
+
+  const existing = db.prepare('SELECT id FROM feedback WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Feedback not found' });
+
+  if (status && admin_notes !== undefined) {
+    db.prepare('UPDATE feedback SET status = ?, admin_notes = ? WHERE id = ?')
+      .run(status, admin_notes, req.params.id);
+  } else if (status) {
+    db.prepare('UPDATE feedback SET status = ? WHERE id = ?')
+      .run(status, req.params.id);
+  } else {
+    db.prepare('UPDATE feedback SET admin_notes = ? WHERE id = ?')
+      .run(admin_notes, req.params.id);
+  }
+
+  res.json({ success: true });
 });
 
 export default router;

@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { BottomNav } from './BottomNav';
 import { ChatFAB } from '../chat/ChatFAB';
+import { FeedbackButton } from '../FeedbackButton';
 
 interface AppShellProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ export function AppShell({ children, hideNav }: AppShellProps) {
       </main>
       {!hideNav && (
         <>
+          <FeedbackButton />
           <ChatFAB />
           <BottomNav />
         </>

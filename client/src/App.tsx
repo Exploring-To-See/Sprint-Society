@@ -27,6 +27,7 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { SubscriptionPage } from './pages/SubscriptionPage';
 import { AIProfilingPage } from './pages/AIProfilingPage';
+import { AIProfilePage } from './pages/AIProfilePage';
 import { LandingPage } from './pages/LandingPage';
 
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -106,6 +107,7 @@ function AppRoutes() {
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
       <Route path="/profiling" element={<ProtectedRoute><AIProfilingPage /></ProtectedRoute>} />
+      <Route path="/ai-profile" element={<ProtectedRoute><AIProfilePage /></ProtectedRoute>} />
       <Route path="/user/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

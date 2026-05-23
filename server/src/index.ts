@@ -26,6 +26,9 @@ import notificationsRoutes from './routes/notifications.routes';
 import profileRoutes from './routes/profile.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import profilingRoutes from './routes/profiling.routes';
+import inviteRoutes from './routes/invite.routes';
+import feedbackRoutes from './routes/feedback.routes';
+import aiRoutes from './routes/ai.routes';
 
 const app = express();
 
@@ -54,9 +57,12 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/profiling', profilingRoutes);
+app.use('/api/invite', inviteRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', name: 'Sprint Society API', version: '1.0.0' });
+  res.json({ status: 'ok', name: 'Sprint Society API', version: '1.2.0', uptime: Math.floor(process.uptime()) });
 });
 
 // Public announcements endpoint (runners see these on their dashboard)

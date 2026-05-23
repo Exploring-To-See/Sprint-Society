@@ -119,6 +119,52 @@ Weekly auto-generation (on first access each week):
 - **Manual sync**: User-triggered, pulls last 30 activities
 - **Filter**: Only `type === "Run"` activities imported
 
+### AI Profile System
+
+The AI coaching backend uses Anthropic's Claude models to provide personalized coaching:
+
+**Architecture:**
+- **Sonnet** (claude-sonnet-4-6) — Powers conversational AI chat (Pro/Premium only)
+- **Haiku** (claude-haiku-4-5) — Background training evaluations (lightweight, fast)
+
+**Endpoints:**
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/ai/profile` | GET | Get user's AI profile (what coach knows) |
+| `/api/ai/profile` | PATCH | User edits their profile (goals, health, diet, context) |
+| `/api/ai/chat` | POST | Send message to Sonnet coach |
+| `/api/ai/evaluate` | POST | Trigger Haiku background evaluation |
+| `/api/ai/usage` | GET | Get today's usage stats |
+
+**Rate Limits:**
+- Pro/Premium: 30 chat messages/day
+- Free: No AI chat access (403 returned)
+- Background evaluations don't count toward chat limit
+
+**AI Profile (Persistent Memory):**
+The system automatically extracts and stores insights from conversations:
+- Health notes (injuries, conditions mentioned)
+- Goals (races, targets, dreams)
+- Personal context (schedule, work, diet preferences)
+- Conversation history (compressed insights log)
+
+Users can view and edit their AI profile via the My AI Profile page.
+
+**Graceful Degradation:**
+- If `ANTHROPIC_API_KEY` is not set, all AI endpoints return friendly error messages
+- API failures show random fun coach-themed error messages
+- Token tracking continues even if API calls fail
+
+**Database Tables:**
+- `ai_profiles` — Permanent memory per user (health, goals, diet, insights)
+- `ai_usage` — Token tracking per call (model, input/output tokens, purpose)
+- `ai_checkins` — Pre/post run check-in responses with AI summaries
+
+**Environment Variables:**
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | Claude API access (required for AI features) |
+
 ---
 
 ## Content & Community Management
@@ -197,6 +243,7 @@ Client (React + Vite)  →  Server (Express + TypeScript)  →  SQLite DB
 | `JWT_SECRET` | Auth token signing |
 | `DATABASE_URL` | SQLite file path |
 | `CLIENT_URL` | Frontend URL (for CORS) |
+| `ANTHROPIC_API_KEY` | Claude AI coaching (optional — degrades gracefully) |
 
 ### Database
 

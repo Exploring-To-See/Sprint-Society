@@ -519,8 +519,9 @@ CREATE TABLE IF NOT EXISTS invite_codes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
-    max_uses INTEGER,
-    used_count INTEGER DEFAULT 0,
+    max_uses INTEGER NOT NULL DEFAULT 50,
+    used_count INTEGER NOT NULL DEFAULT 0,
+    source TEXT,
     expires_at DATETIME,
     created_by INTEGER NOT NULL,
     active INTEGER DEFAULT 1,
@@ -729,3 +730,68 @@ CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(
 CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_community_posts_community ON community_posts(community_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_community_post_likes_post ON community_post_likes(post_id);
+
+-- ===== Waitlist =====
+
+CREATE TABLE IF NOT EXISTS waitlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT,
+    phone TEXT,
+    name TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(email);
+CREATE INDEX IF NOT EXISTS idx_waitlist_phone ON waitlist(phone);
+
+-- ===== Feedback =====
+
+CREATE TABLE IF NOT EXISTS feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK(type IN ('bug', 'idea', 'complaint', 'praise')),
+  message TEXT NOT NULL,
+  page TEXT,
+  status TEXT DEFAULT 'new' CHECK(status IN ('new', 'reviewed', 'resolved', 'wontfix')),
+  admin_notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status, created_at DESC);
+
+-- ===== AI Profile System =====
+
+-- AI Profile: stores extracted insights about each user (permanent memory)
+CREATE TABLE IF NOT EXISTS ai_profiles (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  running_profile TEXT DEFAULT '{}',
+  health_notes TEXT DEFAULT '[]',
+  diet_preferences TEXT DEFAULT '[]',
+  personal_context TEXT DEFAULT '[]',
+  conversation_insights TEXT DEFAULT '[]',
+  goals TEXT DEFAULT '[]',
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AI usage tracking (for token limiting)
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  model TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  purpose TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_usage_user_date ON ai_usage(user_id, created_at);
+
+-- AI check-in responses
+CREATE TABLE IF NOT EXISTS ai_checkins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK(type IN ('pre_run', 'post_run', 'weekly_review')),
+  responses TEXT NOT NULL DEFAULT '{}',
+  ai_summary TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

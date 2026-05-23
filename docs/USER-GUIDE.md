@@ -82,6 +82,25 @@ Create shareable run cards for social media:
 - **Achievements** — badges you've earned and ones still locked
 - Logout
 
+### 🤖 AI Coach (Pro/Premium)
+
+Your personal AI running coach that learns about you over time:
+
+- **Chat** — Ask anything about training, nutrition, recovery, race prep
+  - Coach references your actual data (pace, runs, tier, streak)
+  - Personalized advice — never generic
+  - 30 messages/day on Pro, unlimited context memory
+- **AI Profile** — View what your coach knows about you:
+  - Health notes (injuries, conditions you've mentioned)
+  - Goals (races, targets you're working toward)
+  - Personal context (schedule, preferences, diet)
+  - Edit any field to correct or add info
+- **Training Evaluation** — After each run sync, the AI analyzes:
+  - Readiness score (0-100)
+  - Risk flags (overtraining, injury warning)
+  - Plan adjustments (suggested changes)
+- **Usage** — Track how many messages you've used today
+
 ---
 
 ## Weekly Challenges
