@@ -255,7 +255,13 @@ export function HomePage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
   const pauseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIntroComplete(true), 1200);
+    return () => clearTimeout(t);
+  }, []);
 
   const goToSlide = useCallback((index: number) => {
     setCurrent(index);
@@ -268,15 +274,11 @@ export function HomePage() {
     setCurrent(prev => (prev + 1) % slides.length);
   }, []);
 
-  const prevSlide = useCallback(() => {
-    setCurrent(prev => (prev - 1 + slides.length) % slides.length);
-  }, []);
-
   useEffect(() => {
-    if (paused || showLogin) return;
-    const timer = setInterval(nextSlide, 4000);
+    if (paused || showLogin || !introComplete) return;
+    const timer = setInterval(nextSlide, 4500);
     return () => clearInterval(timer);
-  }, [nextSlide, paused, showLogin]);
+  }, [nextSlide, paused, showLogin, introComplete]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < -50) {
@@ -300,33 +302,63 @@ export function HomePage() {
   const SlideComponent = slideComponents[current];
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col">
-      {/* Top: Logo + Brand */}
-      <div className="px-6 pt-8 pb-3 flex flex-col items-center gap-2">
-        <img src="/icons/logo.png" alt="Sprint Society" className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-accent/10" />
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Sprint <span className="text-accent">Society</span>
-        </h1>
-        <p className="text-zinc-500 text-xs">AI-powered running community</p>
+    <div className="min-h-screen bg-bg-primary flex flex-col relative overflow-hidden">
+      {/* Ambient background gradient orbs */}
+      <div className="fixed inset-0 pointer-events-none">
+        <motion.div
+          className="absolute top-[-20%] right-[-15%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-accent/6 to-emerald-500/4 blur-3xl"
+          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-tr from-blue-600/5 to-cyan-400/3 blur-3xl"
+          animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.6, 0.4] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        />
       </div>
 
-      {/* Middle: Slides (swipeable + auto) */}
+      {/* Fixed top-left header */}
+      <motion.header
+        className="fixed top-0 left-0 right-0 z-50 px-5 py-4 flex items-center gap-3 bg-bg-primary/80 backdrop-blur-md border-b border-white/5"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
+        <img src="/icons/logo.png" alt="Sprint Society" className="w-11 h-11 rounded-xl object-cover" />
+        <div>
+          <h1 className="font-heading text-lg font-bold tracking-tight leading-none">
+            Sprint <span className="text-accent">Society</span>
+          </h1>
+          <p className="text-zinc-500 text-[10px] mt-0.5">AI-powered running community</p>
+        </div>
+      </motion.header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-[76px]" />
+
+      {/* Cinematic intro → then slides */}
       {!showLogin && (
-        <div className="flex-1 flex flex-col min-h-0">
+        <motion.div
+          className="flex-1 flex flex-col min-h-0 relative z-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          {/* Slide visual area — swipeable */}
           <motion.div
-            className="relative flex-1 min-h-[260px] max-h-[42vh] overflow-hidden touch-pan-y"
+            className="relative flex-1 min-h-[260px] max-h-[44vh] overflow-hidden touch-pan-y"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
+            dragElastic={0.15}
             onDragEnd={handleDragEnd}
           >
             <AnimatePresence mode="wait">
               <motion.div
                 key={current}
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.3 }}
+                exit={{ opacity: 0, x: -40 }}
+                transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
                 className="absolute inset-0"
               >
                 <SlideComponent />
@@ -334,59 +366,63 @@ export function HomePage() {
             </AnimatePresence>
           </motion.div>
 
-          {/* Slide text — below the visual */}
-          <div className="px-6 pt-3 pb-2">
+          {/* Slide text + dots */}
+          <div className="px-6 pt-4 pb-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
                 className="text-center"
               >
-                <h2 className="font-heading text-lg font-bold text-white leading-tight">
+                <h2 className="font-heading text-xl font-bold text-white leading-tight">
                   {slides[current].headline}
                 </h2>
-                <p className="text-sm text-zinc-400 mt-1">{slides[current].sub}</p>
+                <p className="text-sm text-zinc-400 mt-1.5">{slides[current].sub}</p>
               </motion.div>
             </AnimatePresence>
 
-            {/* Dot indicators (clickable) */}
-            <div className="flex gap-2 mt-3 justify-center">
+            <div className="flex gap-2 mt-4 justify-center">
               {slides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => goToSlide(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-6 bg-accent' : 'w-1.5 bg-zinc-700 hover:bg-zinc-500'}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-7 bg-accent' : 'w-1.5 bg-zinc-700 hover:bg-zinc-500'}`}
                 />
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Bottom: Signup + Login */}
-      <div className={`px-6 pb-8 ${showLogin ? 'pt-6 flex-1 flex flex-col justify-center' : 'pt-4'}`}>
+      <motion.div
+        className={`px-6 pb-8 relative z-10 ${showLogin ? 'pt-8 flex-1 flex flex-col justify-center' : 'pt-5'}`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 1 }}
+      >
         <div className="w-full max-w-sm mx-auto space-y-3">
           {!showLogin ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+            <div className="space-y-3">
               <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
                 Join Sprint Society
               </Button>
 
               <button
                 onClick={() => setShowLogin(true)}
-                className="w-full py-3 rounded-xl border border-bg-tertiary text-zinc-300 text-sm font-medium hover:border-zinc-600 hover:text-white transition-all"
+                className="w-full py-3.5 rounded-xl border border-bg-tertiary text-zinc-300 text-sm font-medium hover:border-zinc-500 hover:text-white active:scale-[0.98] transition-all"
               >
                 Already a member? Log in
               </button>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-              <div className="text-center mb-4">
-                <h2 className="font-heading text-lg font-semibold text-white">Welcome back</h2>
-                <p className="text-zinc-500 text-xs mt-1">Log in to continue your journey</p>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
+              <div className="text-center mb-2">
+                <h2 className="font-heading text-xl font-semibold text-white">Welcome back</h2>
+                <p className="text-zinc-500 text-sm mt-1">Log in to continue your journey</p>
               </div>
               <input
                 type="text"
@@ -408,16 +444,16 @@ export function HomePage() {
               <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>
                 {loading ? 'Logging in...' : 'Log in'}
               </Button>
-              <div className="flex justify-between">
+              <div className="flex justify-between pt-1">
                 <Link to="/forgot-password" className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors">Forgot password?</Link>
-                <button onClick={() => setShowLogin(false)} className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors">← Back</button>
+                <button onClick={() => setShowLogin(false)} className="text-accent text-xs font-medium hover:text-accent/80 transition-colors">← Back</button>
               </div>
             </motion.div>
           )}
 
-          <p className="text-zinc-700 text-[10px] text-center pt-2">by Kendu Entertainment</p>
+          <p className="text-zinc-700 text-[10px] text-center pt-3">by Kendu Entertainment</p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
