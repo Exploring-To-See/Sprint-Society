@@ -1,0 +1,204 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><title>Runner Classification System</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:40px 20px;background:#fff;color:#1a1a1a;line-height:1.7}
+h1{font-size:28px;border-bottom:2px solid #6366f1;padding-bottom:10px}
+h2{font-size:22px;margin-top:40px;color:#6366f1}
+h3{font-size:18px;margin-top:30px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th,td{border:1px solid #e5e7eb;padding:8px 12px;text-align:left}
+th{background:#f3f4f6;font-weight:600}
+tr:nth-child(even){background:#f9fafb}
+code{background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:13px}
+pre{background:#1a1a2e;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto}
+blockquote{border-left:4px solid #6366f1;padding-left:16px;color:#4b5563;margin:16px 0}
+@media print{body{padding:20px}h1{font-size:24px}table{font-size:11px}}
+</style></head><body><h1>Sprint Society — Runner Classification System (Research Report)</h1></p><p><h2>Executive Summary</h2></p><p>The current system is too simple: 3 buckets (beginner/intermediate/advanced) based solely on estimated VO2max. This doesn't reflect real running progression, which is a multi-year journey with measurable checkpoints.</p><p><strong>Proposed system: 4 Tiers x 10 Levels = 40-point scale</strong></p><p><table><tr><td>Tier</td><td>Levels</td><td>Who</td><td>Timeline to Next Tier</td></tr>
+<tr><td>------</td><td>--------</td><td>-----</td><td>----------------------</td></tr>
+<tr><td>Beginner</td><td>1-10</td><td>Never run → can run 5K continuously</td><td>2-6 months</td></tr>
+<tr><td>Intermediate</td><td>1-10</td><td>Regular runner → competitive club runner</td><td>6-24 months</td></tr>
+<tr><td>Advanced</td><td>1-10</td><td>Club competitive → sub-elite performance</td><td>2-5 years</td></tr>
+<tr><td>Pro</td><td>1-10</td><td>Sub-elite → international/world class</td><td>5-15+ years</td></tr>
+</table>
+<strong>Pro 10 = Kipchoge-level.</strong> Most humans will never reach it. That's the point — it's a realistic quest.</p><p>---</p><p><h2>Classification Factors (Multi-Dimensional Score)</h2></p><p>Unlike simple VO2max-only systems, Sprint Society uses a <strong>composite score</strong> from 6 measurable factors:</p><p><h3>1. Performance (40% weight)</h3>
+Actual race times or equivalent time-trial performances. Most objective measure.</p><p><table><tr><td>Level</td><td>Male 5K</td><td>Female 5K</td><td>Male Marathon</td><td>Female Marathon</td></tr>
+<tr><td>-------</td><td>---------</td><td>-----------</td><td>--------------</td><td>----------------</td></tr>
+<tr><td>B1</td><td>Can't run 1km</td><td>Can't run 1km</td><td>N/A</td><td>N/A</td></tr>
+<tr><td>B5</td><td>35:00</td><td>40:00</td><td>N/A</td><td>N/A</td></tr>
+<tr><td>B10</td><td>28:00</td><td>32:00</td><td>5:00:00</td><td>5:30:00</td></tr>
+<tr><td>I1</td><td>27:00</td><td>31:00</td><td>4:45:00</td><td>5:15:00</td></tr>
+<tr><td>I5</td><td>23:00</td><td>27:00</td><td>4:00:00</td><td>4:30:00</td></tr>
+<tr><td>I10</td><td>20:00</td><td>23:30</td><td>3:30:00</td><td>4:00:00</td></tr>
+<tr><td>A1</td><td>19:30</td><td>23:00</td><td>3:20:00</td><td>3:50:00</td></tr>
+<tr><td>A5</td><td>17:30</td><td>20:30</td><td>3:00:00</td><td>3:25:00</td></tr>
+<tr><td>A10</td><td>15:30</td><td>18:00</td><td>2:40:00</td><td>3:00:00</td></tr>
+<tr><td>P1</td><td>15:00</td><td>17:30</td><td>2:35:00</td><td>2:55:00</td></tr>
+<tr><td>P5</td><td>14:00</td><td>16:30</td><td>2:25:00</td><td>2:45:00</td></tr>
+<tr><td>P10</td><td>13:00</td><td>15:00</td><td>2:05:00</td><td>2:20:00</td></tr>
+</table>
+<em>Based on Jack Daniels VDOT tables + World Athletics age-grading percentages</em></p><p><h3>2. VO2max / VDOT (20% weight)</h3>
+Estimated from race performance or direct testing.</p><p><table><tr><td>Level</td><td>VO2max (Male)</td><td>VO2max (Female)</td><td>VDOT Equivalent</td></tr>
+<tr><td>-------</td><td>---------------</td><td>-----------------</td><td>-----------------</td></tr>
+<tr><td>B1</td><td><30</td><td><25</td><td><25</td></tr>
+<tr><td>B5</td><td>30-35</td><td>25-30</td><td>25-30</td></tr>
+<tr><td>B10</td><td>35-40</td><td>30-35</td><td>30-37</td></tr>
+<tr><td>I1</td><td>40-42</td><td>35-37</td><td>37-40</td></tr>
+<tr><td>I5</td><td>42-48</td><td>37-43</td><td>40-48</td></tr>
+<tr><td>I10</td><td>48-52</td><td>43-47</td><td>48-52</td></tr>
+<tr><td>A1</td><td>52-55</td><td>47-50</td><td>52-55</td></tr>
+<tr><td>A5</td><td>55-60</td><td>50-55</td><td>55-60</td></tr>
+<tr><td>A10</td><td>60-65</td><td>55-60</td><td>60-65</td></tr>
+<tr><td>P1</td><td>65-68</td><td>60-63</td><td>65-68</td></tr>
+<tr><td>P5</td><td>68-73</td><td>63-67</td><td>68-73</td></tr>
+<tr><td>P10</td><td>75+</td><td>68+</td><td>75+</td></tr>
+</table>
+<h3>3. Training Volume (15% weight)</h3>
+Weekly km consistently maintained. Volume = aerobic engine size.</p><p><table><tr><td>Level</td><td>Weekly KM</td><td>Sessions/Week</td></tr>
+<tr><td>-------</td><td>-----------</td><td>---------------</td></tr>
+<tr><td>B1-B3</td><td>0-10</td><td>1-2</td></tr>
+<tr><td>B4-B7</td><td>10-20</td><td>2-3</td></tr>
+<tr><td>B8-B10</td><td>20-30</td><td>3-4</td></tr>
+<tr><td>I1-I5</td><td>30-50</td><td>4-5</td></tr>
+<tr><td>I6-I10</td><td>50-70</td><td>5-6</td></tr>
+<tr><td>A1-A5</td><td>70-100</td><td>6-7</td></tr>
+<tr><td>A6-A10</td><td>100-130</td><td>7-10</td></tr>
+<tr><td>P1-P5</td><td>130-160</td><td>10-12</td></tr>
+<tr><td>P6-P10</td><td>160-220+</td><td>12-14 (doubles)</td></tr>
+</table>
+<h3>4. Consistency (15% weight)</h3>
+How many weeks per year the runner trains without interruption.</p><p><table><tr><td>Level</td><td>Weeks/Year Active</td><td>Training Age (Years)</td></tr>
+<tr><td>-------</td><td>-------------------</td><td>---------------------</td></tr>
+<tr><td>B1-B5</td><td><20</td><td>0-0.5</td></tr>
+<tr><td>B6-B10</td><td>20-35</td><td>0.5-1</td></tr>
+<tr><td>I1-I5</td><td>35-42</td><td>1-2</td></tr>
+<tr><td>I6-I10</td><td>42-48</td><td>2-4</td></tr>
+<tr><td>A1-A5</td><td>48-50</td><td>4-7</td></tr>
+<tr><td>A6-A10</td><td>50-52</td><td>7-10</td></tr>
+<tr><td>P1-P10</td><td>50-52 (year-round)</td><td>10+</td></tr>
+</table>
+<h3>5. Lactate Threshold (5% weight)</h3>
+Percentage of VO2max sustainable at threshold. Improves with training age.</p><p><table><tr><td>Level Range</td><td>LT as % of VO2max</td></tr>
+<tr><td>-------------</td><td>-------------------</td></tr>
+<tr><td>Beginner</td><td>60-70%</td></tr>
+<tr><td>Intermediate</td><td>70-80%</td></tr>
+<tr><td>Advanced</td><td>80-87%</td></tr>
+<tr><td>Pro</td><td>87-92%</td></tr>
+</table>
+<h3>6. Running Economy (5% weight)</h3>
+Oxygen cost at a given speed. Mostly genetic + biomechanics + years of running.</p><p>Measured indirectly through: pace-to-HR ratio improvement over time.</p><p>---</p><p><h2>Level Advancement: How People Move Up</h2></p><p><h3>The Formula</h3></p><p><pre>Level Score = (Performance × 0.40) + (VO2max × 0.20) + (Volume × 0.15) + (Consistency × 0.15) + (LT% × 0.05) + (Economy × 0.05)
+</pre></p><p>Each factor scored 1-40 (matching the total scale), then weighted.</p><p><h3>Advancement Triggers</h3></p><p>A runner advances a level when:
+1. <strong>Sustained performance</strong> — hit the pace/time threshold for 3+ consecutive weeks (not a one-off good day)
+2. <strong>Volume milestone</strong> — consistently hitting the weekly km for that level for 4+ weeks
+3. <strong>No regression</strong> — hasn't dropped below current level's threshold in 2 weeks</p><p><h3>Realistic Timelines (Based on Training Science)</h3></p><p><table><tr><td>Progression</td><td>Typical Duration</td><td>What Changes</td></tr>
+<tr><td>-------------</td><td>-----------------</td><td>--------------</td></tr>
+<tr><td>B1 → B5</td><td>4-8 weeks</td><td>Build habit. Run/walk → continuous running.</td></tr>
+<tr><td>B5 → B10</td><td>8-16 weeks</td><td>Build base. Run 5K without stopping. Add frequency.</td></tr>
+<tr><td>B10 → I1</td><td>2-4 months</td><td>First structured training. Add tempo runs.</td></tr>
+<tr><td>I1 → I5</td><td>6-12 months</td><td>Introduce intervals. Race a 5K. Training cycles.</td></tr>
+<tr><td>I5 → I10</td><td>12-24 months</td><td>Higher volume. Periodization. Multiple race distances.</td></tr>
+<tr><td>I10 → A1</td><td>6-12 months</td><td>Serious training. 6+ days/week. Racing regularly.</td></tr>
+<tr><td>A1 → A5</td><td>1-3 years</td><td>High volume. Altitude/heat training. Strength work.</td></tr>
+<tr><td>A5 → A10</td><td>2-5 years</td><td>Peak training. Professional coaching. 100+ km/week.</td></tr>
+<tr><td>A10 → P1</td><td>2-4 years</td><td>Sub-elite. National level. Training camps.</td></tr>
+<tr><td>P1 → P5</td><td>3-5 years</td><td>Elite. International competition. Full-time runner.</td></tr>
+<tr><td>P5 → P10</td><td>5-10+ years</td><td>World class. 99.99th percentile. Genetic + dedication.</td></tr>
+</table>
+<strong>Total journey B1 → P10: 15-25+ years of dedicated training.</strong> This is realistic — Olympic marathoners typically train 10-15 years before peaking.</p><p>---</p><p><h2>Training Prescription by Level</h2></p><p><h3>Beginner (1-10): Build the Habit</h3></p><p><table><tr><td>Sub-level</td><td>Focus</td><td>Weekly Structure</td><td>Key Principle</td></tr>
+<tr><td>-----------</td><td>-------</td><td>-----------------</td><td>---------------</td></tr>
+<tr><td>B1-B3</td><td>Habit formation</td><td>2-3 run/walks, 15-30 min</td><td>"Just get out the door"</td></tr>
+<tr><td>B4-B6</td><td>Continuous running</td><td>3 runs, 20-35 min all easy</td><td>"Run slow to run long"</td></tr>
+<tr><td>B7-B9</td><td>Base building</td><td>3-4 runs, 30-45 min, 1 slightly longer</td><td>"Add 10% volume/week max"</td></tr>
+<tr><td>B10</td><td>Race ready</td><td>4 runs, including first tempo effort</td><td>"You can now race a 5K"</td></tr>
+</table>
+<strong>Training split:</strong> 100% easy pace. NO intervals. NO speed work. ONLY aerobic development.
+<strong>Coach personality at this level:</strong> Encouraging, celebrating small wins, removing barriers.</p><p><h3>Intermediate (1-10): Build the Engine</h3></p><p><table><tr><td>Sub-level</td><td>Focus</td><td>Weekly Structure</td><td>Key Principle</td></tr>
+<tr><td>-----------</td><td>-------</td><td>-----------------</td><td>---------------</td></tr>
+<tr><td>I1-I3</td><td>Introduce structure</td><td>4 runs: 3 easy + 1 tempo (20 min)</td><td>"Quality within quantity"</td></tr>
+<tr><td>I4-I6</td><td>Speed introduction</td><td>4-5 runs: 3 easy + 1 tempo + 1 interval</td><td>"Your body adapts to stress"</td></tr>
+<tr><td>I7-I9</td><td>Volume + intensity</td><td>5-6 runs: 3 easy + 1 long + 1 tempo + 1 interval</td><td>"Periodize in 4-week blocks"</td></tr>
+<tr><td>I10</td><td>Race specialization</td><td>5-6 runs: structured by race distance</td><td>"Train specifically for your goal race"</td></tr>
+</table>
+<strong>Training split:</strong> 80% easy, 10% tempo, 10% intervals (polarized model).
+<strong>Coach personality:</strong> More technical. Explaining training zones. Introducing data.</p><p><h3>Advanced (1-10): Optimize Everything</h3></p><p><table><tr><td>Sub-level</td><td>Focus</td><td>Weekly Structure</td><td>Key Principle</td></tr>
+<tr><td>-----------</td><td>-------</td><td>-----------------</td><td>---------------</td></tr>
+<tr><td>A1-A3</td><td>High volume base</td><td>6-7 runs, 70-90 km/week, doubles start</td><td>"Volume is the foundation of speed"</td></tr>
+<tr><td>A4-A6</td><td>Lactate threshold focus</td><td>6-7 runs, threshold sessions 2x/week</td><td>"Push the ceiling higher"</td></tr>
+<tr><td>A7-A9</td><td>Peak specific training</td><td>7+ runs, race-specific blocks, altitude</td><td>"Every session has a purpose"</td></tr>
+<tr><td>A10</td><td>Championship prep</td><td>10+ sessions/week, tapering mastered</td><td>"Peak when it matters"</td></tr>
+</table>
+<strong>Training split:</strong> 80% easy, 8% tempo, 8% VO2max, 4% race pace.
+<strong>Additional:</strong> Strength training 2x/week, mobility, nutrition timing, sleep optimization.
+<strong>Coach personality:</strong> Analytical. Data-heavy. Marginal gains focus.</p><p><h3>Pro (1-10): World-Class Performance</h3></p><p><table><tr><td>Sub-level</td><td>Focus</td><td>Weekly Structure</td><td>Key Principle</td></tr>
+<tr><td>-----------</td><td>-------</td><td>-----------------</td><td>---------------</td></tr>
+<tr><td>P1-P3</td><td>National level</td><td>130-150 km/week, periodized blocks</td><td>"Recovery is as important as training"</td></tr>
+<tr><td>P4-P6</td><td>International level</td><td>150-180 km/week, altitude camps</td><td>"Race selection is strategy"</td></tr>
+<tr><td>P7-P9</td><td>Sub-2:10 marathon</td><td>180-200+ km/week, full-time</td><td>"Every 1% matters"</td></tr>
+<tr><td>P10</td><td>World record contender</td><td>200+ km/week, bespoke everything</td><td>"No human is limited"</td></tr>
+</table>
+<strong>Training split:</strong> Varies by coach/methodology. Typically 85% easy, 15% quality.
+<strong>Additional:</strong> Full-time athlete. Team of physios, nutritionists, biomechanists, coaches.
+<strong>Coach personality:</strong> Strategic partner. Race tactics. Peaking cycles. Competition intelligence.</p><p>---</p><p><h2>What Makes This Different From Competitors</h2></p><p><table><tr><td>Feature</td><td>Strava</td><td>Nike Run Club</td><td>Garmin</td><td>Sprint Society</td></tr>
+<tr><td>---------</td><td>--------</td><td>---------------</td><td>--------</td><td>---------------</td></tr>
+<tr><td>Classification</td><td>None (just segments)</td><td>4 levels (basic)</td><td>Training status only</td><td>40-point composite scale</td></tr>
+<tr><td>Multi-factor</td><td>No</td><td>No</td><td>Partial (load + recovery)</td><td>6 factors weighted</td></tr>
+<tr><td>Realistic timeline</td><td>No progression</td><td>No timeline</td><td>No</td><td>Months/years displayed</td></tr>
+<tr><td>Sub-levels</td><td>No</td><td>No</td><td>No</td><td>10 within each tier</td></tr>
+<tr><td>What to improve</td><td>Not told</td><td>Generic plans</td><td>Vague suggestions</td><td>Specific next-level criteria shown</td></tr>
+<tr><td>Training by level</td><td>Same for all</td><td>Same 4-week plans</td><td>Basic zones</td><td>Level-specific prescription</td></tr>
+</table>
+---</p><p><h2>How Sprint Society Shows This to Users</h2></p><p><h3>Level Card (Profile)</h3>
+<pre>┌──────────────────────────────────────┐
+│  INTERMEDIATE · Level 6              │
+│  ████████████████░░░░  6.3/10        │
+│                                      │
+│  Next: I7 (est. 6 weeks)            │
+│  Need: 5K under 22:00 + 45km/week   │
+│                                      │
+│  VO2max: 46.2  │  LT: 77%           │
+│  Volume: 42km  │  Consistency: 89%   │
+└──────────────────────────────────────┘
+</pre></p><p><h3>Advancement Panel (What's Needed)</h3>
+<pre>┌──────────────────────────────────────┐
+│  To reach Intermediate 7:            │
+│                                      │
+│  ✓ 5K pace under 4:30/km (done!)    │
+│  ○ Weekly volume 45km+ (you: 42km)  │
+│  ○ Sustained for 4 weeks (week 2/4) │
+│  ○ No missed weeks (streak: 6)      │
+│                                      │
+│  Estimated: 6 weeks at current rate  │
+└──────────────────────────────────────┘
+</pre></p><p><h3>Journey Map (Train tab)</h3>
+Shows the full 40-level path. User sees where they are, where friends are, what's ahead. Creates aspiration without discouragement.</p><p>---</p><p><h2>Age Grading</h2></p><p>Since a 40-year-old and a 20-year-old shouldn't be compared raw:</p><p><ul><li>All performance benchmarks are <strong>age-graded</strong> using World Athletics tables</li>
+<li>A 35:00 5K for a 16-year-old = Beginner 5</li>
+<li>A 35:00 5K for a 55-year-old = Intermediate 3 (age-adjusted)</li>
+<li>This means EVERYONE can progress regardless of age</li>
+</ul>
+---</p><p><h2>Implementation Changes Needed</h2></p><p><h3>Backend (ai-profiler.ts)</h3>
+1. Replace 3-tier system with 40-level composite scorer
+2. Add <code>calculateLevel(performance, vo2max, volume, consistency, lt, economy)</code> function
+3. Store <code>runner_level</code> (1-40), <code>tier</code> (B/I/A/P), and <code>sub_level</code> (1-10)
+4. Track progression history (level changes over time)
+5. Calculate "next level" requirements for each user</p><p><h3>Frontend (Train tab + Profile)</h3>
+1. Level card showing current position on 40-point scale
+2. "What's needed for next level" checklist
+3. Estimated time to next level
+4. Journey map visualization (all 40 levels as a path)</p><p><h3>Training Engine</h3>
+1. Training prescription varies by exact sub-level (not just tier)
+2. Intensity distribution shifts as level increases
+3. Volume recommendations scale with level
+4. Recovery advice adapts to training age</p><p>---</p><p><h2>Sources & Methodology</h2></p><p>This framework is built from:
+<ul><li><strong>Jack Daniels' Running Formula</strong> — VDOT tables, training pace calculation</li>
+<li><strong>Pfitzinger's Advanced Marathoning</strong> — volume/intensity by level</li>
+<li><strong>World Athletics age-grading tables</strong> — performance normalization</li>
+<li><strong>Norwegian method research</strong> — polarized training distribution</li>
+<li><strong>Long-term athlete development (LTAD) models</strong> — progression timelines</li>
+<li><strong>Billat et al.</strong> — VO2max/vVO2max relationship to performance</li>
+<li><strong>Seiler (2010)</strong> — intensity distribution in elite runners</li>
+<li><strong>IAAF scoring tables</strong> — performance point equivalents</li>
+</ul>
+---</p><p><h2>Questions for Ishan Before Implementation</h2></p><p>1. Do we show the FULL 40-level scale upfront? Or reveal tiers gradually (gamification)?
+2. Should "Pro" tier be aspirational only (shown but not achievable for most) or hidden until Advanced 8+?
+3. Age-grading: apply automatically, or let users opt-in?
+4. Should we factor in <strong>race participation</strong> (actual races, not just training runs)?
+5. How aggressive should level-down be? (If someone stops training for a month, do they drop levels?)
+</body></html>

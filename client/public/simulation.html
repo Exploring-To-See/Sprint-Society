@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Society AI Simulation</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0A0A0F;
+  --card: #14141A;
+  --card-hover: #1A1A24;
+  --border: #1F1F2B;
+  --border-light: #2A2A3A;
+  --accent: #6366F1;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+  --text: #E8E8ED;
+  --text-muted: #8B8B9E;
+  --text-dim: #5E5E72;
+  --beginner: #10B981;
+  --intermediate: #3B82F6;
+  --advanced: #F59E0B;
+  --ishu: #6366F1;
+  --nainu: #EC4899;
+  --goggins: #EF4444;
+  --kip: #10B981;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.05) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.header h1 {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, #E8E8ED 0%, #6366F1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.header .subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+}
+
+.header-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.header-stat {
+  text-align: center;
+}
+
+.header-stat .value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.header-stat .label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Overview Cards Grid */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.overview-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: border-color 0.2s;
+}
+
+.overview-card:hover {
+  border-color: var(--border-light);
+}
+
+.overview-card h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* Tier Bars */
+.tier-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tier-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tier-bar-label {
+  width: 90px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.tier-bar-track {
+  flex: 1;
+  height: 28px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.tier-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(0,0,0,0.7);
+}
+
+/* Coach Boxes */
+.coach-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.coach-box {
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  text-align: center;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.coach-box:hover {
+  border-color: var(--border-light);
+}
+
+.coach-box .coach-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.coach-box .coach-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Level Distribution */
+.level-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.level-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.level-label {
+  width: 50px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.level-track {
+  flex: 1;
+  height: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.level-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #818CF8);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.level-count {
+  width: 30px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Stats Card */
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-item:last-child { border-bottom: none; }
+
+.stat-item .stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.stat-item .stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.search-input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  outline: none;
+  width: 200px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.filter-count {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin-left: auto;
+  padding: 8px 0;
+}
+
+/* User Grid */
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .user-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .user-grid { grid-template-columns: 1fr; }
+  .header-stats { gap: 20px; }
+  .filters { gap: 8px; }
+  .search-input { width: 100%; }
+}
+
+.user-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.user-card:hover {
+  border-color: var(--border-light);
+  background: var(--card-hover);
+  transform: translateY(-2px);
+}
+
+.user-card.expanded {
+  grid-column: 1 / -1;
+  border-color: var(--accent);
+  box-shadow: 0 0 30px var(--accent-glow);
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.user-badges {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-beginner { background: rgba(16, 185, 129, 0.15); color: var(--beginner); }
+.badge-intermediate { background: rgba(59, 130, 246, 0.15); color: var(--intermediate); }
+.badge-advanced { background: rgba(245, 158, 11, 0.15); color: var(--advanced); }
+
+.badge-coach {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.badge-Kendu_Ishu { background: rgba(99, 102, 241, 0.15); color: var(--ishu); }
+.badge-Kendu_Nainu { background: rgba(236, 72, 153, 0.15); color: var(--nainu); }
+.badge-Kendu_Goggins { background: rgba(239, 68, 68, 0.15); color: var(--goggins); }
+.badge-Kendu_Kip { background: rgba(16, 185, 129, 0.15); color: var(--kip); }
+
+.user-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.user-stat-mini {
+  text-align: center;
+  padding: 8px 4px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+}
+
+.user-stat-mini .val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.user-stat-mini .lbl {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.pace-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 8px;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 6px;
+}
+
+.pace-old {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.pace-arrow-icon {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.pace-new {
+  color: var(--beginner);
+  font-weight: 600;
+}
+
+/* Expanded Content */
+.expanded-content {
+  display: none;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  animation: fadeIn 0.3s ease;
+}
+
+.user-card.expanded .expanded-content {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.expanded-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.expanded-section h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.pace-zones-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pace-zone-item {
+  background: rgba(255,255,255,0.03);
+  padding: 10px 12px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pace-zone-item .zone-name {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.pace-zone-item .zone-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+}
+
+.insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insight-item {
+  background: rgba(255,255,255,0.03);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-left: 3px solid var(--accent);
+  line-height: 1.5;
+}
+
+.strength-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.strength-item {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding-left: 14px;
+  position: relative;
+}
+
+.strength-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--beginner);
+}
+
+.improvement-bar {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+
+.improvement-bar .bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.improvement-track {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.improvement-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--beginner));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* No results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+  font-size: 1rem;
+  grid-column: 1 / -1;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 100px 20px;
+  color: var(--text-muted);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading simulation data...</p>
+  </div>
+</div>
+
+<script>
+(async function() {
+  const app = document.getElementById('app');
+
+  let data;
+  try {
+    const res = await fetch('./simulation-results.json');
+    if (!res.ok) throw new Error('Failed to load');
+    data = await res.json();
+  } catch (e) {
+    app.innerHTML = '<div class="loading"><p style="color:#EF4444;">Failed to load simulation-results.json. Make sure this file is in the same folder.</p></div>';
+    return;
+  }
+
+  let activeFilters = { tier: 'all', coach: 'all', search: '' };
+  let expandedId = null;
+
+  function formatCoachName(coach) {
+    return coach.replace('Kendu_', '');
+  }
+
+  function getGenderIcon(gender) {
+    return gender === 'male' ? '♂' : gender === 'female' ? '♀' : '⚧';
+  }
+
+  function getTotalRuns() {
+    return data.users.reduce((sum, u) => sum + u.total_runs, 0);
+  }
+
+  function getFilteredUsers() {
+    return data.users.filter(u => {
+      if (activeFilters.tier !== 'all' && u.tier !== activeFilters.tier) return false;
+      if (activeFilters.coach !== 'all' && u.coach !== activeFilters.coach) return false;
+      if (activeFilters.search && !u.name.toLowerCase().includes(activeFilters.search.toLowerCase())) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    const filtered = getFilteredUsers();
+    const totalRuns = getTotalRuns();
+
+    const tierColors = { beginner: 'var(--beginner)', intermediate: 'var(--intermediate)', advanced: 'var(--advanced)' };
+    const coachColors = { Kendu_Ishu: 'var(--ishu)', Kendu_Nainu: 'var(--nainu)', Kendu_Goggins: 'var(--goggins)', Kendu_Kip: 'var(--kip)' };
+    const maxTier = Math.max(...Object.values(data.tier_breakdown));
+    const maxLevel = Math.max(...Object.values(data.level_distribution));
+
+    app.innerHTML = `
+      <header class="header">
+        <h1>Sprint Society AI Simulation</h1>
+        <p class="subtitle">100 Users. 100 Days. Infinite Insights.</p>
+        <div class="header-stats">
+          <div class="header-stat">
+            <div class="value">${totalRuns.toLocaleString()}</div>
+            <div class="label">Total Runs</div>
+          </div>
+          <div class="header-stat">
+            <div class="value">${data.avg_pace_improvement_percent}%</div>
+            <div class="label">Avg Improvement</div>
+          </div>
+          <div class="header-stat">
+            <div class="value">${data.avg_total_distance_km} km</div>
+            <div class="label">Avg Distance</div>
+          </div>
+          <div class="header-stat">
+            <div class="value">${data.avg_weekly_volume_km} km</div>
+            <div class="label">Avg Weekly</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="overview-grid">
+        <div class="overview-card">
+          <h3>Tier Breakdown</h3>
+          <div class="tier-bars">
+            ${Object.entries(data.tier_breakdown).map(([tier, count]) => `
+              <div class="tier-bar-row">
+                <span class="tier-bar-label">${tier}</span>
+                <div class="tier-bar-track">
+                  <div class="tier-bar-fill" style="width: ${(count / data.total_users) * 100}%; background: ${tierColors[tier]}">${count}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <h3>Coach Assignments</h3>
+          <div class="coach-grid">
+            ${Object.entries(data.coach_breakdown).map(([coach, count]) => `
+              <div class="coach-box">
+                <div class="coach-name">${formatCoachName(coach)}</div>
+                <div class="coach-count" style="color: ${coachColors[coach]}">${count}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <h3>Level Distribution</h3>
+          <div class="level-bars">
+            ${Object.entries(data.level_distribution).sort((a, b) => Number(a[0]) - Number(b[0])).map(([level, count]) => `
+              <div class="level-row">
+                <span class="level-label">Lv ${level}</span>
+                <div class="level-track">
+                  <div class="level-fill" style="width: ${(count / maxLevel) * 100}%"></div>
+                </div>
+                <span class="level-count">${count}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <h3>Averages</h3>
+          <div class="stats-list">
+            <div class="stat-item">
+              <span class="stat-label">Pace Improvement</span>
+              <span class="stat-value" style="color: var(--beginner)">+${data.avg_pace_improvement_percent}%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Total Distance</span>
+              <span class="stat-value">${data.avg_total_distance_km} km</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Weekly Volume</span>
+              <span class="stat-value">${data.avg_weekly_volume_km} km</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Total Users</span>
+              <span class="stat-value">${data.total_users}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <button class="filter-btn ${activeFilters.tier === 'all' ? 'active' : ''}" data-filter="tier" data-value="all">All Tiers</button>
+          <button class="filter-btn ${activeFilters.tier === 'beginner' ? 'active' : ''}" data-filter="tier" data-value="beginner">Beginner</button>
+          <button class="filter-btn ${activeFilters.tier === 'intermediate' ? 'active' : ''}" data-filter="tier" data-value="intermediate">Intermediate</button>
+          <button class="filter-btn ${activeFilters.tier === 'advanced' ? 'active' : ''}" data-filter="tier" data-value="advanced">Advanced</button>
+        </div>
+        <div class="filter-group">
+          <button class="filter-btn ${activeFilters.coach === 'all' ? 'active' : ''}" data-filter="coach" data-value="all">All Coaches</button>
+          <button class="filter-btn ${activeFilters.coach === 'Kendu_Nainu' ? 'active' : ''}" data-filter="coach" data-value="Kendu_Nainu">Nainu</button>
+          <button class="filter-btn ${activeFilters.coach === 'Kendu_Goggins' ? 'active' : ''}" data-filter="coach" data-value="Kendu_Goggins">Goggins</button>
+          <button class="filter-btn ${activeFilters.coach === 'Kendu_Kip' ? 'active' : ''}" data-filter="coach" data-value="Kendu_Kip">Kip</button>
+          <button class="filter-btn ${activeFilters.coach === 'Kendu_Ishu' ? 'active' : ''}" data-filter="coach" data-value="Kendu_Ishu">Ishu</button>
+        </div>
+        <input type="text" class="search-input" placeholder="Search by name..." value="${activeFilters.search}" id="searchInput">
+        <span class="filter-count">${filtered.length} of ${data.total_users} users</span>
+      </div>
+
+      <div class="user-grid">
+        ${filtered.length === 0 ? '<div class="no-results">No users match your filters.</div>' : ''}
+        ${filtered.map(user => {
+          const isExpanded = expandedId === user.id;
+          return `
+          <div class="user-card ${isExpanded ? 'expanded' : ''}" data-user-id="${user.id}">
+            <div class="user-card-header">
+              <div class="user-avatar">${getGenderIcon(user.gender)}</div>
+              <div class="user-info">
+                <div class="user-name">${user.name}</div>
+                <div class="user-meta">Age ${user.age} &middot; VO2max ${user.vo2max}</div>
+              </div>
+            </div>
+            <div class="user-badges">
+              <span class="badge badge-${user.tier}">${user.tier}</span>
+              <span class="badge badge-coach badge-${user.coach}">${formatCoachName(user.coach)}</span>
+            </div>
+            <div class="user-stats-row">
+              <div class="user-stat-mini">
+                <div class="val">${user.level}</div>
+                <div class="lbl">Level</div>
+              </div>
+              <div class="user-stat-mini">
+                <div class="val">${user.total_km}</div>
+                <div class="lbl">Total km</div>
+              </div>
+              <div class="user-stat-mini">
+                <div class="val">+${user.pace_improvement}%</div>
+                <div class="lbl">Improved</div>
+              </div>
+            </div>
+            <div class="pace-arrow">
+              <span class="pace-old">${user.first_pace}/km</span>
+              <span class="pace-arrow-icon">→</span>
+              <span class="pace-new">${user.current_pace}/km</span>
+            </div>
+            <div class="expanded-content">
+              <div class="expanded-grid">
+                <div class="expanded-section">
+                  <h4>Pace Zones</h4>
+                  <div class="pace-zones-grid">
+                    ${Object.entries(user.pace_zones).map(([zone, pace]) => `
+                      <div class="pace-zone-item">
+                        <span class="zone-name">${zone}</span>
+                        <span class="zone-value">${pace}/km</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="expanded-section">
+                  <h4>Personality</h4>
+                  <div class="tag-list">
+                    ${user.personality_tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                  </div>
+                  <h4 style="margin-top:16px;">Strengths</h4>
+                  <div class="strength-list">
+                    ${user.strengths.map(s => `<div class="strength-item">${s}</div>`).join('')}
+                  </div>
+                </div>
+                <div class="expanded-section" style="grid-column: 1 / -1;">
+                  <h4>AI Coach Insights</h4>
+                  <div class="insight-list">
+                    ${user.insights.map(i => `<div class="insight-item">${i}</div>`).join('')}
+                  </div>
+                </div>
+              </div>
+              <div class="improvement-bar">
+                <div class="bar-label">
+                  <span>Streak: ${user.max_streak} days</span>
+                  <span>${user.total_runs} runs &middot; ${user.weekly_km} km/week</span>
+                </div>
+                <div class="improvement-track">
+                  <div class="improvement-fill" style="width: ${Math.min(user.pace_improvement * 10, 100)}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    attachEvents();
+  }
+
+  function attachEvents() {
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        const value = btn.dataset.value;
+        activeFilters[filter] = value;
+        render();
+      });
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        activeFilters.search = e.target.value;
+        render();
+        // Re-focus after render
+        const newInput = document.getElementById('searchInput');
+        if (newInput) {
+          newInput.focus();
+          newInput.setSelectionRange(newInput.value.length, newInput.value.length);
+        }
+      });
+    }
+
+    // User cards
+    document.querySelectorAll('.user-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const userId = Number(card.dataset.userId);
+        expandedId = expandedId === userId ? null : userId;
+        render();
+      });
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

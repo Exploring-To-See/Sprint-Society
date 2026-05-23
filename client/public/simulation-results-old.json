@@ -1,0 +1,3520 @@
+{
+  "total_users": 100,
+  "tier_breakdown": {
+    "beginner": 21,
+    "intermediate": 12,
+    "advanced": 67
+  },
+  "coach_breakdown": {
+    "Kendu_Ishu": 0,
+    "Kendu_Nainu": 51,
+    "Kendu_Goggins": 39,
+    "Kendu_Kip": 10
+  },
+  "level_distribution": {
+    "16": 2,
+    "17": 1,
+    "18": 4,
+    "19": 8,
+    "20": 85
+  },
+  "avg_pace_improvement_percent": 3,
+  "avg_total_distance_km": 341,
+  "avg_weekly_volume_km": 23.9,
+  "users": [
+    {
+      "id": 1,
+      "name": "Ankur Bhat",
+      "age": 31,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 61.7,
+      "level": 20,
+      "total_runs": 51,
+      "total_km": 364,
+      "weekly_km": 25.5,
+      "pace_improvement": 2,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "6:22",
+        "tempo": "5:42",
+        "interval": "5:07",
+        "race": "5:22"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "5:55",
+      "current_pace": "5:47"
+    },
+    {
+      "id": 2,
+      "name": "Naina Malhotra",
+      "age": 18,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 24,
+      "level": 20,
+      "total_runs": 57,
+      "total_km": 429,
+      "weekly_km": 30,
+      "pace_improvement": 5,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "9:30",
+        "tempo": "8:50",
+        "interval": "8:15",
+        "race": "8:30"
+      },
+      "personality_tags": [
+        "Fresh Start",
+        "Competitor"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "8:07",
+      "current_pace": "7:43"
+    },
+    {
+      "id": 3,
+      "name": "Krishna Singh",
+      "age": 33,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 35,
+      "level": 18,
+      "total_runs": 31,
+      "total_km": 234,
+      "weekly_km": 16.4,
+      "pace_improvement": 12,
+      "max_streak": 2,
+      "pace_zones": {
+        "easy": "8:35",
+        "tempo": "7:55",
+        "interval": "7:20",
+        "race": "7:35"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Fresh Start",
+        "Competitor",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit"
+      ],
+      "insights": [
+        "12% faster. Good. But don't get comfortable. The next 12% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "7:58",
+      "current_pace": "7:02"
+    },
+    {
+      "id": 4,
+      "name": "Tanvi Kapoor",
+      "age": 21,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 59.8,
+      "level": 19,
+      "total_runs": 32,
+      "total_km": 253,
+      "weekly_km": 17.7,
+      "pace_improvement": 6,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "6:31",
+        "tempo": "5:51",
+        "interval": "5:16",
+        "race": "5:31"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Competitor"
+      ],
+      "strengths": [
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "6% faster. Good. But don't get comfortable. The next 6% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:05",
+      "current_pace": "5:43"
+    },
+    {
+      "id": 5,
+      "name": "Myra Agarwal",
+      "age": 22,
+      "gender": "male",
+      "tier": "intermediate",
+      "coach": "Kendu_Nainu",
+      "vo2max": 41,
+      "level": 18,
+      "total_runs": 31,
+      "total_km": 238,
+      "weekly_km": 16.7,
+      "pace_improvement": 9,
+      "max_streak": 2,
+      "pace_zones": {
+        "easy": "8:05",
+        "tempo": "7:25",
+        "interval": "6:50",
+        "race": "7:05"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Fresh Start",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "You're getting FASTER! 9% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "7:38",
+      "current_pace": "6:56"
+    },
+    {
+      "id": 6,
+      "name": "Aarav Iyer",
+      "age": 21,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 67.6,
+      "level": 20,
+      "total_runs": 50,
+      "total_km": 374,
+      "weekly_km": 26.1,
+      "pace_improvement": -4,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "5:52",
+        "tempo": "5:12",
+        "interval": "4:37",
+        "race": "4:52"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Seasoned",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "5:03",
+      "current_pace": "5:15"
+    },
+    {
+      "id": 7,
+      "name": "Kirti Joshi",
+      "age": 27,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 59.9,
+      "level": 20,
+      "total_runs": 52,
+      "total_km": 400,
+      "weekly_km": 28,
+      "pace_improvement": 1,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "6:30",
+        "tempo": "5:50",
+        "interval": "5:15",
+        "race": "5:30"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Weekend Warrior",
+        "Competitor"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "5:58",
+      "current_pace": "5:54"
+    },
+    {
+      "id": 8,
+      "name": "Manish Joshi",
+      "age": 33,
+      "gender": "male",
+      "tier": "beginner",
+      "coach": "Kendu_Kip",
+      "vo2max": 27,
+      "level": 20,
+      "total_runs": 35,
+      "total_km": 270,
+      "weekly_km": 18.9,
+      "pace_improvement": 12,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "9:15",
+        "tempo": "8:35",
+        "interval": "8:00",
+        "race": "8:15"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Fresh Start",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "12% improvement, earned through patience. The body adapts on its own schedule — you trusted the process.",
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "8:43",
+      "current_pace": "7:41"
+    },
+    {
+      "id": 9,
+      "name": "Myra Nair",
+      "age": 32,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 74.1,
+      "level": 20,
+      "total_runs": 53,
+      "total_km": 392,
+      "weekly_km": 27.5,
+      "pace_improvement": 2,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "5:20",
+        "tempo": "4:40",
+        "interval": "4:05",
+        "race": "4:20"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "5:03",
+      "current_pace": "4:56"
+    },
+    {
+      "id": 10,
+      "name": "Aarav Iyer",
+      "age": 27,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 51.8,
+      "level": 20,
+      "total_runs": 35,
+      "total_km": 298,
+      "weekly_km": 20.9,
+      "pace_improvement": 0,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "7:11",
+        "tempo": "6:31",
+        "interval": "5:56",
+        "race": "6:11"
+      },
+      "personality_tags": [
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "6:47",
+      "current_pace": "6:47"
+    },
+    {
+      "id": 11,
+      "name": "Deepak Kumar",
+      "age": 21,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 50.9,
+      "level": 20,
+      "total_runs": 37,
+      "total_km": 287,
+      "weekly_km": 20.1,
+      "pace_improvement": -2,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "7:15",
+        "tempo": "6:35",
+        "interval": "6:00",
+        "race": "6:15"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "6:31",
+      "current_pace": "6:40"
+    },
+    {
+      "id": 12,
+      "name": "Dev Bhat",
+      "age": 21,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 66,
+      "level": 17,
+      "total_runs": 31,
+      "total_km": 234,
+      "weekly_km": 16.4,
+      "pace_improvement": 6,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "5:60",
+        "tempo": "5:20",
+        "interval": "4:45",
+        "race": "4:60"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "You're getting FASTER! 6% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "5:30",
+      "current_pace": "5:11"
+    },
+    {
+      "id": 13,
+      "name": "Myra Mehta",
+      "age": 25,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 55.7,
+      "level": 20,
+      "total_runs": 46,
+      "total_km": 347,
+      "weekly_km": 24.3,
+      "pace_improvement": 0,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "6:52",
+        "tempo": "6:12",
+        "interval": "5:37",
+        "race": "5:52"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Mind Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "6:08",
+      "current_pace": "6:08"
+    },
+    {
+      "id": 14,
+      "name": "Aanya Sharma",
+      "age": 24,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 72.4,
+      "level": 20,
+      "total_runs": 46,
+      "total_km": 343,
+      "weekly_km": 24,
+      "pace_improvement": -2,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "5:28",
+        "tempo": "4:48",
+        "interval": "4:13",
+        "race": "4:28"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Seasoned",
+        "Competitor"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "5:01",
+      "current_pace": "5:07"
+    },
+    {
+      "id": 15,
+      "name": "Arnav Kumar",
+      "age": 37,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 66.1,
+      "level": 20,
+      "total_runs": 44,
+      "total_km": 320,
+      "weekly_km": 22.4,
+      "pace_improvement": -4,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "5:60",
+        "tempo": "5:20",
+        "interval": "4:45",
+        "race": "4:60"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "5:12",
+      "current_pace": "5:24"
+    },
+    {
+      "id": 16,
+      "name": "Om Shah",
+      "age": 30,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 53.9,
+      "level": 18,
+      "total_runs": 30,
+      "total_km": 231,
+      "weekly_km": 16.2,
+      "pace_improvement": -5,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "7:00",
+        "tempo": "6:20",
+        "interval": "5:45",
+        "race": "6:00"
+      },
+      "personality_tags": [
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "6:29",
+      "current_pace": "6:51"
+    },
+    {
+      "id": 17,
+      "name": "Siddharth Kapoor",
+      "age": 40,
+      "gender": "female",
+      "tier": "intermediate",
+      "coach": "Kendu_Nainu",
+      "vo2max": 49.9,
+      "level": 20,
+      "total_runs": 58,
+      "total_km": 440,
+      "weekly_km": 30.8,
+      "pace_improvement": 6,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "7:21",
+        "tempo": "6:41",
+        "interval": "6:06",
+        "race": "6:21"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 6% improvement — that's amazing progress. Keep showing up! 🔥",
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "6:56",
+      "current_pace": "6:29"
+    },
+    {
+      "id": 18,
+      "name": "Isha Iyer",
+      "age": 21,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 68.7,
+      "level": 20,
+      "total_runs": 53,
+      "total_km": 379,
+      "weekly_km": 26.5,
+      "pace_improvement": 2,
+      "max_streak": 11,
+      "pace_zones": {
+        "easy": "5:47",
+        "tempo": "5:07",
+        "interval": "4:32",
+        "race": "4:47"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "11-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:08",
+      "current_pace": "5:01"
+    },
+    {
+      "id": 19,
+      "name": "Kabir Kumar",
+      "age": 31,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 52.6,
+      "level": 20,
+      "total_runs": 51,
+      "total_km": 360,
+      "weekly_km": 25.2,
+      "pace_improvement": -3,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "7:07",
+        "tempo": "6:27",
+        "interval": "5:52",
+        "race": "6:07"
+      },
+      "personality_tags": [
+        "Social Runner"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "6:28",
+      "current_pace": "6:41"
+    },
+    {
+      "id": 20,
+      "name": "Anushka Patel",
+      "age": 37,
+      "gender": "female",
+      "tier": "intermediate",
+      "coach": "Kendu_Nainu",
+      "vo2max": 48.2,
+      "level": 20,
+      "total_runs": 49,
+      "total_km": 340,
+      "weekly_km": 23.8,
+      "pace_improvement": 4,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "7:29",
+        "tempo": "6:49",
+        "interval": "6:14",
+        "race": "6:29"
+      },
+      "personality_tags": [
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "7:02",
+      "current_pace": "6:47"
+    },
+    {
+      "id": 21,
+      "name": "Kavya Verma",
+      "age": 39,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 60.4,
+      "level": 20,
+      "total_runs": 49,
+      "total_km": 357,
+      "weekly_km": 25,
+      "pace_improvement": -6,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "6:28",
+        "tempo": "5:48",
+        "interval": "5:13",
+        "race": "5:28"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "5:35",
+      "current_pace": "5:53"
+    },
+    {
+      "id": 22,
+      "name": "Avni Malhotra",
+      "age": 23,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 50.4,
+      "level": 20,
+      "total_runs": 38,
+      "total_km": 295,
+      "weekly_km": 20.6,
+      "pace_improvement": 4,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "7:18",
+        "tempo": "6:38",
+        "interval": "6:03",
+        "race": "6:18"
+      },
+      "personality_tags": [
+        "Mind Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "6:55",
+      "current_pace": "6:38"
+    },
+    {
+      "id": 23,
+      "name": "Krishna Chopra",
+      "age": 20,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 57.1,
+      "level": 20,
+      "total_runs": 34,
+      "total_km": 263,
+      "weekly_km": 18.4,
+      "pace_improvement": 1,
+      "max_streak": 2,
+      "pace_zones": {
+        "easy": "6:45",
+        "tempo": "6:05",
+        "interval": "5:30",
+        "race": "5:45"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "6:12",
+      "current_pace": "6:10"
+    },
+    {
+      "id": 24,
+      "name": "Nisha Rao",
+      "age": 40,
+      "gender": "female",
+      "tier": "intermediate",
+      "coach": "Kendu_Nainu",
+      "vo2max": 48.3,
+      "level": 20,
+      "total_runs": 47,
+      "total_km": 364,
+      "weekly_km": 25.5,
+      "pace_improvement": 9,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "7:28",
+        "tempo": "6:48",
+        "interval": "6:13",
+        "race": "6:28"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "You're getting FASTER! 9% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "6:58",
+      "current_pace": "6:21"
+    },
+    {
+      "id": 25,
+      "name": "Dhruv Saxena",
+      "age": 30,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 65.1,
+      "level": 20,
+      "total_runs": 55,
+      "total_km": 400,
+      "weekly_km": 28,
+      "pace_improvement": 3,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "6:05",
+        "tempo": "5:25",
+        "interval": "4:50",
+        "race": "5:05"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "5:53",
+      "current_pace": "5:43"
+    },
+    {
+      "id": 26,
+      "name": "Isha Joshi",
+      "age": 22,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 22,
+      "level": 19,
+      "total_runs": 34,
+      "total_km": 253,
+      "weekly_km": 17.7,
+      "pace_improvement": 9,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "9:40",
+        "tempo": "9:00",
+        "interval": "8:25",
+        "race": "8:40"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 9% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "8:35",
+      "current_pace": "7:48"
+    },
+    {
+      "id": 27,
+      "name": "Jiya Rao",
+      "age": 25,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 72.5,
+      "level": 20,
+      "total_runs": 49,
+      "total_km": 358,
+      "weekly_km": 25,
+      "pace_improvement": 2,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "5:28",
+        "tempo": "4:48",
+        "interval": "4:13",
+        "race": "4:28"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "5:04",
+      "current_pace": "4:58"
+    },
+    {
+      "id": 28,
+      "name": "Shivam Agarwal",
+      "age": 19,
+      "gender": "male",
+      "tier": "intermediate",
+      "coach": "Kendu_Goggins",
+      "vo2max": 48.6,
+      "level": 20,
+      "total_runs": 41,
+      "total_km": 326,
+      "weekly_km": 22.8,
+      "pace_improvement": 1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "7:27",
+        "tempo": "6:47",
+        "interval": "6:12",
+        "race": "6:27"
+      },
+      "personality_tags": [
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "6:41",
+      "current_pace": "6:35"
+    },
+    {
+      "id": 29,
+      "name": "Rhea Bhat",
+      "age": 19,
+      "gender": "male",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 38,
+      "level": 20,
+      "total_runs": 45,
+      "total_km": 336,
+      "weekly_km": 23.5,
+      "pace_improvement": 7,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "8:20",
+        "tempo": "7:40",
+        "interval": "7:05",
+        "race": "7:20"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Fresh Start",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "You're getting FASTER! 7% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "7:41",
+      "current_pace": "7:07"
+    },
+    {
+      "id": 30,
+      "name": "Swati Reddy",
+      "age": 33,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 56,
+      "level": 20,
+      "total_runs": 42,
+      "total_km": 325,
+      "weekly_km": 22.8,
+      "pace_improvement": 3,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:50",
+        "tempo": "6:10",
+        "interval": "5:35",
+        "race": "5:50"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "6:14",
+      "current_pace": "6:01"
+    },
+    {
+      "id": 31,
+      "name": "Divya Chopra",
+      "age": 26,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 67.9,
+      "level": 20,
+      "total_runs": 40,
+      "total_km": 285,
+      "weekly_km": 20,
+      "pace_improvement": 1,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "5:50",
+        "tempo": "5:10",
+        "interval": "4:35",
+        "race": "4:50"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "5:20",
+      "current_pace": "5:17"
+    },
+    {
+      "id": 32,
+      "name": "Ankur Kapoor",
+      "age": 20,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 24,
+      "level": 20,
+      "total_runs": 55,
+      "total_km": 421,
+      "weekly_km": 29.5,
+      "pace_improvement": 7,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "9:30",
+        "tempo": "8:50",
+        "interval": "8:15",
+        "race": "8:30"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 7% improvement — that's amazing progress. Keep showing up! 🔥",
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "8:49",
+      "current_pace": "8:11"
+    },
+    {
+      "id": 33,
+      "name": "Kirti Nair",
+      "age": 35,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 57.8,
+      "level": 20,
+      "total_runs": 54,
+      "total_km": 398,
+      "weekly_km": 27.8,
+      "pace_improvement": 4,
+      "max_streak": 9,
+      "pace_zones": {
+        "easy": "6:41",
+        "tempo": "6:01",
+        "interval": "5:26",
+        "race": "5:41"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "9-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "5:59",
+      "current_pace": "5:44"
+    },
+    {
+      "id": 34,
+      "name": "Krishna Malhotra",
+      "age": 28,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 24,
+      "level": 20,
+      "total_runs": 34,
+      "total_km": 262,
+      "weekly_km": 18.4,
+      "pace_improvement": 10,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "9:30",
+        "tempo": "8:50",
+        "interval": "8:15",
+        "race": "8:30"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "You're getting FASTER! 10% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "8:48",
+      "current_pace": "7:53"
+    },
+    {
+      "id": 35,
+      "name": "Akash Kumar",
+      "age": 29,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 35,
+      "level": 20,
+      "total_runs": 58,
+      "total_km": 430,
+      "weekly_km": 30.1,
+      "pace_improvement": 11,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "8:35",
+        "tempo": "7:55",
+        "interval": "7:20",
+        "race": "7:35"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "You're getting FASTER! 11% improvement — that's amazing progress. Keep showing up! 🔥",
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "7:59",
+      "current_pace": "7:05"
+    },
+    {
+      "id": 36,
+      "name": "Isha Agarwal",
+      "age": 39,
+      "gender": "female",
+      "tier": "intermediate",
+      "coach": "Kendu_Goggins",
+      "vo2max": 47.4,
+      "level": 18,
+      "total_runs": 32,
+      "total_km": 235,
+      "weekly_km": 16.5,
+      "pace_improvement": -4,
+      "max_streak": 2,
+      "pace_zones": {
+        "easy": "7:33",
+        "tempo": "6:53",
+        "interval": "6:18",
+        "race": "6:33"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Competitor"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "6:36",
+      "current_pace": "6:51"
+    },
+    {
+      "id": 37,
+      "name": "Veer Kapoor",
+      "age": 27,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 74.1,
+      "level": 20,
+      "total_runs": 60,
+      "total_km": 483,
+      "weekly_km": 33.8,
+      "pace_improvement": 2,
+      "max_streak": 9,
+      "pace_zones": {
+        "easy": "5:20",
+        "tempo": "4:40",
+        "interval": "4:05",
+        "race": "4:20"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Seasoned",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "9-day streak detected. Consistency is your superpower.",
+        "Volume is high. Consider a deload week — adaptation happens during recovery.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "4:59",
+      "current_pace": "4:53"
+    },
+    {
+      "id": 38,
+      "name": "Vikram Rao",
+      "age": 37,
+      "gender": "male",
+      "tier": "intermediate",
+      "coach": "Kendu_Nainu",
+      "vo2max": 48.7,
+      "level": 20,
+      "total_runs": 42,
+      "total_km": 319,
+      "weekly_km": 22.3,
+      "pace_improvement": -4,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "7:27",
+        "tempo": "6:47",
+        "interval": "6:12",
+        "race": "6:27"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:37",
+      "current_pace": "6:51"
+    },
+    {
+      "id": 39,
+      "name": "Deepak Sinha",
+      "age": 22,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 67,
+      "level": 20,
+      "total_runs": 50,
+      "total_km": 376,
+      "weekly_km": 26.3,
+      "pace_improvement": 0,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "5:55",
+        "tempo": "5:15",
+        "interval": "4:40",
+        "race": "4:55"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Seasoned",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "5:17",
+      "current_pace": "5:16"
+    },
+    {
+      "id": 40,
+      "name": "Gaurav Shah",
+      "age": 18,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 53.8,
+      "level": 20,
+      "total_runs": 46,
+      "total_km": 319,
+      "weekly_km": 22.3,
+      "pace_improvement": 4,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "7:01",
+        "tempo": "6:21",
+        "interval": "5:46",
+        "race": "6:01"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "6:44",
+      "current_pace": "6:26"
+    },
+    {
+      "id": 41,
+      "name": "Dev Nair",
+      "age": 40,
+      "gender": "female",
+      "tier": "intermediate",
+      "coach": "Kendu_Goggins",
+      "vo2max": 49,
+      "level": 20,
+      "total_runs": 48,
+      "total_km": 369,
+      "weekly_km": 25.8,
+      "pace_improvement": 8,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "7:25",
+        "tempo": "6:45",
+        "interval": "6:10",
+        "race": "6:25"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "8% faster. Good. But don't get comfortable. The next 8% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "6:56",
+      "current_pace": "6:22"
+    },
+    {
+      "id": 42,
+      "name": "Manish Reddy",
+      "age": 31,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 58.7,
+      "level": 20,
+      "total_runs": 49,
+      "total_km": 368,
+      "weekly_km": 25.8,
+      "pace_improvement": -3,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "6:36",
+        "tempo": "5:56",
+        "interval": "5:21",
+        "race": "5:36"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:00",
+      "current_pace": "6:10"
+    },
+    {
+      "id": 43,
+      "name": "Disha Gupta",
+      "age": 37,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 69,
+      "level": 20,
+      "total_runs": 42,
+      "total_km": 310,
+      "weekly_km": 21.7,
+      "pace_improvement": 6,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "5:45",
+        "tempo": "5:05",
+        "interval": "4:30",
+        "race": "4:45"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "You're getting FASTER! 6% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "5:15",
+      "current_pace": "4:57"
+    },
+    {
+      "id": 44,
+      "name": "Ritika Reddy",
+      "age": 27,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 22,
+      "level": 20,
+      "total_runs": 41,
+      "total_km": 330,
+      "weekly_km": 23.1,
+      "pace_improvement": 16,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "9:40",
+        "tempo": "9:00",
+        "interval": "8:25",
+        "race": "8:40"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Fresh Start",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "16% faster. Good. But don't get comfortable. The next 16% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "9:33",
+      "current_pace": "7:59"
+    },
+    {
+      "id": 45,
+      "name": "Kabir Joshi",
+      "age": 16,
+      "gender": "female",
+      "tier": "intermediate",
+      "coach": "Kendu_Kip",
+      "vo2max": 40,
+      "level": 20,
+      "total_runs": 58,
+      "total_km": 464,
+      "weekly_km": 32.5,
+      "pace_improvement": 9,
+      "max_streak": 11,
+      "pace_zones": {
+        "easy": "8:10",
+        "tempo": "7:30",
+        "interval": "6:55",
+        "race": "7:10"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Fresh Start",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit"
+      ],
+      "insights": [
+        "9% improvement, earned through patience. The body adapts on its own schedule — you trusted the process.",
+        "11-day streak detected. Consistency is your superpower.",
+        "Volume is high. Consider a deload week — adaptation happens during recovery.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "8:00",
+      "current_pace": "7:15"
+    },
+    {
+      "id": 46,
+      "name": "Myra Bhat",
+      "age": 30,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 37,
+      "level": 20,
+      "total_runs": 59,
+      "total_km": 453,
+      "weekly_km": 31.7,
+      "pace_improvement": 6,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "8:25",
+        "tempo": "7:45",
+        "interval": "7:10",
+        "race": "7:25"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Weekend Warrior",
+        "Fresh Start",
+        "Competitor"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "6% faster. Good. But don't get comfortable. The next 6% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "7:57",
+      "current_pace": "7:28"
+    },
+    {
+      "id": 47,
+      "name": "Nandini Reddy",
+      "age": 21,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 53.3,
+      "level": 20,
+      "total_runs": 53,
+      "total_km": 389,
+      "weekly_km": 27.2,
+      "pace_improvement": 3,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "7:04",
+        "tempo": "6:24",
+        "interval": "5:49",
+        "race": "6:04"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:52",
+      "current_pace": "6:41"
+    },
+    {
+      "id": 48,
+      "name": "Karan Joshi",
+      "age": 17,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 57.7,
+      "level": 20,
+      "total_runs": 51,
+      "total_km": 349,
+      "weekly_km": 24.5,
+      "pace_improvement": 2,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "6:42",
+        "tempo": "6:02",
+        "interval": "5:27",
+        "race": "5:42"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "6:09",
+      "current_pace": "6:00"
+    },
+    {
+      "id": 49,
+      "name": "Ananya Chopra",
+      "age": 30,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 67.3,
+      "level": 20,
+      "total_runs": 50,
+      "total_km": 385,
+      "weekly_km": 26.9,
+      "pace_improvement": 0,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "5:54",
+        "tempo": "5:14",
+        "interval": "4:39",
+        "race": "4:54"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Weekend Warrior",
+        "Seasoned",
+        "Competitor"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "5:16",
+      "current_pace": "5:17"
+    },
+    {
+      "id": 50,
+      "name": "Rudra Mehta",
+      "age": 23,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 70.2,
+      "level": 20,
+      "total_runs": 52,
+      "total_km": 395,
+      "weekly_km": 27.7,
+      "pace_improvement": 5,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "5:39",
+        "tempo": "4:59",
+        "interval": "4:24",
+        "race": "4:39"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "5:06",
+      "current_pace": "4:50"
+    },
+    {
+      "id": 51,
+      "name": "Priya Patel",
+      "age": 17,
+      "gender": "male",
+      "tier": "intermediate",
+      "coach": "Kendu_Goggins",
+      "vo2max": 47.5,
+      "level": 20,
+      "total_runs": 58,
+      "total_km": 447,
+      "weekly_km": 31.3,
+      "pace_improvement": -2,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "7:32",
+        "tempo": "6:52",
+        "interval": "6:17",
+        "race": "6:32"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "6:50",
+      "current_pace": "7:00"
+    },
+    {
+      "id": 52,
+      "name": "Aditi Rao",
+      "age": 23,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 33,
+      "level": 20,
+      "total_runs": 47,
+      "total_km": 351,
+      "weekly_km": 24.6,
+      "pace_improvement": 10,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "8:45",
+        "tempo": "8:05",
+        "interval": "7:30",
+        "race": "7:45"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Weekend Warrior",
+        "Fresh Start",
+        "Competitor"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "10% faster. Good. But don't get comfortable. The next 10% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "8:07",
+      "current_pace": "7:19"
+    },
+    {
+      "id": 53,
+      "name": "Jiya Saxena",
+      "age": 31,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 64.4,
+      "level": 20,
+      "total_runs": 55,
+      "total_km": 404,
+      "weekly_km": 28.3,
+      "pace_improvement": 3,
+      "max_streak": 10,
+      "pace_zones": {
+        "easy": "6:08",
+        "tempo": "5:28",
+        "interval": "4:53",
+        "race": "5:08"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "10-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "5:57",
+      "current_pace": "5:46"
+    },
+    {
+      "id": 54,
+      "name": "Avni Kumar",
+      "age": 32,
+      "gender": "male",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 35,
+      "level": 20,
+      "total_runs": 46,
+      "total_km": 345,
+      "weekly_km": 24.2,
+      "pace_improvement": 8,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "8:35",
+        "tempo": "7:55",
+        "interval": "7:20",
+        "race": "7:35"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Fresh Start",
+        "Health Focused"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "8% faster. Good. But don't get comfortable. The next 8% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "7:50",
+      "current_pace": "7:14"
+    },
+    {
+      "id": 55,
+      "name": "Aman Sharma",
+      "age": 23,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 55.7,
+      "level": 20,
+      "total_runs": 39,
+      "total_km": 313,
+      "weekly_km": 21.9,
+      "pace_improvement": -1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "6:51",
+        "tempo": "6:11",
+        "interval": "5:36",
+        "race": "5:51"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Weekend Warrior",
+        "Competitor"
+      ],
+      "strengths": [
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "6:19",
+      "current_pace": "6:22"
+    },
+    {
+      "id": 56,
+      "name": "Tanvi Patel",
+      "age": 16,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 65.2,
+      "level": 19,
+      "total_runs": 36,
+      "total_km": 255,
+      "weekly_km": 17.9,
+      "pace_improvement": -3,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "6:04",
+        "tempo": "5:24",
+        "interval": "4:49",
+        "race": "5:04"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "5:40",
+      "current_pace": "5:50"
+    },
+    {
+      "id": 57,
+      "name": "Veer Singh",
+      "age": 27,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 52.1,
+      "level": 20,
+      "total_runs": 48,
+      "total_km": 335,
+      "weekly_km": 23.4,
+      "pace_improvement": 2,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "7:10",
+        "tempo": "6:30",
+        "interval": "5:55",
+        "race": "6:10"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "6:46",
+      "current_pace": "6:36"
+    },
+    {
+      "id": 58,
+      "name": "Anika Chopra",
+      "age": 26,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 64.4,
+      "level": 20,
+      "total_runs": 45,
+      "total_km": 341,
+      "weekly_km": 23.9,
+      "pace_improvement": -8,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:08",
+        "tempo": "5:28",
+        "interval": "4:53",
+        "race": "5:08"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:21",
+      "current_pace": "5:47"
+    },
+    {
+      "id": 59,
+      "name": "Rudra Singh",
+      "age": 24,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 66.7,
+      "level": 20,
+      "total_runs": 48,
+      "total_km": 363,
+      "weekly_km": 25.4,
+      "pace_improvement": 1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "5:57",
+        "tempo": "5:17",
+        "interval": "4:42",
+        "race": "4:57"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "5:20",
+      "current_pace": "5:16"
+    },
+    {
+      "id": 60,
+      "name": "Mahika Iyer",
+      "age": 17,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 71.2,
+      "level": 20,
+      "total_runs": 60,
+      "total_km": 472,
+      "weekly_km": 33,
+      "pace_improvement": -1,
+      "max_streak": 10,
+      "pace_zones": {
+        "easy": "5:34",
+        "tempo": "4:54",
+        "interval": "4:19",
+        "race": "4:34"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "10-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "5:01",
+      "current_pace": "5:04"
+    },
+    {
+      "id": 61,
+      "name": "Arnav Malhotra",
+      "age": 19,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 73.9,
+      "level": 20,
+      "total_runs": 56,
+      "total_km": 437,
+      "weekly_km": 30.6,
+      "pace_improvement": -1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "5:20",
+        "tempo": "4:40",
+        "interval": "4:05",
+        "race": "4:20"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "4:58",
+      "current_pace": "5:01"
+    },
+    {
+      "id": 62,
+      "name": "Ishita Reddy",
+      "age": 34,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 35,
+      "level": 20,
+      "total_runs": 36,
+      "total_km": 273,
+      "weekly_km": 19.1,
+      "pace_improvement": 6,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "8:35",
+        "tempo": "7:55",
+        "interval": "7:20",
+        "race": "7:35"
+      },
+      "personality_tags": [
+        "Fresh Start",
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 6% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "7:51",
+      "current_pace": "7:23"
+    },
+    {
+      "id": 63,
+      "name": "Divya Chopra",
+      "age": 27,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 75,
+      "level": 20,
+      "total_runs": 33,
+      "total_km": 265,
+      "weekly_km": 18.6,
+      "pace_improvement": 6,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "5:15",
+        "tempo": "4:35",
+        "interval": "4:00",
+        "race": "4:15"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "You're getting FASTER! 6% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "5:09",
+      "current_pace": "4:50"
+    },
+    {
+      "id": 64,
+      "name": "Avni Saxena",
+      "age": 27,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 56.4,
+      "level": 20,
+      "total_runs": 51,
+      "total_km": 395,
+      "weekly_km": 27.7,
+      "pace_improvement": -1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "6:48",
+        "tempo": "6:08",
+        "interval": "5:33",
+        "race": "5:48"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "6:17",
+      "current_pace": "6:20"
+    },
+    {
+      "id": 65,
+      "name": "Atharv Verma",
+      "age": 18,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 55.7,
+      "level": 20,
+      "total_runs": 48,
+      "total_km": 352,
+      "weekly_km": 24.7,
+      "pace_improvement": 4,
+      "max_streak": 10,
+      "pace_zones": {
+        "easy": "6:51",
+        "tempo": "6:11",
+        "interval": "5:36",
+        "race": "5:51"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "10-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "6:23",
+      "current_pace": "6:09"
+    },
+    {
+      "id": 66,
+      "name": "Kavya Reddy",
+      "age": 29,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 30,
+      "level": 20,
+      "total_runs": 41,
+      "total_km": 292,
+      "weekly_km": 20.4,
+      "pace_improvement": 4,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "9:00",
+        "tempo": "8:20",
+        "interval": "7:45",
+        "race": "8:00"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Fresh Start",
+        "Competitor"
+      ],
+      "strengths": [
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "8:17",
+      "current_pace": "7:58"
+    },
+    {
+      "id": 67,
+      "name": "Kavya Kapoor",
+      "age": 37,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 51.9,
+      "level": 20,
+      "total_runs": 52,
+      "total_km": 377,
+      "weekly_km": 26.4,
+      "pace_improvement": 4,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "7:11",
+        "tempo": "6:31",
+        "interval": "5:56",
+        "race": "6:11"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:46",
+      "current_pace": "6:31"
+    },
+    {
+      "id": 68,
+      "name": "Kabeer Bhat",
+      "age": 34,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 65.6,
+      "level": 20,
+      "total_runs": 41,
+      "total_km": 313,
+      "weekly_km": 21.9,
+      "pace_improvement": 6,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "6:02",
+        "tempo": "5:22",
+        "interval": "4:47",
+        "race": "5:02"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "You're getting FASTER! 6% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "5:56",
+      "current_pace": "5:36"
+    },
+    {
+      "id": 69,
+      "name": "Rudra Reddy",
+      "age": 27,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 73.6,
+      "level": 19,
+      "total_runs": 33,
+      "total_km": 257,
+      "weekly_km": 18,
+      "pace_improvement": 2,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "5:22",
+        "tempo": "4:42",
+        "interval": "4:07",
+        "race": "4:22"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Seasoned",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "5:10",
+      "current_pace": "5:04"
+    },
+    {
+      "id": 70,
+      "name": "Muskaan Rao",
+      "age": 22,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 55.4,
+      "level": 20,
+      "total_runs": 58,
+      "total_km": 445,
+      "weekly_km": 31.1,
+      "pace_improvement": -5,
+      "max_streak": 10,
+      "pace_zones": {
+        "easy": "6:53",
+        "tempo": "6:13",
+        "interval": "5:38",
+        "race": "5:53"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Mind Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness"
+      ],
+      "insights": [
+        "10-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "6:06",
+      "current_pace": "6:25"
+    },
+    {
+      "id": 71,
+      "name": "Darsh Mehta",
+      "age": 22,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Kip",
+      "vo2max": 53.4,
+      "level": 20,
+      "total_runs": 45,
+      "total_km": 339,
+      "weekly_km": 23.7,
+      "pace_improvement": -1,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "7:03",
+        "tempo": "6:23",
+        "interval": "5:48",
+        "race": "6:03"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "6:33",
+      "current_pace": "6:35"
+    },
+    {
+      "id": 72,
+      "name": "Saanvi Rao",
+      "age": 30,
+      "gender": "male",
+      "tier": "intermediate",
+      "coach": "Kendu_Nainu",
+      "vo2max": 49.6,
+      "level": 20,
+      "total_runs": 57,
+      "total_km": 405,
+      "weekly_km": 28.4,
+      "pace_improvement": 1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "7:22",
+        "tempo": "6:42",
+        "interval": "6:07",
+        "race": "6:22"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:44",
+      "current_pace": "6:39"
+    },
+    {
+      "id": 73,
+      "name": "Shivansh Patel",
+      "age": 16,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 59,
+      "level": 20,
+      "total_runs": 33,
+      "total_km": 266,
+      "weekly_km": 18.6,
+      "pace_improvement": 7,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "6:35",
+        "tempo": "5:55",
+        "interval": "5:20",
+        "race": "5:35"
+      },
+      "personality_tags": [
+        "Health Focused"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "You're getting FASTER! 7% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "6:11",
+      "current_pace": "5:46"
+    },
+    {
+      "id": 74,
+      "name": "Divya Bhat",
+      "age": 29,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 62.5,
+      "level": 20,
+      "total_runs": 57,
+      "total_km": 431,
+      "weekly_km": 30.2,
+      "pace_improvement": 3,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "6:18",
+        "tempo": "5:38",
+        "interval": "5:03",
+        "race": "5:18"
+      },
+      "personality_tags": [
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:44",
+      "current_pace": "5:33"
+    },
+    {
+      "id": 75,
+      "name": "Simran Iyer",
+      "age": 24,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 56.9,
+      "level": 20,
+      "total_runs": 53,
+      "total_km": 398,
+      "weekly_km": 27.9,
+      "pace_improvement": 4,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "6:46",
+        "tempo": "6:06",
+        "interval": "5:31",
+        "race": "5:46"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "6:08",
+      "current_pace": "5:52"
+    },
+    {
+      "id": 76,
+      "name": "Krishna Rao",
+      "age": 31,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 61.6,
+      "level": 20,
+      "total_runs": 44,
+      "total_km": 341,
+      "weekly_km": 23.9,
+      "pace_improvement": 7,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:22",
+        "tempo": "5:42",
+        "interval": "5:07",
+        "race": "5:22"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "You're getting FASTER! 7% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "6:05",
+      "current_pace": "5:40"
+    },
+    {
+      "id": 77,
+      "name": "Nikhil Iyer",
+      "age": 19,
+      "gender": "male",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 27,
+      "level": 20,
+      "total_runs": 34,
+      "total_km": 263,
+      "weekly_km": 18.4,
+      "pace_improvement": 7,
+      "max_streak": 2,
+      "pace_zones": {
+        "easy": "9:15",
+        "tempo": "8:35",
+        "interval": "8:00",
+        "race": "8:15"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 7% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "8:50",
+      "current_pace": "8:12"
+    },
+    {
+      "id": 78,
+      "name": "Anjali Sharma",
+      "age": 38,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 60.4,
+      "level": 20,
+      "total_runs": 45,
+      "total_km": 346,
+      "weekly_km": 24.2,
+      "pace_improvement": 0,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:28",
+        "tempo": "5:48",
+        "interval": "5:13",
+        "race": "5:28"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:52",
+      "current_pace": "5:52"
+    },
+    {
+      "id": 79,
+      "name": "Jiya Kumar",
+      "age": 28,
+      "gender": "male",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 22,
+      "level": 19,
+      "total_runs": 34,
+      "total_km": 254,
+      "weekly_km": 17.8,
+      "pace_improvement": 12,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "9:40",
+        "tempo": "9:00",
+        "interval": "8:25",
+        "race": "8:40"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "You're getting FASTER! 12% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "8:58",
+      "current_pace": "7:53"
+    },
+    {
+      "id": 80,
+      "name": "Pihu Gupta",
+      "age": 32,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 64.5,
+      "level": 20,
+      "total_runs": 60,
+      "total_km": 448,
+      "weekly_km": 31.4,
+      "pace_improvement": -1,
+      "max_streak": 11,
+      "pace_zones": {
+        "easy": "6:07",
+        "tempo": "5:27",
+        "interval": "4:52",
+        "race": "5:07"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "11-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:49",
+      "current_pace": "5:52"
+    },
+    {
+      "id": 81,
+      "name": "Raghav Kapoor",
+      "age": 22,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 69.3,
+      "level": 19,
+      "total_runs": 33,
+      "total_km": 250,
+      "weekly_km": 17.5,
+      "pace_improvement": -2,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "5:43",
+        "tempo": "5:03",
+        "interval": "4:28",
+        "race": "4:43"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "Seasoned",
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Technical running knowledge",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "4:58",
+      "current_pace": "5:03"
+    },
+    {
+      "id": 82,
+      "name": "Kabeer Saxena",
+      "age": 40,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 55.2,
+      "level": 20,
+      "total_runs": 58,
+      "total_km": 455,
+      "weekly_km": 31.9,
+      "pace_improvement": 4,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "6:54",
+        "tempo": "6:14",
+        "interval": "5:39",
+        "race": "5:54"
+      },
+      "personality_tags": [
+        "Social Runner"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "6:13",
+      "current_pace": "5:58"
+    },
+    {
+      "id": 83,
+      "name": "Yash Iyer",
+      "age": 33,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 57.9,
+      "level": 20,
+      "total_runs": 50,
+      "total_km": 335,
+      "weekly_km": 23.4,
+      "pace_improvement": 0,
+      "max_streak": 6,
+      "pace_zones": {
+        "easy": "6:41",
+        "tempo": "6:01",
+        "interval": "5:26",
+        "race": "5:41"
+      },
+      "personality_tags": [
+        "Social Runner"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "6:04",
+      "current_pace": "6:05"
+    },
+    {
+      "id": 84,
+      "name": "Mahika Kapoor",
+      "age": 37,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 26,
+      "level": 16,
+      "total_runs": 31,
+      "total_km": 209,
+      "weekly_km": 14.6,
+      "pace_improvement": 7,
+      "max_streak": 2,
+      "pace_zones": {
+        "easy": "9:20",
+        "tempo": "8:40",
+        "interval": "8:05",
+        "race": "8:20"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Fresh Start",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "7% faster. Good. But don't get comfortable. The next 7% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "8:32",
+      "current_pace": "7:56"
+    },
+    {
+      "id": 85,
+      "name": "Atharv Verma",
+      "age": 25,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 60.3,
+      "level": 20,
+      "total_runs": 46,
+      "total_km": 336,
+      "weekly_km": 23.5,
+      "pace_improvement": 10,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:29",
+        "tempo": "5:49",
+        "interval": "5:14",
+        "race": "5:29"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "10% faster. Good. But don't get comfortable. The next 10% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:15",
+      "current_pace": "5:36"
+    },
+    {
+      "id": 86,
+      "name": "Pranav Verma",
+      "age": 37,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 54.7,
+      "level": 16,
+      "total_runs": 30,
+      "total_km": 207,
+      "weekly_km": 14.5,
+      "pace_improvement": 4,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "6:57",
+        "tempo": "6:17",
+        "interval": "5:42",
+        "race": "5:57"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "6:06",
+      "current_pace": "5:52"
+    },
+    {
+      "id": 87,
+      "name": "Ayaan Kumar",
+      "age": 33,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 27,
+      "level": 20,
+      "total_runs": 51,
+      "total_km": 368,
+      "weekly_km": 25.8,
+      "pace_improvement": 15,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "9:15",
+        "tempo": "8:35",
+        "interval": "8:00",
+        "race": "8:15"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Fresh Start",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 15% improvement — that's amazing progress. Keep showing up! 🔥",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "8:53",
+      "current_pace": "7:34"
+    },
+    {
+      "id": 88,
+      "name": "Naina Nair",
+      "age": 35,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Nainu",
+      "vo2max": 37,
+      "level": 20,
+      "total_runs": 57,
+      "total_km": 447,
+      "weekly_km": 31.3,
+      "pace_improvement": 9,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "8:25",
+        "tempo": "7:45",
+        "interval": "7:10",
+        "race": "7:25"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "Fresh Start",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit"
+      ],
+      "insights": [
+        "You're getting FASTER! 9% improvement — that's amazing progress. Keep showing up! 🔥",
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Sats. Coincidence?"
+      ],
+      "first_pace": "7:55",
+      "current_pace": "7:11"
+    },
+    {
+      "id": 89,
+      "name": "Diya Shah",
+      "age": 31,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 71.3,
+      "level": 19,
+      "total_runs": 36,
+      "total_km": 251,
+      "weekly_km": 17.5,
+      "pace_improvement": -2,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "5:33",
+        "tempo": "4:53",
+        "interval": "4:18",
+        "race": "4:33"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Seasoned",
+        "Competitor"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "4:59",
+      "current_pace": "5:07"
+    },
+    {
+      "id": 90,
+      "name": "Veer Mehta",
+      "age": 16,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 35,
+      "level": 20,
+      "total_runs": 37,
+      "total_km": 301,
+      "weekly_km": 21,
+      "pace_improvement": 8,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "8:35",
+        "tempo": "7:55",
+        "interval": "7:20",
+        "race": "7:35"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Fresh Start",
+        "Social Runner"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit"
+      ],
+      "insights": [
+        "8% faster. Good. But don't get comfortable. The next 8% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "8:02",
+      "current_pace": "7:24"
+    },
+    {
+      "id": 91,
+      "name": "Aryan Reddy",
+      "age": 35,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 64.7,
+      "level": 20,
+      "total_runs": 48,
+      "total_km": 372,
+      "weekly_km": 26,
+      "pace_improvement": 3,
+      "max_streak": 7,
+      "pace_zones": {
+        "easy": "6:07",
+        "tempo": "5:27",
+        "interval": "4:52",
+        "race": "5:07"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Seasoned",
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "7-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "5:58",
+      "current_pace": "5:48"
+    },
+    {
+      "id": 92,
+      "name": "Shivansh Agarwal",
+      "age": 17,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 53.1,
+      "level": 20,
+      "total_runs": 36,
+      "total_km": 281,
+      "weekly_km": 19.7,
+      "pace_improvement": -9,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "7:05",
+        "tempo": "6:25",
+        "interval": "5:50",
+        "race": "6:05"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Fris. Coincidence?"
+      ],
+      "first_pace": "6:30",
+      "current_pace": "7:03"
+    },
+    {
+      "id": 93,
+      "name": "Tushar Joshi",
+      "age": 17,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 55.9,
+      "level": 19,
+      "total_runs": 33,
+      "total_km": 253,
+      "weekly_km": 17.7,
+      "pace_improvement": -1,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "6:50",
+        "tempo": "6:10",
+        "interval": "5:35",
+        "race": "5:50"
+      },
+      "personality_tags": [
+        "Early Bird",
+        "High Volume",
+        "Social Runner"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Disciplined morning routine"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "6:14",
+      "current_pace": "6:16"
+    },
+    {
+      "id": 94,
+      "name": "Gaurav Reddy",
+      "age": 33,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 65.4,
+      "level": 20,
+      "total_runs": 38,
+      "total_km": 260,
+      "weekly_km": 18.2,
+      "pace_improvement": -3,
+      "max_streak": 3,
+      "pace_zones": {
+        "easy": "6:03",
+        "tempo": "5:23",
+        "interval": "4:48",
+        "race": "5:03"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Seasoned",
+        "Health Focused"
+      ],
+      "strengths": [
+        "Consistent training habit",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:36",
+      "current_pace": "5:47"
+    },
+    {
+      "id": 95,
+      "name": "Ishan Saxena",
+      "age": 24,
+      "gender": "male",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 56.4,
+      "level": 20,
+      "total_runs": 50,
+      "total_km": 393,
+      "weekly_km": 27.5,
+      "pace_improvement": 1,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:48",
+        "tempo": "6:08",
+        "interval": "5:33",
+        "race": "5:48"
+      },
+      "personality_tags": [
+        "High Volume",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Mons. Coincidence?"
+      ],
+      "first_pace": "6:16",
+      "current_pace": "6:11"
+    },
+    {
+      "id": 96,
+      "name": "Kabir Verma",
+      "age": 35,
+      "gender": "male",
+      "tier": "intermediate",
+      "coach": "Kendu_Kip",
+      "vo2max": 49.8,
+      "level": 20,
+      "total_runs": 43,
+      "total_km": 302,
+      "weekly_km": 21.2,
+      "pace_improvement": 3,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "7:21",
+        "tempo": "6:41",
+        "interval": "6:06",
+        "race": "6:21"
+      },
+      "personality_tags": [
+        "Mind Runner"
+      ],
+      "strengths": [
+        "Willingness to start"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "6:53",
+      "current_pace": "6:43"
+    },
+    {
+      "id": 97,
+      "name": "Aarav Bhat",
+      "age": 21,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Goggins",
+      "vo2max": 65,
+      "level": 20,
+      "total_runs": 52,
+      "total_km": 374,
+      "weekly_km": 26.2,
+      "pace_improvement": -1,
+      "max_streak": 8,
+      "pace_zones": {
+        "easy": "6:05",
+        "tempo": "5:25",
+        "interval": "4:50",
+        "race": "5:05"
+      },
+      "personality_tags": [
+        "Seasoned",
+        "Competitor"
+      ],
+      "strengths": [
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "8-day streak detected. Consistency is your superpower.",
+        "Your fastest runs tend to be on Thus. Coincidence?"
+      ],
+      "first_pace": "5:31",
+      "current_pace": "5:33"
+    },
+    {
+      "id": 98,
+      "name": "Priya Agarwal",
+      "age": 36,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 58.5,
+      "level": 20,
+      "total_runs": 41,
+      "total_km": 292,
+      "weekly_km": 20.4,
+      "pace_improvement": 5,
+      "max_streak": 4,
+      "pace_zones": {
+        "easy": "6:38",
+        "tempo": "5:58",
+        "interval": "5:23",
+        "race": "5:38"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Social Runner",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Suns. Coincidence?"
+      ],
+      "first_pace": "6:19",
+      "current_pace": "6:02"
+    },
+    {
+      "id": 99,
+      "name": "Pooja Patel",
+      "age": 40,
+      "gender": "female",
+      "tier": "advanced",
+      "coach": "Kendu_Nainu",
+      "vo2max": 70.4,
+      "level": 20,
+      "total_runs": 48,
+      "total_km": 387,
+      "weekly_km": 27.1,
+      "pace_improvement": 1,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "5:38",
+        "tempo": "4:58",
+        "interval": "4:23",
+        "race": "4:38"
+      },
+      "personality_tags": [
+        "Weekend Warrior",
+        "Seasoned",
+        "Health Focused",
+        "Athlete"
+      ],
+      "strengths": [
+        "High baseline fitness",
+        "Technical running knowledge"
+      ],
+      "insights": [
+        "Your fastest runs tend to be on Tues. Coincidence?"
+      ],
+      "first_pace": "5:06",
+      "current_pace": "5:02"
+    },
+    {
+      "id": 100,
+      "name": "Siddharth Rao",
+      "age": 40,
+      "gender": "female",
+      "tier": "beginner",
+      "coach": "Kendu_Goggins",
+      "vo2max": 30,
+      "level": 20,
+      "total_runs": 47,
+      "total_km": 336,
+      "weekly_km": 23.5,
+      "pace_improvement": 8,
+      "max_streak": 5,
+      "pace_zones": {
+        "easy": "9:00",
+        "tempo": "8:20",
+        "interval": "7:45",
+        "race": "8:00"
+      },
+      "personality_tags": [
+        "Night Runner",
+        "High Volume",
+        "Fresh Start",
+        "Competitor"
+      ],
+      "strengths": [
+        "Consistent training habit"
+      ],
+      "insights": [
+        "8% faster. Good. But don't get comfortable. The next 8% is where champions separate from hobbyists.",
+        "Your fastest runs tend to be on Weds. Coincidence?"
+      ],
+      "first_pace": "8:36",
+      "current_pace": "7:54"
+    }
+  ]
+}
