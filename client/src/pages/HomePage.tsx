@@ -9,25 +9,21 @@ const slides = [
     id: 'ai-coach',
     headline: 'Your personal running coach, powered by AI',
     sub: 'Knows your pace, your body, your goals',
-    gradient: 'from-orange-500/20 via-transparent to-transparent',
   },
   {
     id: 'training',
     headline: 'Watch your 5K time drop, week after week',
     sub: 'Science-backed training that adapts to YOU',
-    gradient: 'from-emerald-500/20 via-transparent to-transparent',
   },
   {
     id: 'community',
     headline: 'Join weekly group runs. Find your tribe.',
     sub: 'Real runners. Real events. Real accountability.',
-    gradient: 'from-blue-500/20 via-transparent to-transparent',
   },
   {
-    id: 'tiers',
-    headline: 'Base. Pro. Your running, your level.',
-    sub: 'From silent AI training to personal chat coaching',
-    gradient: 'from-amber-500/20 via-transparent to-transparent',
+    id: 'events',
+    headline: 'Real events. Real connections.',
+    sub: 'Coffee runs, tempo sessions, community meetups — every week.',
   },
 ];
 
@@ -180,113 +176,174 @@ function TrainingSlide() {
 }
 
 function CommunitySlide() {
-  const avatars = ['🏃', '🏃‍♀️', '🏃‍♂️', '💪', '🔥'];
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 via-transparent to-transparent" />
-      <div className="relative w-[85%] max-w-[320px] space-y-4">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-bg-secondary/80 backdrop-blur border border-bg-tertiary rounded-2xl p-4"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">📍</div>
-            <span className="text-xs text-zinc-400">Saturday, 6:30 AM</span>
-            <span className="ml-auto text-[10px] text-emerald-400 font-mono">LIVE</span>
-          </div>
-          <h3 className="text-sm font-semibold text-white mb-1">Morning Tempo Run — Kolkata</h3>
-          <p className="text-xs text-zinc-500 mb-3">5K tempo with 1K warm-up/cool-down</p>
-          <div className="flex items-center gap-1">
-            {avatars.map((a, i) => (
-              <motion.div
-                key={i}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
-                className="w-7 h-7 rounded-full bg-bg-tertiary border border-bg-primary flex items-center justify-center text-xs -ml-1 first:ml-0"
-              >
-                {a}
-              </motion.div>
-            ))}
-            <span className="text-[10px] text-zinc-500 ml-2">+18 going</span>
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-bg-secondary/80 backdrop-blur border border-bg-tertiary rounded-2xl p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-lg">🏆</div>
-            <div className="flex-1">
-              <p className="text-xs text-zinc-400">Weekly Challenge</p>
-              <p className="text-sm font-semibold text-white">Run 20km this week</p>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-accent">14.2</p>
-              <p className="text-[10px] text-zinc-500">/ 20 km</p>
-            </div>
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="flex items-center gap-2 px-1"
-        >
-          <div className="flex -space-x-2">
-            {['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500'].map((c, i) => (
-              <div key={i} className={`w-6 h-6 rounded-full ${c} border-2 border-bg-primary`} />
-            ))}
-          </div>
-          <p className="text-xs text-zinc-500">247 runners in your city</p>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function TiersSlide() {
-  const tiers = [
-    { name: 'Base', price: '₹9', color: 'border-zinc-700', features: ['AI training plans', 'Pace zones', 'Weekly AI summary', 'HR zones', 'Events & communities'] },
-    { name: 'Pro', price: '₹99', color: 'border-accent', highlight: true, features: ['AI chat coach', 'Adaptive training', 'Coach remembers you', 'Transformation plans', 'Create communities'] },
+  const members = [
+    { name: 'Arjun', level: 12, streak: '🔥 14d' },
+    { name: 'Priya', level: 8, streak: '🔥 7d' },
+    { name: 'Rohit', level: 15, streak: '🔥 21d' },
   ];
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-transparent" />
-      <div className="relative w-[85%] max-w-[320px]">
-        <div className="flex gap-3">
-          {tiers.map((t, i) => (
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/8 via-transparent to-transparent" />
+      <div className="relative w-[85%] max-w-[320px] space-y-3">
+        {/* Community header */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-bg-secondary/90 backdrop-blur border border-blue-500/20 rounded-2xl p-4"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg">
+              S
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Sprint Social Club</p>
+              <p className="text-[10px] text-zinc-500">247 members</p>
+            </div>
             <motion.div
-              key={t.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.15 }}
-              className={`flex-1 rounded-xl border ${t.color} ${t.highlight ? 'bg-accent/5 scale-[1.03]' : 'bg-bg-secondary/80'} p-3 backdrop-blur`}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="px-2 py-1 rounded-md bg-emerald-500/20 border border-emerald-500/30"
             >
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{t.name}</p>
-              <p className="text-lg font-heading font-bold text-white mt-1">{t.price}<span className="text-[10px] text-zinc-500 font-normal">/mo</span></p>
-              <div className="mt-3 space-y-1.5">
-                {t.features.map(f => (
-                  <p key={f} className="text-[9px] text-zinc-400 flex items-start gap-1">
-                    <span className="text-emerald-400 mt-px">✓</span> {f}
-                  </p>
-                ))}
-              </div>
+              <span className="text-[9px] text-emerald-400 font-mono">ACTIVE</span>
             </motion.div>
-          ))}
-        </div>
+          </div>
+
+          {/* Member list */}
+          <div className="space-y-2">
+            {members.map((m, i) => (
+              <motion.div
+                key={m.name}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 + i * 0.15 }}
+                className="flex items-center gap-2.5 py-1.5"
+              >
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-700 flex items-center justify-center text-[10px] font-bold text-white">
+                  {m.name[0]}
+                </div>
+                <span className="text-xs text-zinc-300 flex-1">{m.name}</span>
+                <span className="text-[9px] text-zinc-500">Lv.{m.level}</span>
+                <span className="text-[9px]">{m.streak}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Challenge card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="bg-bg-secondary/90 backdrop-blur border border-bg-tertiary rounded-xl p-3 flex items-center gap-3"
+        >
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-sm">🏆</div>
+          <div className="flex-1">
+            <p className="text-[10px] text-zinc-500">This Week</p>
+            <p className="text-xs font-semibold text-white">Run 20km together</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-bold text-accent">14.2<span className="text-[9px] text-zinc-500">/20</span></p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
 }
 
-const slideComponents = [AICoachSlide, TrainingSlide, CommunitySlide, TiersSlide];
+function EventsSlide() {
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-amber-500/8 via-transparent to-transparent" />
+      <div className="relative w-[85%] max-w-[320px] space-y-3">
+        {/* Upcoming event */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-bg-secondary/90 backdrop-blur border border-amber-500/20 rounded-2xl p-4"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] text-amber-400 font-mono font-semibold">UPCOMING</span>
+            <span className="ml-auto text-[10px] text-zinc-500">This Saturday</span>
+          </div>
+          <h3 className="text-sm font-semibold text-white mb-1">Morning Tempo Run</h3>
+          <div className="flex items-center gap-3 text-[11px] text-zinc-400 mb-3">
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              Kolkata
+            </span>
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              6:00 AM
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex -space-x-2">
+              {['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-pink-500'].map((c, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5 + i * 0.08 }}
+                  className={`w-6 h-6 rounded-full ${c} border-2 border-bg-secondary`}
+                />
+              ))}
+            </div>
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.9 }}
+              className="text-[10px] text-emerald-400 font-medium"
+            >
+              +23 going
+            </motion.span>
+          </div>
+        </motion.div>
+
+        {/* Past event highlight */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-bg-secondary/90 backdrop-blur border border-bg-tertiary rounded-xl p-3"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/30 to-accent/30 flex items-center justify-center">
+              <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] text-zinc-500">Last Event</p>
+              <p className="text-xs font-semibold text-white">Coffee Run — 18 showed up</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick stat */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+          className="flex items-center justify-center gap-4 py-1"
+        >
+          <div className="text-center">
+            <p className="text-lg font-heading font-bold text-white">12</p>
+            <p className="text-[9px] text-zinc-500">Events this month</p>
+          </div>
+          <div className="w-px h-8 bg-bg-tertiary" />
+          <div className="text-center">
+            <p className="text-lg font-heading font-bold text-accent">89%</p>
+            <p className="text-[9px] text-zinc-500">Show-up rate</p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+const slideComponents = [AICoachSlide, TrainingSlide, CommunitySlide, EventsSlide];
 
 export function HomePage() {
   const { login } = useAuth();
@@ -301,8 +358,8 @@ export function HomePage() {
   const pauseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setIntroPhase(1), 1000);
-    const t2 = setTimeout(() => setIntroPhase(2), 1800);
+    const t1 = setTimeout(() => setIntroPhase(1), 2000);
+    const t2 = setTimeout(() => setIntroPhase(2), 2800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -360,47 +417,61 @@ export function HomePage() {
         />
       </div>
 
-      {/* Cinematic intro overlay — logo pops center then moves to header */}
-      <AnimatePresence>
-        {introPhase === 0 && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-bg-primary"
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <motion.div
-              className="flex flex-col items-center gap-3"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <img src="/icons/logo.png" alt="Sprint Society" className="w-20 h-20 rounded-full object-cover shadow-2xl shadow-accent/20 border-2 border-accent/20" />
-              <h1 className="font-heading text-2xl font-bold tracking-tight">
-                Sprint <span className="text-accent">Society</span>
-              </h1>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Fixed top-left header (appears after intro) */}
+      {/* Intro: logo + name in center, then animate to top-left */}
       <motion.header
-        className="fixed top-0 left-0 right-0 z-50 px-5 py-3.5 flex items-center gap-3 bg-bg-primary/85 backdrop-blur-md border-b border-white/5"
-        initial={{ opacity: 0, y: -20 }}
-        animate={introPhase >= 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
-        transition={{ duration: 0.5, delay: introPhase === 1 ? 0.2 : 0 }}
+        className="fixed top-0 left-0 right-0 z-50 px-5 py-3.5 flex items-center gap-3"
+        initial={false}
+        animate={introPhase >= 1
+          ? { backgroundColor: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }
+          : { backgroundColor: 'transparent', backdropFilter: 'none', borderBottom: '1px solid transparent' }
+        }
+        transition={{ duration: 0.6 }}
       >
-        <img src="/icons/logo.png" alt="Sprint Society" className="w-10 h-10 rounded-full object-cover" />
-        <div>
+        <motion.img
+          src="/icons/logo.png"
+          alt="Sprint Society"
+          className="object-cover rounded-xl"
+          initial={{ width: 72, height: 72, x: 'calc(50vw - 36px - 20px)', y: 'calc(45vh - 36px - 14px)' }}
+          animate={introPhase >= 1
+            ? { width: 40, height: 40, x: 0, y: 0 }
+            : { width: 72, height: 72, x: 'calc(50vw - 36px - 20px)', y: 'calc(45vh - 36px - 14px)' }
+          }
+          transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+        />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={introPhase >= 1 ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
           <h1 className="font-heading text-lg font-bold tracking-tight leading-none">
             Sprint <span className="text-accent">Society</span>
           </h1>
           <p className="text-zinc-500 text-[10px] mt-0.5">AI-powered running community</p>
-        </div>
+        </motion.div>
       </motion.header>
 
+      {/* Center brand text during intro phase 0 */}
+      <AnimatePresence>
+        {introPhase === 0 && (
+          <motion.div
+            className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.h1
+              className="font-heading text-3xl font-bold tracking-tight mt-24"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              Sprint <span className="text-accent">Society</span>
+            </motion.h1>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Spacer for fixed header */}
-      <div className="h-[68px]" />
+      <div className="h-[64px]" />
 
       {/* Cinematic intro → then slides */}
       {!showLogin && (
