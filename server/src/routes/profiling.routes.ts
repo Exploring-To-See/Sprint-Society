@@ -2,6 +2,12 @@ import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateRunnerDNA, ProfilingInput } from '../engine/ai-profiler';
+import {
+  normalizePerformance, normalizeVolume, normalizeConsistency,
+  normalizeRecovery, normalizeVO2max, normalizePaceCompliance,
+  calculateRunnerLevel, checkSafetyRails, tierDisplayName,
+} from '../engine/classification-engine';
+import type { Gender, BestTimes, RecoveryData } from '../engine/classification-engine';
 
 const router = Router();
 router.use(authenticate);
@@ -98,6 +104,136 @@ router.put('/coach', (req: AuthRequest, res: Response) => {
   }
 
   res.json({ success: true, ai_coach_name });
+});
+
+// GET /profiling/classification — get current V2 classification level
+router.get('/classification', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const profile = db.prepare('SELECT * FROM runner_profiles WHERE user_id = ?').get(req.userId) as any;
+
+  // Get run data for performance + volume + consistency
+  const runs = db.prepare(`
+    SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
+    FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 50
+  `).all(req.userId) as any[];
+
+  // Best times from PRs
+  const prs = db.prepare('SELECT category, value FROM personal_records WHERE user_id = ?').all(req.userId) as any[];
+  const bestTimes: BestTimes = {};
+  for (const pr of prs) {
+    if (pr.category === '5k') bestTimes.fiveK = pr.value;
+    else if (pr.category === '10k') bestTimes.tenK = pr.value;
+    else if (pr.category === 'half_marathon') bestTimes.halfM = pr.value;
+    else if (pr.category === 'marathon') bestTimes.marathon = pr.value;
+  }
+
+  // If no PR but has runs, estimate 5K from best pace
+  if (!bestTimes.fiveK && runs.length > 0) {
+    const bestPace = Math.min(...runs.filter(r => r.distance_meters >= 3000).map(r => r.average_pace_per_km || 999));
+    if (bestPace < 999) bestTimes.fiveK = Math.round(bestPace * 5);
+  }
+
+  // Calculate volume (avg weekly km over last 4 weeks)
+  const fourWeeksAgo = new Date(Date.now() - 28 * 86400000).toISOString();
+  const recentRuns = runs.filter(r => r.start_date >= fourWeeksAgo);
+  const totalDistanceLast4Weeks = recentRuns.reduce((s, r) => s + (r.distance_meters || 0), 0) / 1000;
+  const avgWeeklyKm = totalDistanceLast4Weeks / 4;
+
+  // Consistency: how many of last 12 weeks had runs
+  const twelveWeeksAgo = new Date(Date.now() - 84 * 86400000).toISOString();
+  const allRecentRuns = db.prepare('SELECT start_date FROM activities WHERE user_id = ? AND start_date >= ?').all(req.userId, twelveWeeksAgo) as any[];
+  const activeWeeks = new Set(allRecentRuns.map(r => {
+    const d = new Date(r.start_date);
+    return `${d.getFullYear()}-W${Math.ceil((d.getTime() - new Date(d.getFullYear(), 0, 1).getTime()) / 604800000)}`;
+  })).size;
+
+  // Recovery: rest days from activity pattern
+  const runDatesLast4Weeks = recentRuns.map(r => new Date(r.start_date).toDateString());
+  const uniqueRunDays = new Set(runDatesLast4Weeks).size;
+  const avgRestDaysPerWeek = Math.max(0, 7 - (uniqueRunDays / 4));
+
+  const recoveryData: RecoveryData = {
+    avgRestDaysPerWeek,
+    avgRPE: undefined,
+    avgSleepHours: undefined,
+  };
+
+  // VO2max from profile or estimation
+  const vo2max = profile?.estimated_vo2max || (bestTimes.fiveK ? (120.8 - 3.12 * (bestTimes.fiveK / 60) + 0.032 * Math.pow(bestTimes.fiveK / 60, 2)) : 35);
+
+  // Platform age
+  const createdAt = new Date(user.created_at || Date.now());
+  const totalWeeksOnPlatform = Math.max(1, Math.round((Date.now() - createdAt.getTime()) / 604800000));
+
+  // Normalize all factors
+  const gender: Gender = user.gender === 'female' ? 'female' : 'male';
+  const performanceScore = normalizePerformance(bestTimes, user.age || 25, gender);
+  const volumeScore = normalizeVolume(avgWeeklyKm, gender);
+  const consistencyScore = normalizeConsistency(activeWeeks, totalWeeksOnPlatform);
+  const recoveryScore = normalizeRecovery(recoveryData);
+  const vo2maxScore = normalizeVO2max(vo2max, gender, profile?.updated_at ? new Date(profile.updated_at) : undefined);
+  const complianceScore = 20; // Neutral until we have prescribed zone data
+
+  const factors = {
+    performance: performanceScore,
+    volume: volumeScore,
+    consistency: consistencyScore,
+    recovery: recoveryScore,
+    vo2max: vo2maxScore,
+    paceCompliance: complianceScore,
+  };
+
+  const level = calculateRunnerLevel(factors);
+
+  // Safety rails
+  const acuteLoad = recentRuns.filter(r => {
+    const d = new Date(r.start_date);
+    return d.getTime() > Date.now() - 7 * 86400000;
+  }).reduce((s, r) => s + r.distance_meters / 1000, 0);
+  const chronicLoad = totalDistanceLast4Weeks / 4;
+
+  const safetyStatus = checkSafetyRails({
+    acuteLoad7day: acuteLoad,
+    chronicLoad28day: chronicLoad,
+    currentWeekVolume: acuteLoad,
+    avg4WeekVolume: chronicLoad,
+    weeksSinceLastRun: runs.length > 0 ? Math.round((Date.now() - new Date(runs[0].start_date).getTime()) / 604800000) : 52,
+  });
+
+  // Next level requirements (simplified)
+  const nextLevel = level.rawScore < 40 ? Math.ceil(level.rawScore) + 1 : 40;
+  const currentPerf = bestTimes.fiveK ? Math.round(bestTimes.fiveK / 60) + ':' + (bestTimes.fiveK % 60).toString().padStart(2, '0') : 'No race data';
+
+  res.json({
+    tier: level.tier,
+    tierName: tierDisplayName(level.tier),
+    subLevel: level.subLevel,
+    rawScore: Math.round(level.rawScore * 100) / 100,
+    display: `${tierDisplayName(level.tier)} ${level.subLevel}`,
+    factors: {
+      performance: Math.round(performanceScore * 10) / 10,
+      volume: Math.round(volumeScore * 10) / 10,
+      consistency: Math.round(consistencyScore * 10) / 10,
+      recovery: Math.round(recoveryScore * 10) / 10,
+      vo2max: Math.round(vo2maxScore * 10) / 10,
+      paceCompliance: Math.round(complianceScore * 10) / 10,
+    },
+    safetyRails: safetyStatus,
+    stats: {
+      avgWeeklyKm: Math.round(avgWeeklyKm * 10) / 10,
+      activeWeeksLast12: activeWeeks,
+      totalRuns: runs.length,
+      bestFiveK: bestTimes.fiveK,
+      vo2max: Math.round(vo2max * 10) / 10,
+    },
+    nextMilestone: {
+      targetLevel: nextLevel,
+      currentPerformance: currentPerf,
+      weeklyKmNeeded: Math.round((avgWeeklyKm * 1.1) * 10) / 10,
+    },
+  });
 });
 
 export default router;

@@ -10,6 +10,7 @@ import { ReadinessCard } from './ReadinessCard';
 import { TodaySession } from './TodaySession';
 import { TrainingLoadRing } from './TrainingLoadRing';
 import { PRBanner } from './PRBanner';
+import { LevelCard } from './LevelCard';
 import { Confetti, CelebrationToast } from '../celebrations/Confetti';
 
 const stagger = {
@@ -253,6 +254,11 @@ export function Dashboard() {
           </div>
         </motion.div>
       )}
+
+      {/* V2 Classification Level Card */}
+      <motion.div variants={fadeUp}>
+        <LevelCard />
+      </motion.div>
 
       {/* Daily AI Insight */}
       <motion.div variants={fadeUp}>
