@@ -3,14 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+
+type View = 'feed' | 'members' | 'info';
 
 export function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [postText, setPostText] = useState('');
-  const [showMembers, setShowMembers] = useState(false);
+  const [activeView, setActiveView] = useState<View>('feed');
+  const [showCompose, setShowCompose] = useState(false);
 
   const { data: community, isLoading } = useQuery({
     queryKey: ['community', id],
@@ -21,7 +23,7 @@ export function CommunityDetailPage() {
   const { data: members } = useQuery({
     queryKey: ['community-members', id],
     queryFn: () => api.get(`/communities/${id}/members`).then(r => r.data),
-    enabled: !!id && showMembers,
+    enabled: !!id,
   });
 
   const joinMutation = useMutation({
@@ -29,7 +31,6 @@ export function CommunityDetailPage() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['community', id] });
       queryClient.invalidateQueries({ queryKey: ['my-communities'] });
-      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 
@@ -38,7 +39,6 @@ export function CommunityDetailPage() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['community', id] });
       queryClient.invalidateQueries({ queryKey: ['my-communities'] });
-      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 
@@ -47,6 +47,7 @@ export function CommunityDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', id] });
       setPostText('');
+      setShowCompose(false);
     },
   });
 
@@ -57,241 +58,267 @@ export function CommunityDetailPage() {
 
   if (isLoading) {
     return (
-      <AppShell>
-        <div className="space-y-4 animate-pulse pt-4">
-          <div className="h-6 w-32 bg-bg-tertiary rounded" />
-          <div className="h-8 w-48 bg-bg-tertiary rounded" />
-          <div className="h-4 w-full bg-bg-tertiary rounded" />
-          <div className="h-12 w-full bg-bg-tertiary rounded-lg" />
+      <div className="min-h-screen bg-bg-primary px-5 pt-6">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-5 w-20 bg-bg-tertiary rounded" />
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-bg-tertiary" />
+            <div className="space-y-2 flex-1">
+              <div className="h-5 w-32 bg-bg-tertiary rounded" />
+              <div className="h-3 w-20 bg-bg-tertiary rounded" />
+            </div>
+          </div>
+          <div className="h-20 bg-bg-tertiary rounded-xl" />
+          <div className="h-20 bg-bg-tertiary rounded-xl" />
         </div>
-      </AppShell>
+      </div>
     );
   }
 
   if (!community) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center py-20 gap-3">
-          <span className="text-3xl">🤷</span>
-          <p className="text-zinc-500 text-[13px]">Community not found</p>
-          <button onClick={() => navigate('/communities')} className="text-accent text-[12px] font-semibold">
-            Back to communities
-          </button>
-        </div>
-      </AppShell>
+      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center px-6">
+        <span className="text-3xl mb-3">🤷</span>
+        <p className="text-zinc-500 text-[13px]">Community not found</p>
+        <button onClick={() => navigate('/communities')} className="text-accent text-[12px] font-semibold mt-3">
+          Back to communities
+        </button>
+      </div>
     );
   }
 
   return (
-    <AppShell>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 pb-6">
-        {/* Back button */}
-        <button
-          onClick={() => navigate('/communities')}
-          className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span className="text-[12px] font-medium">Communities</span>
-        </button>
-
-        {/* Header */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center">
-              {community.avatar_url ? (
-                <img src={community.avatar_url} alt="" className="w-full h-full rounded-xl object-cover" />
-              ) : (
-                <span className="text-2xl">{getCategoryIcon(community.category)}</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="font-heading text-[20px] font-bold text-white">{community.name}</h1>
-                {community.is_verified && (
-                  <svg width="16" height="16" viewBox="0 0 16 16" className="text-accent">
-                    <path d="M8 1l1.5 2.5L12.5 4l-.5 3 2 2.5-2.5 1.5L11 14l-3-1-3 1-.5-3L2 9.5 4 7l-.5-3 3-.5L8 1z" fill="currentColor"/>
-                    <path d="M6 8l1.5 1.5L10 6.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-              </div>
-              <p className="text-[11px] text-zinc-500">{community.member_count} members · by {community.owner_name}</p>
-            </div>
+    <div className="min-h-screen bg-bg-primary flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-bg-primary/95 backdrop-blur-lg border-b border-bg-tertiary/50 px-5 pt-4 pb-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/communities')} className="text-zinc-500 active:scale-90 transition-transform">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+            {community.avatar_url ? (
+              <img src={community.avatar_url} alt="" className="w-full h-full rounded-lg object-cover" />
+            ) : (
+              <span className="text-[16px]">{getCategoryIcon(community.category)}</span>
+            )}
           </div>
-          {community.description && (
-            <p className="text-[12px] text-zinc-400 leading-relaxed">{community.description}</p>
-          )}
-        </div>
-
-        {/* Mute + Join/Leave + Members */}
-        <div className="flex gap-2">
-          {community.is_member && (
-            <button
-              onClick={() => api.post(`/communities/${id}/mute`).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
-              className="px-3 py-2.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-zinc-500 text-[10px] font-medium active:scale-95 transition-all"
-            >
-              🔕
-            </button>
-          )}
-          {!community.is_member ? (
+          <div className="flex-1 min-w-0">
+            <h1 className="font-heading text-[15px] font-bold text-white truncate">{community.name}</h1>
+            <p className="text-[10px] text-zinc-500">{community.member_count} members</p>
+          </div>
+          {!community.is_member && (
             <button
               onClick={() => joinMutation.mutate()}
-              disabled={joinMutation.isPending}
-              className="flex-1 py-2.5 rounded-xl bg-accent text-white font-semibold text-[13px] active:scale-[0.98] transition-all"
+              className="px-4 py-1.5 rounded-lg bg-accent text-white text-[11px] font-semibold active:scale-95"
             >
-              Join Community
+              Join
             </button>
-          ) : (
-            <>
-              <div className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-center font-semibold text-[13px]">
-                ✓ Member{community.user_role !== 'member' ? ` (${community.user_role})` : ''}
-              </div>
-              {community.user_role === 'member' && (
-                <button
-                  onClick={() => leaveMutation.mutate()}
-                  className="px-4 py-2.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-zinc-500 text-[11px] font-medium active:scale-95 transition-all"
-                >
-                  Leave
-                </button>
-              )}
-            </>
           )}
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className="px-4 py-2.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-zinc-400 text-[11px] font-medium active:scale-95 transition-all"
-          >
-            Members
-          </button>
         </div>
 
-        {/* Members panel */}
-        <AnimatePresence>
-          {showMembers && members && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+        {/* Tab Navigation */}
+        <div className="flex gap-1 mt-3">
+          {(['feed', 'members', 'info'] as View[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveView(tab)}
+              className={`flex-1 py-2 text-center text-[11px] font-semibold rounded-lg transition-colors ${
+                activeView === tab ? 'bg-accent/10 text-accent' : 'text-zinc-600'
+              }`}
             >
-              <div className="card p-3 space-y-2">
-                {members.map((m: any) => (
-                  <div key={m.user_id} className="flex items-center gap-2.5 py-1">
-                    <div className="w-7 h-7 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center">
-                      {m.profile_image_url ? (
-                        <img src={m.profile_image_url} alt="" className="w-full h-full object-cover" />
+              {tab === 'feed' ? 'Feed' : tab === 'members' ? 'Members' : 'Info'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 pb-24">
+        <AnimatePresence mode="wait">
+          {activeView === 'feed' && (
+            <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              {/* Pinned post */}
+              {community.recent_posts?.filter((p: any) => p.pinned).map((post: any) => (
+                <div key={post.id} className="rounded-xl bg-amber-500/5 border border-amber-500/15 p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400 mb-2">📌 Pinned</p>
+                  <p className="text-[14px] text-zinc-200 leading-relaxed">{post.body}</p>
+                  <p className="text-[10px] text-zinc-600 mt-2">{post.author_name} · {formatTimeAgo(post.created_at)}</p>
+                </div>
+              ))}
+
+              {/* Posts */}
+              {community.recent_posts?.filter((p: any) => !p.pinned).length === 0 && (
+                <div className="flex flex-col items-center py-16 text-center">
+                  <span className="text-3xl mb-3">💬</span>
+                  <p className="text-[13px] text-zinc-500">No posts yet</p>
+                  <p className="text-[11px] text-zinc-700 mt-1">Start a conversation</p>
+                </div>
+              )}
+
+              {community.recent_posts?.filter((p: any) => !p.pinned).map((post: any) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-2.5"
+                >
+                  {/* Author Row */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center">
+                      {post.author_image ? (
+                        <img src={post.author_image} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-[9px] font-bold text-zinc-500">{m.name?.[0]}</span>
+                        <span className="text-[10px] font-bold text-zinc-500">{post.author_name?.[0]}</span>
                       )}
                     </div>
-                    <span className="text-[12px] text-white flex-1">{m.name}</span>
-                    {m.role !== 'member' && (
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-accent">{m.role}</span>
+                    <div>
+                      <p className="text-[13px] font-semibold text-white">{post.author_name}</p>
+                      <p className="text-[10px] text-zinc-600">{formatTimeAgo(post.created_at)}</p>
+                    </div>
+                  </div>
+
+                  {/* Post Body — generous sizing */}
+                  <p className="text-[14px] text-zinc-200 leading-relaxed whitespace-pre-wrap pl-[42px]">
+                    {post.body}
+                  </p>
+
+                  {post.image_url && (
+                    <img src={post.image_url} alt="" className="w-full rounded-xl ml-[42px] max-w-[calc(100%-42px)]" />
+                  )}
+
+                  {/* Reactions Row */}
+                  <div className="flex items-center gap-2 pl-[42px]">
+                    <button
+                      onClick={() => likeMutation.mutate(post.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] transition-all active:scale-95 ${
+                        post.user_liked ? 'bg-accent/10 text-accent border border-accent/20' : 'bg-bg-secondary border border-bg-tertiary text-zinc-500'
+                      }`}
+                    >
+                      ❤️ {post.likes_count > 0 && <span className="font-semibold">{post.likes_count}</span>}
+                    </button>
+                    {['🔥', '💪', '👏'].map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => api.post(`/communities/${id}/posts/${post.id}/react`, { emoji }).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
+                        className="w-8 h-8 rounded-full bg-bg-secondary border border-bg-tertiary flex items-center justify-center text-[13px] active:scale-90 transition-all"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-b border-bg-tertiary/30 ml-[42px]" />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          {activeView === 'members' && (
+            <motion.div key="members" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
+              <p className="text-[11px] text-zinc-600 mb-3">{community.member_count} members</p>
+              {members?.map((m: any) => (
+                <button
+                  key={m.user_id}
+                  onClick={() => navigate(`/user/${m.user_id}`)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.98] transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center">
+                    {m.profile_image_url ? (
+                      <img src={m.profile_image_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[12px] font-bold text-zinc-500">{m.name?.[0]}</span>
                     )}
                   </div>
-                ))}
+                  <div className="flex-1 text-left">
+                    <p className="text-[13px] font-medium text-white">{m.name}</p>
+                    {m.role !== 'member' && (
+                      <p className="text-[10px] text-accent font-semibold uppercase">{m.role}</p>
+                    )}
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-700">
+                    <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              ))}
+            </motion.div>
+          )}
+
+          {activeView === 'info' && (
+            <motion.div key="info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+              {/* Description */}
+              {community.description && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-2">About</p>
+                  <p className="text-[14px] text-zinc-300 leading-relaxed">{community.description}</p>
+                </div>
+              )}
+
+              {/* Created by */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-2">Created by</p>
+                <p className="text-[13px] text-zinc-300">{community.owner_name}</p>
               </div>
+
+              {/* Actions */}
+              <div className="space-y-2">
+                {community.is_member && (
+                  <button
+                    onClick={() => api.post(`/communities/${id}/mute`)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-[13px] text-zinc-400 active:scale-[0.98]"
+                  >
+                    🔕 <span>Mute notifications</span>
+                  </button>
+                )}
+                {community.is_member && community.user_role === 'member' && (
+                  <button
+                    onClick={() => leaveMutation.mutate()}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-red-500/5 border border-red-500/15 text-[13px] text-red-400 active:scale-[0.98]"
+                  >
+                    ← <span>Leave community</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Polls Section */}
+              {community.is_member && <PollsSection communityId={parseInt(id!)} isMember={true} queryClient={queryClient} />}
+
+              {/* Broadcast (admin only) */}
+              {(community.user_role === 'owner' || community.user_role === 'admin') && (
+                <BroadcastSection communityId={parseInt(id!)} queryClient={queryClient} />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
 
-        {/* Post input (only for members) */}
-        {community.is_member && (
-          <div className="space-y-2">
-            <textarea
+      {/* Fixed Compose Bar (Bottom — like WhatsApp) */}
+      {community.is_member && activeView === 'feed' && (
+        <div className="fixed bottom-16 left-0 right-0 z-20 bg-bg-primary border-t border-bg-tertiary/50 px-4 py-3">
+          <div className="flex items-center gap-2 max-w-lg mx-auto">
+            <input
+              type="text"
               value={postText}
               onChange={e => setPostText(e.target.value)}
-              placeholder="Share with the community..."
-              maxLength={2000}
-              rows={3}
-              className="w-full px-3 py-2.5 rounded-xl bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-zinc-600 focus:outline-none resize-none"
+              onKeyDown={e => e.key === 'Enter' && postText.trim() && postMutation.mutate(postText)}
+              placeholder="Write something..."
+              className="flex-1 px-4 py-2.5 rounded-full bg-bg-secondary border border-bg-tertiary text-[13px] text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none"
             />
             <button
               onClick={() => postText.trim() && postMutation.mutate(postText)}
               disabled={!postText.trim() || postMutation.isPending}
-              className="px-5 py-2 rounded-lg bg-accent text-white text-[12px] font-semibold disabled:opacity-30 active:scale-95 transition-all"
+              className="w-9 h-9 rounded-full bg-accent flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
             >
-              Post
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2">
+                <path d="M14 2L7 9M14 2l-5 12-2-5-5-2 12-5z" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </div>
-        )}
-
-        {/* Broadcast input (owner/admin only) */}
-        {(community.user_role === 'owner' || community.user_role === 'admin') && (
-          <BroadcastSection communityId={parseInt(id!)} queryClient={queryClient} />
-        )}
-
-        {/* Polls */}
-        <PollsSection communityId={parseInt(id!)} isMember={!!community.is_member} queryClient={queryClient} />
-
-        {/* Posts feed */}
-        <div className="space-y-3">
-          {community.recent_posts?.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-[12px] text-zinc-600">No posts yet. Be the first to share something!</p>
-            </div>
-          )}
-          {community.recent_posts?.map((post: any) => (
-            <div key={post.id} className="card p-4 space-y-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center">
-                  {post.author_image ? (
-                    <img src={post.author_image} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[9px] font-bold text-zinc-500">{post.author_name?.[0]}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[12px] font-semibold text-white">{post.author_name}</span>
-                  <span className="text-[10px] text-zinc-700 ml-2">
-                    {formatTimeAgo(post.created_at)}
-                  </span>
-                </div>
-                {post.pinned && (
-                  <span className="text-[9px] font-semibold text-amber-400 uppercase">Pinned</span>
-                )}
-              </div>
-              <p className="text-[13px] text-zinc-300 leading-relaxed whitespace-pre-wrap">{post.body}</p>
-              {post.image_url && (
-                <img src={post.image_url} alt="" className="w-full rounded-lg mt-2" />
-              )}
-              {/* Emoji Reactions */}
-              <div className="flex items-center gap-1 flex-wrap">
-                {['🏃', '🔥', '💪', '👏'].map(emoji => (
-                  <button
-                    key={emoji}
-                    onClick={() => api.post(`/communities/${id}/posts/${post.id}/react`, { emoji }).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
-                    className="px-2 py-1 rounded-md text-[13px] hover:bg-bg-tertiary/50 active:scale-90 transition-all"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-                <button
-                  onClick={() => likeMutation.mutate(post.id)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all active:scale-95 ${
-                    post.user_liked ? 'bg-accent/10 text-accent' : 'text-zinc-600 hover:bg-bg-tertiary/50'
-                  }`}
-                >
-                  <span className="text-[12px]">❤️</span>
-                  {post.likes_count > 0 && <span className="text-[10px] font-semibold">{post.likes_count}</span>}
-                </button>
-                {/* Pin toggle for owner/admin */}
-                {(community.user_role === 'owner' || community.user_role === 'admin') && (
-                  <button
-                    onClick={() => api.post(`/communities/${id}/posts/${post.id}/pin`).then(() => queryClient.invalidateQueries({ queryKey: ['community', id] }))}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all active:scale-95 ${
-                      post.pinned ? 'bg-amber-400/10 text-amber-400' : 'text-zinc-700 hover:text-zinc-400'
-                    }`}
-                  >
-                    📌{post.pinned ? '' : ' Pin'}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
-      </motion.div>
-    </AppShell>
+      )}
+    </div>
   );
 }
 
@@ -301,33 +328,20 @@ function BroadcastSection({ communityId, queryClient }: { communityId: number; q
 
   const broadcastMutation = useMutation({
     mutationFn: (body: string) => api.post(`/communities/${communityId}/broadcasts`, { body }),
-    onSuccess: (res) => {
-      setText('');
-      setSent(true);
-      setTimeout(() => setSent(false), 3000);
-    },
+    onSuccess: () => { setText(''); setSent(true); setTimeout(() => setSent(false), 3000); },
   });
 
   return (
-    <div className="rounded-xl bg-gradient-to-r from-accent/5 to-transparent border border-accent/10 p-3 space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">📢 Broadcast to all members</p>
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-2">📢 Broadcast</p>
       {sent ? (
-        <p className="text-[12px] text-accent-green">Sent! All members notified.</p>
+        <p className="text-[12px] text-emerald-400 py-2">Sent to all members.</p>
       ) : (
         <div className="flex gap-2">
-          <input
-            type="text"
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder="Type announcement..."
-            maxLength={500}
-            className="flex-1 px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-accent/30 focus:outline-none"
-          />
-          <button
-            onClick={() => text.trim() && broadcastMutation.mutate(text)}
-            disabled={!text.trim() || broadcastMutation.isPending}
-            className="px-4 py-2 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95"
-          >
+          <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Announce something..."
+            className="flex-1 px-3 py-2.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600" />
+          <button onClick={() => text.trim() && broadcastMutation.mutate(text)} disabled={!text.trim()}
+            className="px-4 py-2.5 rounded-xl bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95">
             Send
           </button>
         </div>
@@ -343,17 +357,12 @@ function PollsSection({ communityId, isMember, queryClient }: { communityId: num
 
   const { data: polls } = useQuery({
     queryKey: ['community-polls', communityId],
-    queryFn: () => api.get(`/communities/${communityId}/polls`).then(r => r.data),
+    queryFn: () => api.get(`/communities/${communityId}/polls`).then(r => r.data).catch(() => []),
   });
 
   const createMutation = useMutation({
     mutationFn: () => api.post(`/communities/${communityId}/polls`, { question, options: options.filter(o => o.trim()) }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['community-polls', communityId] });
-      setShowCreate(false);
-      setQuestion('');
-      setOptions(['', '']);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['community-polls', communityId] }); setShowCreate(false); setQuestion(''); setOptions(['', '']); },
   });
 
   const voteMutation = useMutation({
@@ -362,57 +371,52 @@ function PollsSection({ communityId, isMember, queryClient }: { communityId: num
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['community-polls', communityId] }),
   });
 
-  if (!polls || polls.length === 0) {
-    if (!isMember) return null;
-    return (
-      <div>
-        {!showCreate ? (
-          <button onClick={() => setShowCreate(true)} className="text-[11px] text-accent font-medium active:scale-95">
-            + Create Poll
-          </button>
-        ) : (
-          <CreatePollForm question={question} setQuestion={setQuestion} options={options} setOptions={setOptions}
-            onSubmit={() => createMutation.mutate()} onCancel={() => setShowCreate(false)} pending={createMutation.isPending} />
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3">
-      {isMember && !showCreate && (
-        <button onClick={() => setShowCreate(true)} className="text-[11px] text-accent font-medium active:scale-95">
-          + Create Poll
-        </button>
-      )}
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Polls</p>
+        {isMember && !showCreate && (
+          <button onClick={() => setShowCreate(true)} className="text-[11px] text-accent font-medium active:scale-95">+ New</button>
+        )}
+      </div>
+
       {showCreate && (
-        <CreatePollForm question={question} setQuestion={setQuestion} options={options} setOptions={setOptions}
-          onSubmit={() => createMutation.mutate()} onCancel={() => setShowCreate(false)} pending={createMutation.isPending} />
+        <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 space-y-2">
+          <input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ask a question..."
+            className="w-full px-3 py-2.5 rounded-lg bg-bg-primary border border-bg-tertiary text-[13px] text-white placeholder:text-zinc-700 focus:outline-none" />
+          {options.map((opt, i) => (
+            <input key={i} value={opt} onChange={e => { const o = [...options]; o[i] = e.target.value; setOptions(o); }}
+              placeholder={`Option ${i + 1}`}
+              className="w-full px-3 py-2.5 rounded-lg bg-bg-primary border border-bg-tertiary text-[13px] text-white placeholder:text-zinc-700 focus:outline-none" />
+          ))}
+          <div className="flex items-center gap-3 pt-1">
+            {options.length < 4 && <button onClick={() => setOptions([...options, ''])} className="text-[11px] text-accent">+ Option</button>}
+            <div className="flex-1" />
+            <button onClick={() => setShowCreate(false)} className="text-[11px] text-zinc-600">Cancel</button>
+            <button onClick={() => createMutation.mutate()} disabled={!question.trim() || options.filter(o => o.trim()).length < 2}
+              className="px-4 py-2 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95">Create</button>
+          </div>
+        </div>
       )}
-      {polls.map((poll: any) => (
-        <div key={poll.id} className="card p-4 space-y-2">
-          <p className="text-[13px] font-semibold text-white">{poll.question}</p>
-          <p className="text-[9px] text-zinc-600">by {poll.author_name} · {poll.total_votes} votes</p>
-          <div className="space-y-1.5">
+
+      {polls?.map((poll: any) => (
+        <div key={poll.id} className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 space-y-3">
+          <p className="text-[14px] font-semibold text-white">{poll.question}</p>
+          <p className="text-[10px] text-zinc-600">{poll.total_votes} votes</p>
+          <div className="space-y-2">
             {poll.options.map((opt: string, i: number) => {
-              const voteCount = poll.votes.find((v: any) => v.option_index === i)?.count || 0;
+              const voteCount = poll.votes?.find((v: any) => v.option_index === i)?.count || 0;
               const percent = poll.total_votes > 0 ? Math.round((voteCount / poll.total_votes) * 100) : 0;
+              const hasVoted = poll.user_vote !== null && poll.user_vote !== undefined;
               const isVoted = poll.user_vote === i;
-              const hasVoted = poll.user_vote !== null;
               return (
-                <button
-                  key={i}
-                  onClick={() => !hasVoted && voteMutation.mutate({ pollId: poll.id, optionIndex: i })}
-                  disabled={hasVoted}
-                  className={`w-full relative px-3 py-2 rounded-lg text-left text-[12px] overflow-hidden transition-all ${
+                <button key={i} onClick={() => !hasVoted && voteMutation.mutate({ pollId: poll.id, optionIndex: i })} disabled={hasVoted}
+                  className={`w-full relative px-4 py-3 rounded-xl text-left text-[13px] overflow-hidden transition-all ${
                     isVoted ? 'border border-accent/30 text-accent' : hasVoted ? 'border border-bg-tertiary text-zinc-400' : 'border border-bg-tertiary text-zinc-300 hover:border-zinc-600 active:scale-[0.99]'
-                  }`}
-                >
-                  {hasVoted && (
-                    <div className="absolute inset-y-0 left-0 bg-accent/10 rounded-lg" style={{ width: `${percent}%` }} />
-                  )}
+                  }`}>
+                  {hasVoted && <div className="absolute inset-y-0 left-0 bg-accent/8 rounded-xl" style={{ width: `${percent}%` }} />}
                   <span className="relative">{opt}</span>
-                  {hasVoted && <span className="relative float-right font-mono text-[10px] text-zinc-500">{percent}%</span>}
+                  {hasVoted && <span className="relative float-right font-mono text-[11px] text-zinc-500">{percent}%</span>}
                 </button>
               );
             })}
@@ -423,35 +427,8 @@ function PollsSection({ communityId, isMember, queryClient }: { communityId: num
   );
 }
 
-function CreatePollForm({ question, setQuestion, options, setOptions, onSubmit, onCancel, pending }: any) {
-  return (
-    <div className="card p-4 space-y-2">
-      <input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ask a question..."
-        className="w-full px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600" />
-      {options.map((opt: string, i: number) => (
-        <input key={i} value={opt} onChange={e => { const o = [...options]; o[i] = e.target.value; setOptions(o); }}
-          placeholder={`Option ${i + 1}`}
-          className="w-full px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600" />
-      ))}
-      <div className="flex gap-2">
-        {options.length < 4 && (
-          <button onClick={() => setOptions([...options, ''])} className="text-[10px] text-accent font-medium">+ Add option</button>
-        )}
-        <div className="flex-1" />
-        <button onClick={onCancel} className="text-[10px] text-zinc-600">Cancel</button>
-        <button onClick={onSubmit} disabled={!question.trim() || options.filter((o: string) => o.trim()).length < 2 || pending}
-          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[10px] font-semibold disabled:opacity-30 active:scale-95">
-          Create Poll
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function getCategoryIcon(category: string): string {
-  const icons: Record<string, string> = {
-    run_club: '🏃', training: '🎯', nutrition: '🥗', wellness: '🧘', social: '🎉', brand: '✨', custom: '⭐',
-  };
+  const icons: Record<string, string> = { run_club: '🏃', training: '🎯', nutrition: '🥗', wellness: '🧘', social: '🎉', brand: '✨', custom: '⭐' };
   return icons[category] || '⭐';
 }
 
