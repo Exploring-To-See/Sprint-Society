@@ -34,7 +34,7 @@ router.post('/message', async (req: AuthRequest, res: Response) => {
   ).all(req.userId) as any[];
 
   // Check if user has pro subscription AND API key exists → use Sonnet
-  const subscription = db.prepare('SELECT plan_key FROM subscriptions WHERE user_id = ? AND status = ?').get(req.userId, 'active') as any;
+  const subscription = db.prepare('SELECT plan_key FROM user_subscriptions WHERE user_id = ? AND status = ?').get(req.userId, 'active') as any;
   const useAI = config.anthropic.apiKey && (subscription?.plan_key === 'pro' || subscription?.plan_key === 'premium');
 
   let response: string;

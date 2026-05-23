@@ -614,7 +614,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_history_user ON payment_history(user_id, 
 CREATE TABLE IF NOT EXISTS user_notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('kudos', 'comment', 'follow', 'event_reminder', 'event_rsvp', 'community_post', 'community_join', 'achievement', 'level_up', 'xp_award')),
+    type TEXT NOT NULL CHECK(type IN ('kudos', 'comment', 'follow', 'event_reminder', 'event_rsvp', 'community_post', 'community_join', 'achievement', 'level_up', 'xp_award', 'ai_insight')),
     title TEXT NOT NULL,
     body TEXT,
     actor_id INTEGER,
