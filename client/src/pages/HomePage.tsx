@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 
@@ -155,7 +155,7 @@ function CommunitySlide() {
             <span className="text-xs text-zinc-400">Saturday, 6:30 AM</span>
             <span className="ml-auto text-[10px] text-emerald-400 font-mono">LIVE</span>
           </div>
-          <h3 className="text-sm font-semibold text-white mb-1">Morning Tempo Run — Lodhi Garden</h3>
+          <h3 className="text-sm font-semibold text-white mb-1">Morning Tempo Run — Kolkata</h3>
           <p className="text-xs text-zinc-500 mb-3">5K tempo with 1K warm-up/cool-down</p>
           <div className="flex items-center gap-1">
             {avatars.map((a, i) => (
@@ -254,15 +254,37 @@ export function HomePage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const pauseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrent(index);
+    setPaused(true);
+    if (pauseTimeout.current) clearTimeout(pauseTimeout.current);
+    pauseTimeout.current = setTimeout(() => setPaused(false), 8000);
+  }, []);
 
   const nextSlide = useCallback(() => {
     setCurrent(prev => (prev + 1) % slides.length);
   }, []);
 
+  const prevSlide = useCallback(() => {
+    setCurrent(prev => (prev - 1 + slides.length) % slides.length);
+  }, []);
+
   useEffect(() => {
+    if (paused || showLogin) return;
     const timer = setInterval(nextSlide, 4000);
     return () => clearInterval(timer);
-  }, [nextSlide]);
+  }, [nextSlide, paused, showLogin]);
+
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    if (info.offset.x < -50) {
+      goToSlide((current + 1) % slides.length);
+    } else if (info.offset.x > 50) {
+      goToSlide((current - 1 + slides.length) % slides.length);
+    }
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -280,63 +302,72 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
       {/* Top: Logo + Brand */}
-      <div className="px-6 pt-8 pb-4 flex items-center justify-center gap-2.5">
-        <img src="/icons/logo.png" alt="Sprint Society" className="w-10 h-10 rounded-lg object-cover" />
-        <h1 className="font-heading text-xl font-bold tracking-tight">
+      <div className="px-6 pt-8 pb-3 flex flex-col items-center gap-2">
+        <img src="/icons/logo.png" alt="Sprint Society" className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-accent/10" />
+        <h1 className="font-heading text-2xl font-bold tracking-tight">
           Sprint <span className="text-accent">Society</span>
         </h1>
+        <p className="text-zinc-500 text-xs">AI-powered running community</p>
       </div>
 
-      {/* Middle: Slides (visual + text separated) */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="relative flex-1 min-h-[280px] max-h-[45vh] overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="absolute inset-0"
-            >
-              <SlideComponent />
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      {/* Middle: Slides (swipeable + auto) */}
+      {!showLogin && (
+        <div className="flex-1 flex flex-col min-h-0">
+          <motion.div
+            className="relative flex-1 min-h-[260px] max-h-[42vh] overflow-hidden touch-pan-y"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0"
+              >
+                <SlideComponent />
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
 
-        {/* Slide text — below the visual, not overlapping */}
-        <div className="px-6 pt-4 pb-2">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="text-center"
-            >
-              <h2 className="font-heading text-xl font-bold text-white leading-tight">
-                {slides[current].headline}
-              </h2>
-              <p className="text-sm text-zinc-400 mt-1">{slides[current].sub}</p>
-            </motion.div>
-          </AnimatePresence>
+          {/* Slide text — below the visual */}
+          <div className="px-6 pt-3 pb-2">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="text-center"
+              >
+                <h2 className="font-heading text-lg font-bold text-white leading-tight">
+                  {slides[current].headline}
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">{slides[current].sub}</p>
+              </motion.div>
+            </AnimatePresence>
 
-          {/* Dot indicators */}
-          <div className="flex gap-2 mt-4 justify-center">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-6 bg-accent' : 'w-1.5 bg-zinc-700'}`}
-              />
-            ))}
+            {/* Dot indicators (clickable) */}
+            <div className="flex gap-2 mt-3 justify-center">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goToSlide(i)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-6 bg-accent' : 'w-1.5 bg-zinc-700 hover:bg-zinc-500'}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom: Signup + Login */}
-      <div className="px-6 pb-8 pt-4">
+      <div className={`px-6 pb-8 ${showLogin ? 'pt-6 flex-1 flex flex-col justify-center' : 'pt-4'}`}>
         <div className="w-full max-w-sm mx-auto space-y-3">
           {!showLogin ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
@@ -353,12 +384,16 @@ export function HomePage() {
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+              <div className="text-center mb-4">
+                <h2 className="font-heading text-lg font-semibold text-white">Welcome back</h2>
+                <p className="text-zinc-500 text-xs mt-1">Log in to continue your journey</p>
+              </div>
               <input
-                type="email"
-                placeholder="Email"
+                type="text"
+                placeholder="Email or phone number"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+                className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors"
                 autoFocus
               />
               <input
@@ -366,7 +401,7 @@ export function HomePage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+                className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors"
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
               />
               {error && <p className="text-red-400 text-sm text-center">{error}</p>}

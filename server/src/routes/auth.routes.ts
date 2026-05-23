@@ -86,10 +86,17 @@ router.post('/register', async (req, res: Response) => {
 router.post('/login', async (req, res: Response) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
+    return res.status(400).json({ error: 'Email/phone and password required' });
   }
 
-  const user = db.prepare('SELECT id, name, email, role, password_hash FROM users WHERE email = ?').get(email) as any;
+  const identifier = email.trim();
+  const isPhone = /^[6-9]\d{9}$/.test(identifier.replace(/[\s+\-]/g, '').replace(/^(\+91|91)/, ''));
+  const cleanPhone = identifier.replace(/[\s+\-]/g, '').replace(/^(\+91|91)/, '');
+
+  const user = isPhone
+    ? db.prepare('SELECT id, name, email, role, password_hash FROM users WHERE phone = ? OR phone = ?').get(cleanPhone, `+91${cleanPhone}`) as any
+    : db.prepare('SELECT id, name, email, role, password_hash FROM users WHERE email = ?').get(identifier) as any;
+
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
