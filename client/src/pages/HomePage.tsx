@@ -32,46 +32,88 @@ const slides = [
 ];
 
 function AICoachSlide() {
+  const dnaStats = [
+    { label: 'VO2max', value: '48.2', unit: 'ml/kg/min', color: 'text-emerald-400', delay: 0.3 },
+    { label: 'Tier', value: 'Advanced', unit: '', color: 'text-accent', delay: 0.5 },
+    { label: '5K Prediction', value: '22:14', unit: '', color: 'text-orange-400', delay: 0.7 },
+    { label: 'Readiness', value: '87', unit: '/100', color: 'text-blue-400', delay: 0.9 },
+  ];
+
+  const tags = ['Tempo Lover', 'Morning Runner', 'Hill Crusher', 'Streak Machine'];
+
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 via-transparent to-transparent" />
-      <div className="relative w-[85%] max-w-[320px] space-y-3">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      <div className="absolute inset-0 bg-gradient-to-b from-orange-500/8 via-transparent to-transparent" />
+      {/* Scanning line animation */}
+      <motion.div
+        className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent"
+        initial={{ top: '10%' }}
+        animate={{ top: '90%' }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+      />
+      <div className="relative w-[85%] max-w-[320px]">
+        {/* DNA Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="bg-bg-secondary/90 backdrop-blur-lg border border-accent/20 rounded-2xl p-5 shadow-xl shadow-accent/5"
+        >
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-bg-tertiary/60">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-accent flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Your Running DNA</p>
+              <motion.p
+                className="text-[10px] text-accent font-mono"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0.7, 1] }}
+                transition={{ duration: 1.5, delay: 0.2 }}
+              >
+                AI SCAN COMPLETE
+              </motion.p>
+            </div>
           </div>
-          <span className="text-xs text-zinc-400 font-mono">AI Coach</span>
-          <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse-soft" />
-        </div>
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-bg-secondary/80 backdrop-blur border border-bg-tertiary rounded-2xl rounded-tl-sm p-4"
-        >
-          <p className="text-sm text-zinc-300 leading-relaxed">
-            Your tempo pace has improved <span className="text-accent font-semibold">12%</span> this month.
-            I'm adjusting tomorrow's interval session — you're ready for 4:45/km repeats.
-          </p>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-accent/10 border border-accent/20 rounded-2xl rounded-tr-sm p-4 ml-auto max-w-[80%]"
-        >
-          <p className="text-sm text-zinc-300">Should I run easy today?</p>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.9 }}
-          className="bg-bg-secondary/80 backdrop-blur border border-bg-tertiary rounded-2xl rounded-tl-sm p-4"
-        >
-          <p className="text-sm text-zinc-300 leading-relaxed">
-            Yes — your training load is <span className="text-amber-400 font-semibold">elevated</span>.
-            Keep it under 6:00/km today. Recovery is part of getting faster.
-          </p>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {dnaStats.map(stat => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: stat.delay, duration: 0.4 }}
+                className="bg-bg-primary/60 rounded-lg p-2.5"
+              >
+                <p className="text-[9px] text-zinc-500 uppercase tracking-wider">{stat.label}</p>
+                <p className={`text-lg font-heading font-bold ${stat.color} leading-tight`}>
+                  {stat.value}<span className="text-[10px] text-zinc-500 font-normal">{stat.unit}</span>
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Personality tags */}
+          <motion.div
+            className="flex flex-wrap gap-1.5"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1 }}
+          >
+            {tags.map((tag, i) => (
+              <motion.span
+                key={tag}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.2 + i * 0.1 }}
+                className="px-2 py-1 rounded-md bg-accent/10 border border-accent/20 text-[9px] text-accent font-medium"
+              >
+                {tag}
+              </motion.span>
+            ))}
+          </motion.div>
         </motion.div>
       </div>
     </div>
@@ -255,12 +297,13 @@ export function HomePage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [introComplete, setIntroComplete] = useState(false);
+  const [introPhase, setIntroPhase] = useState(0); // 0=logo center, 1=logo moving up, 2=content visible
   const pauseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setIntroComplete(true), 1200);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setIntroPhase(1), 1000);
+    const t2 = setTimeout(() => setIntroPhase(2), 1800);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   const goToSlide = useCallback((index: number) => {
@@ -275,10 +318,10 @@ export function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (paused || showLogin || !introComplete) return;
+    if (paused || showLogin || introPhase < 2) return;
     const timer = setInterval(nextSlide, 4500);
     return () => clearInterval(timer);
-  }, [nextSlide, paused, showLogin, introComplete]);
+  }, [nextSlide, paused, showLogin, introPhase]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < -50) {
@@ -317,14 +360,37 @@ export function HomePage() {
         />
       </div>
 
-      {/* Fixed top-left header */}
+      {/* Cinematic intro overlay — logo pops center then moves to header */}
+      <AnimatePresence>
+        {introPhase === 0 && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-bg-primary"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <motion.div
+              className="flex flex-col items-center gap-3"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <img src="/icons/logo.png" alt="Sprint Society" className="w-20 h-20 rounded-full object-cover shadow-2xl shadow-accent/20 border-2 border-accent/20" />
+              <h1 className="font-heading text-2xl font-bold tracking-tight">
+                Sprint <span className="text-accent">Society</span>
+              </h1>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fixed top-left header (appears after intro) */}
       <motion.header
-        className="fixed top-0 left-0 right-0 z-50 px-5 py-4 flex items-center gap-3 bg-bg-primary/80 backdrop-blur-md border-b border-white/5"
+        className="fixed top-0 left-0 right-0 z-50 px-5 py-3.5 flex items-center gap-3 bg-bg-primary/85 backdrop-blur-md border-b border-white/5"
         initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
+        animate={introPhase >= 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+        transition={{ duration: 0.5, delay: introPhase === 1 ? 0.2 : 0 }}
       >
-        <img src="/icons/logo.png" alt="Sprint Society" className="w-11 h-11 rounded-xl object-cover" />
+        <img src="/icons/logo.png" alt="Sprint Society" className="w-10 h-10 rounded-full object-cover" />
         <div>
           <h1 className="font-heading text-lg font-bold tracking-tight leading-none">
             Sprint <span className="text-accent">Society</span>
@@ -334,7 +400,7 @@ export function HomePage() {
       </motion.header>
 
       {/* Spacer for fixed header */}
-      <div className="h-[76px]" />
+      <div className="h-[68px]" />
 
       {/* Cinematic intro → then slides */}
       {!showLogin && (
