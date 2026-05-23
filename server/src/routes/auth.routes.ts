@@ -13,12 +13,12 @@ const registerSchema = z.object({
   phone: z.string().min(10).max(15),
   password: z.string().min(6),
   invite_code: z.string().min(1),
-  gender: z.enum(['male', 'female', 'non-binary']),
-  age: z.number().int().min(13).max(100),
-  height_cm: z.number().min(100).max(250),
-  weight_kg: z.number().min(30).max(250),
-  fitness_level: z.enum(['sedentary', 'lightly_active', 'active', 'very_active']),
-  running_experience: z.enum(['none', 'beginner', 'intermediate', 'advanced']),
+  gender: z.enum(['male', 'female', 'non-binary']).optional(),
+  age: z.number().int().min(13).max(100).optional(),
+  height_cm: z.number().min(100).max(250).optional(),
+  weight_kg: z.number().min(30).max(250).optional(),
+  fitness_level: z.enum(['sedentary', 'lightly_active', 'active', 'very_active']).optional(),
+  running_experience: z.enum(['none', 'beginner', 'intermediate', 'advanced']).optional(),
   injury_history: z.array(z.string()).default([]),
 });
 
@@ -51,8 +51,10 @@ router.post('/register', async (req, res: Response) => {
       INSERT INTO users (name, email, phone, password_hash, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, invite_code_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      data.name, data.email, data.phone, passwordHash, data.gender, data.age,
-      data.height_cm, data.weight_kg, data.fitness_level, data.running_experience,
+      data.name, data.email, data.phone, passwordHash,
+      data.gender || 'male', data.age || 25,
+      data.height_cm || 170, data.weight_kg || 70,
+      data.fitness_level || 'active', data.running_experience || 'beginner',
       JSON.stringify(data.injury_history), code.id
     );
 
