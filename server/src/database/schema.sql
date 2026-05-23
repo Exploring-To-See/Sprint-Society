@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS activities (
     average_heartrate REAL,
     max_heartrate REAL,
     calories REAL,
+    activity_type TEXT DEFAULT 'Run',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

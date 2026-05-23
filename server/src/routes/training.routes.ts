@@ -113,7 +113,7 @@ router.get('/week', (req: AuthRequest, res: Response) => {
 // GET /training/readiness — Daily readiness score
 router.get('/readiness', (req: AuthRequest, res: Response) => {
   const runs = db.prepare(
-    `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
+    `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date, activity_type
      FROM activities WHERE user_id = ? AND start_date > datetime('now', '-7 days')
      ORDER BY start_date DESC`
   ).all(req.userId) as any[];

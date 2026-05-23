@@ -27,6 +27,7 @@ interface RunHistory {
   average_pace_per_km: number;
   average_heartrate?: number;
   start_date: string;
+  activity_type?: string;
 }
 
 interface RaceGoal {
@@ -494,13 +495,21 @@ export function calculateReadiness(
 
   let score = 80; // Base readiness
 
+  // Cross-training activities contribute at 50% fatigue (still stresses body, less running-specific)
+  const RUNNING_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
+  const effectiveVolume = (activities: RunHistory[]) =>
+    activities.reduce((s, r) => {
+      const multiplier = RUNNING_TYPES.includes(r.activity_type || 'Run') ? 1.0 : 0.5;
+      return s + (r.distance_meters * multiplier);
+    }, 0) / 1000;
+
   // Fatigue from yesterday
-  const yesterdayVolume = yesterdayRuns.reduce((s, r) => s + r.distance_meters, 0) / 1000;
+  const yesterdayVolume = effectiveVolume(yesterdayRuns);
   if (yesterdayVolume > 10) score -= 20;
   else if (yesterdayVolume > 5) score -= 10;
 
   // Two hard days in a row
-  const twoDaysVolume = twoDaysAgoRuns.reduce((s, r) => s + r.distance_meters, 0) / 1000;
+  const twoDaysVolume = effectiveVolume(twoDaysAgoRuns);
   if (yesterdayVolume > 5 && twoDaysVolume > 5) score -= 15;
 
   // Rest day bonus

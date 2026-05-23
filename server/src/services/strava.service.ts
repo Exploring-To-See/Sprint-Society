@@ -65,7 +65,8 @@ export async function fetchActivities(userId: number, after?: number): Promise<a
     params,
   });
 
-  return data.filter((a: any) => a.type === 'Run');
+  const CROSS_TRAINING_TYPES = ['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike', 'Ride', 'VirtualRide', 'Swim', 'Workout', 'CrossFit', 'Elliptical', 'StairStepper'];
+  return data.filter((a: any) => CROSS_TRAINING_TYPES.includes(a.type));
 }
 
 export async function fetchActivity(userId: number, activityId: number): Promise<any> {
@@ -85,8 +86,8 @@ export function storeActivity(userId: number, activity: any) {
     INSERT OR REPLACE INTO activities
     (user_id, strava_activity_id, distance_meters, moving_time_seconds, elapsed_time_seconds,
      average_speed, max_speed, average_pace_per_km, elevation_gain, start_date,
-     start_latlng, end_latlng, map_polyline, splits, average_heartrate, max_heartrate, calories)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     start_latlng, end_latlng, map_polyline, splits, average_heartrate, max_heartrate, calories, activity_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId,
     activity.id,
@@ -104,7 +105,8 @@ export function storeActivity(userId: number, activity: any) {
     JSON.stringify(activity.splits_metric || []),
     activity.average_heartrate || null,
     activity.max_heartrate || null,
-    activity.calories || null
+    activity.calories || null,
+    activity.type || 'Run'
   );
 }
 

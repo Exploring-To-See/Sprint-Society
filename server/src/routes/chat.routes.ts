@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { estimateVDOT, getTrainingPaces, calculateReadiness } from '../engine/trainingPlanGenerator';
@@ -10,8 +11,15 @@ import { chatWithSonnet, extractAndStoreInsights } from '../services/ai.service'
 const router = Router();
 router.use(authenticate);
 
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  keyGenerator: (req: any) => req.user?.id?.toString() || req.userId?.toString() || req.ip,
+  message: { error: 'Too many messages. Take a breath and try again in a minute.' }
+});
+
 // POST /chat/message — Send a message to the AI coach
-router.post('/message', async (req: AuthRequest, res: Response) => {
+router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => {
   const { message } = req.body;
   if (!message || message.trim().length === 0) {
     return res.status(400).json({ error: 'Message cannot be empty' });
@@ -87,7 +95,7 @@ router.delete('/history', (req: AuthRequest, res: Response) => {
 
 function buildRunnerContext(userId: number, user: any) {
   const recentRuns = db.prepare(
-    `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
+    `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date, activity_type
      FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 20`
   ).all(userId) as any[];
 
@@ -103,7 +111,7 @@ function buildRunnerContext(userId: number, user: any) {
   const readiness = calculateReadiness(recentRuns);
 
   const loadActivities = db.prepare(
-    `SELECT distance_meters, moving_time_seconds, average_heartrate, start_date
+    `SELECT distance_meters, moving_time_seconds, average_heartrate, start_date, activity_type
      FROM activities WHERE user_id = ? AND start_date > datetime('now', '-35 days')`
   ).all(userId) as any[];
   const load = calculateTrainingLoad(loadActivities, user.max_heartrate);

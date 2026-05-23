@@ -78,7 +78,8 @@ router.post('/webhook', async (req: Request, res: Response) => {
       if (!token) return;
 
       const activity = await stravaService.fetchActivity(token.user_id, object_id);
-      if (activity.type === 'Run') {
+      const CROSS_TRAINING_TYPES = ['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike', 'Ride', 'VirtualRide', 'Swim', 'Workout', 'CrossFit', 'Elliptical', 'StairStepper'];
+      if (CROSS_TRAINING_TYPES.includes(activity.type)) {
         stravaService.storeActivity(token.user_id, activity);
         autoProcessActivity(token.user_id);
       }

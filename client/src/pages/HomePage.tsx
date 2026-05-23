@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
-import api from '../lib/api';
 
 const slides = [
   {
@@ -254,12 +253,8 @@ export function HomePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showWaitlist, setShowWaitlist] = useState(false);
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistDone, setWaitlistDone] = useState(false);
 
   const nextSlide = useCallback(() => {
     setCurrent(prev => (prev + 1) % slides.length);
@@ -281,37 +276,37 @@ export function HomePage() {
     setLoading(false);
   };
 
-  const handleWaitlist = async () => {
-    if (!waitlistEmail) return;
-    try {
-      await api.post('/invite/waitlist', { email: waitlistEmail });
-      setWaitlistDone(true);
-    } catch { /* already on list is fine */
-      setWaitlistDone(true);
-    }
-  };
-
   const SlideComponent = slideComponents[current];
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
-      {/* Hero Slides — 65vh */}
-      <div className="relative h-[65vh] min-h-[380px] overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0"
-          >
-            <SlideComponent />
-          </motion.div>
-        </AnimatePresence>
+      {/* Top: Logo + Brand */}
+      <div className="px-6 pt-8 pb-4 flex items-center justify-center gap-2.5">
+        <img src="/icons/logo.png" alt="Sprint Society" className="w-10 h-10 rounded-lg object-cover" />
+        <h1 className="font-heading text-xl font-bold tracking-tight">
+          Sprint <span className="text-accent">Society</span>
+        </h1>
+      </div>
 
-        {/* Headline overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-bg-primary via-bg-primary/80 to-transparent">
+      {/* Middle: Slides (visual + text separated) */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="relative flex-1 min-h-[280px] max-h-[45vh] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="absolute inset-0"
+            >
+              <SlideComponent />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Slide text — below the visual, not overlapping */}
+        <div className="px-6 pt-4 pb-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={current}
@@ -319,6 +314,7 @@ export function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
+              className="text-center"
             >
               <h2 className="font-heading text-xl font-bold text-white leading-tight">
                 {slides[current].headline}
@@ -328,7 +324,7 @@ export function HomePage() {
           </AnimatePresence>
 
           {/* Dot indicators */}
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-4 justify-center">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -340,70 +336,21 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* Bottom Section — 35vh */}
-      <div className="flex-1 px-6 pb-8 pt-4 flex flex-col justify-center">
-        <div className="w-full max-w-sm mx-auto space-y-4">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img src="/icons/logo.png" alt="Sprint Society" className="w-9 h-9 rounded-lg object-cover" />
-            <h1 className="font-heading text-lg font-bold tracking-tight">
-              Sprint <span className="text-accent">Society</span>
-            </h1>
-          </div>
-
-          {!showLogin && !showWaitlist ? (
+      {/* Bottom: Signup + Login */}
+      <div className="px-6 pb-8 pt-4">
+        <div className="w-full max-w-sm mx-auto space-y-3">
+          {!showLogin ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-              <Button fullWidth size="lg" onClick={() => window.location.href = `/register${inviteCode ? `?code=${inviteCode}` : ''}`}>
+              <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
                 Join Sprint Society
               </Button>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Enter invite code"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-white text-center placeholder:text-zinc-600 focus:border-accent/50 focus:outline-none transition-colors font-mono tracking-wider uppercase"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="flex-1 text-center text-zinc-400 text-sm py-2 hover:text-white transition-colors"
-                >
-                  Log in
-                </button>
-                <button
-                  onClick={() => setShowWaitlist(true)}
-                  className="flex-1 text-center text-zinc-500 text-sm py-2 hover:text-zinc-300 transition-colors"
-                >
-                  No code? Join waitlist
-                </button>
-              </div>
-            </motion.div>
-          ) : showWaitlist ? (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-              {!waitlistDone ? (
-                <>
-                  <p className="text-sm text-zinc-400 text-center">Get notified when a spot opens up.</p>
-                  <input
-                    type="email"
-                    placeholder="Your email"
-                    value={waitlistEmail}
-                    onChange={(e) => setWaitlistEmail(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/50 focus:outline-none transition-colors"
-                    autoFocus
-                  />
-                  <Button fullWidth onClick={handleWaitlist}>Join Waitlist</Button>
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-emerald-400 font-semibold">You're on the list!</p>
-                  <p className="text-xs text-zinc-500 mt-1">We'll reach out when it's your turn.</p>
-                </div>
-              )}
-              <button onClick={() => setShowWaitlist(false)} className="w-full text-center text-zinc-500 text-sm py-2 hover:text-zinc-300">← Back</button>
+              <button
+                onClick={() => setShowLogin(true)}
+                className="w-full py-3 rounded-xl border border-bg-tertiary text-zinc-300 text-sm font-medium hover:border-zinc-600 hover:text-white transition-all"
+              >
+                Already a member? Log in
+              </button>
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">

@@ -55,7 +55,7 @@ interface LoadMetrics {
 // ===== TRAINING LOAD (TSS-lite without power meter) =====
 
 export function calculateTrainingLoad(
-  activities: { distance_meters: number; moving_time_seconds: number; average_heartrate?: number; start_date: string }[],
+  activities: { distance_meters: number; moving_time_seconds: number; average_heartrate?: number; start_date: string; activity_type?: string }[],
   userMaxHR?: number
 ): LoadMetrics {
   const now = Date.now();
@@ -67,6 +67,8 @@ export function calculateTrainingLoad(
 
   // Load = duration × intensity factor
   // Intensity from HR if available, otherwise from pace relative to easy pace
+  // Cross-training activities contribute at 0.5x load (still stresses the body, but less running-specific)
+  const RUNNING_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const calculateSessionLoad = (a: typeof activities[0]): number => {
     const durationHours = a.moving_time_seconds / 3600;
     let intensity = 1.0;
@@ -88,7 +90,10 @@ export function calculateTrainingLoad(
                   1.0;                       // easy
     }
 
-    return Math.round(durationHours * intensity * 100);
+    // Non-running activities contribute at 50% load
+    const crossTrainMultiplier = RUNNING_TYPES.includes(a.activity_type || 'Run') ? 1.0 : 0.5;
+
+    return Math.round(durationHours * intensity * crossTrainMultiplier * 100);
   };
 
   const dailyLoads7: number[] = [];

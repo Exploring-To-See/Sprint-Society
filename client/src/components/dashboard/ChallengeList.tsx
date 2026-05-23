@@ -47,7 +47,16 @@ export function ChallengeList() {
     );
   }
 
-  if (!challenges || challenges.length === 0) return null;
+  if (!challenges || !Array.isArray(challenges) || challenges.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-8 gap-2">
+        <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center">
+          <span className="text-base">🎯</span>
+        </div>
+        <p className="text-[11px] text-zinc-600 text-center">No challenges yet. Check back soon!</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

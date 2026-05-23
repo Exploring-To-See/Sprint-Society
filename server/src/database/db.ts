@@ -18,10 +18,19 @@ db.pragma('foreign_keys = ON');
 export function initializeDatabase() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   db.exec(schema);
+  runMigrations();
   seedAdmin();
   seedSprintSocialClub();
   seedAchievements();
   seedSubscriptionPlans();
+}
+
+function runMigrations() {
+  // Add activity_type column if it doesn't exist (cross-training support)
+  const columns = db.prepare("PRAGMA table_info(activities)").all() as any[];
+  if (!columns.find((c: any) => c.name === 'activity_type')) {
+    db.exec("ALTER TABLE activities ADD COLUMN activity_type TEXT DEFAULT 'Run'");
+  }
 }
 
 function seedAdmin() {

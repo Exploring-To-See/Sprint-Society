@@ -98,7 +98,7 @@ export function FeedPage() {
         )}
 
         {/* Feed items */}
-        {data?.feed?.map((activity: any) => (
+        {data?.feed?.length > 0 && data.feed.map((activity: any) => (
           <motion.div
             key={activity.id}
             variants={fadeUp}
@@ -209,6 +209,14 @@ export function FeedPage() {
             </AnimatePresence>
           </motion.div>
         ))}
+
+        {/* End of feed indicator */}
+        {!isLoading && data?.feed && data.feed.length > 0 && (
+          <motion.div variants={fadeUp} className="flex flex-col items-center py-6 gap-2">
+            <div className="w-8 h-[2px] rounded-full bg-bg-tertiary" />
+            <p className="text-[11px] text-zinc-600">You're all caught up</p>
+          </motion.div>
+        )}
       </motion.div>
     </AppShell>
   );
