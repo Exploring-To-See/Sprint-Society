@@ -25,8 +25,8 @@ const slides = [
   },
   {
     id: 'tiers',
-    headline: 'Free. Pro. Elite. Your running, your level.',
-    sub: 'From AI training plans to personal nutrition coaching',
+    headline: 'Base. Pro. Your running, your level.',
+    sub: 'From silent AI training to personal chat coaching',
     gradient: 'from-amber-500/20 via-transparent to-transparent',
   },
 ];
@@ -210,16 +210,15 @@ function CommunitySlide() {
 
 function TiersSlide() {
   const tiers = [
-    { name: 'Base', price: '₹9', color: 'border-zinc-700', features: ['AI training plans', 'Pace zones', 'Weekly insights'] },
-    { name: 'Pro', price: '₹99', color: 'border-accent', highlight: true, features: ['AI chat coach', 'Pre/post run check-ins', 'Memory-based coaching'] },
-    { name: 'Elite', price: '₹199', color: 'border-amber-500', features: ['Full AI conversations', 'Nutrition coaching', 'Diet tracking'] },
+    { name: 'Base', price: '₹9', color: 'border-zinc-700', features: ['AI training plans', 'Pace zones', 'Weekly AI summary', 'HR zones', 'Events & communities'] },
+    { name: 'Pro', price: '₹99', color: 'border-accent', highlight: true, features: ['AI chat coach', 'Adaptive training', 'Coach remembers you', 'Transformation plans', 'Create communities'] },
   ];
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-transparent" />
-      <div className="relative w-[90%] max-w-[340px]">
-        <div className="flex gap-2">
+      <div className="relative w-[85%] max-w-[320px]">
+        <div className="flex gap-3">
           {tiers.map((t, i) => (
             <motion.div
               key={t.name}

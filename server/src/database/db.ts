@@ -65,22 +65,21 @@ function seedSprintSocialClub() {
 
 function seedSubscriptionPlans() {
   const count = db.prepare('SELECT COUNT(*) as count FROM subscription_plans').get() as { count: number };
-  if (count.count > 0) return;
 
   const plans = [
     {
-      key: 'free', name: 'Starter', price_inr: 9, duration_days: 36500,
-      features: JSON.stringify(['Track runs', 'Join events', 'Join communities', 'Social feed', 'Basic stats', 'Leaderboard']),
+      key: 'base', name: 'Base', price_inr: 9, duration_days: 30,
+      features: JSON.stringify(['Track runs', 'Join events', 'Join communities', 'Social feed', 'Leaderboard', 'AI training plan (auto-adjusts)', 'Pace zones', 'Weekly AI summary', 'HR zones']),
     },
     {
-      key: 'pro', name: 'Pro', price_inr: 19, duration_days: 30,
-      features: JSON.stringify(['Everything in Starter', 'AI coaching', 'Training plans', 'HR zones', 'Personal records', 'Weekly challenges', 'Pace zones']),
-    },
-    {
-      key: 'premium', name: 'Premium', price_inr: 199, duration_days: 30,
-      features: JSON.stringify(['Everything in Pro', 'Adaptive training engine', 'Transformation plans', 'Injury risk detection', 'Create communities', 'Priority event RSVPs', 'Advanced analytics', 'Custom challenges']),
+      key: 'pro', name: 'Pro', price_inr: 99, duration_days: 30,
+      features: JSON.stringify(['Everything in Base', 'AI chat coach (Sonnet)', 'Pre/post run check-ins', 'AI memory (coach remembers you)', 'Personal records', 'Adaptive training engine', 'Transformation plans', 'Weekly challenges', 'Create communities']),
     },
   ];
+
+  if (count.count > 0) {
+    db.prepare('DELETE FROM subscription_plans').run();
+  }
 
   const stmt = db.prepare('INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES (?, ?, ?, ?, ?)');
   for (const p of plans) {

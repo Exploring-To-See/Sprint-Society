@@ -1,105 +1,81 @@
 # Sprint Society — Task Backlog
 
-> Managed by `/sprint-engine`. Priority order (top = next).
-> Last updated: 2026-05-22
+> Managed by `/kendu-ishu`. Priority order (top = next).
+> Last updated: 2026-05-24
 
 ---
 
 ## In Progress
 
-(none — run `/sprint-engine` to start next sprint)
+(none — run `/kendu-ishu` to start next sprint)
 
 ---
 
-## Priority 1: Admin Backend (Revenue/Retention Impact)
+## Completed (This Sprint — 2026-05-24)
 
-### SS-010: Analytics Dashboard
-- [ ] Add `analytics_events` + `daily_metrics` tables to schema
-- [ ] Create `server/src/engine/analyticsAggregator.ts`
-- [ ] Create `server/src/routes/admin-analytics.routes.ts`
-- [ ] Create `client/src/pages/admin/AdminLayout.tsx` (sidebar shell)
-- [ ] Create `client/src/pages/admin/AdminDashboard.tsx` (Recharts)
-- [ ] Add event tracking middleware
-- [ ] Create `client/src/lib/analytics.ts` (frontend tracker)
-
-### SS-011: Feature Flags
-- [ ] Add `feature_flags` + `feature_flag_overrides` tables
-- [ ] Create `server/src/routes/admin-flags.routes.ts`
-- [ ] Create `client/src/hooks/useFeatureFlag.ts`
-- [ ] Create `client/src/pages/admin/AdminFlags.tsx`
-- [ ] Wrap one existing feature behind a flag (proof-of-concept)
-
-### SS-012: User Segmentation
-- [ ] Add `segments` + `segment_members` tables
-- [ ] Create `server/src/engine/segmentEvaluator.ts` (JSON rules → SQL)
-- [ ] Create `server/src/routes/admin-segments.routes.ts`
-- [ ] Create `client/src/pages/admin/AdminSegments.tsx`
+- [x] SS-010: Analytics Dashboard (backend + 8 admin tabs in frontend)
+- [x] SS-011: Feature Flags (CRUD + evaluate + rollout %)
+- [x] SS-012: User Segmentation (JSON rules engine + evaluate)
+- [x] SS-013: Push Notifications (admin CRUD + send management)
+- [x] SS-014: Content CMS (blocks + publish/schedule workflow)
+- [x] SS-015: Engineering Hub (sprint history + backlog view)
+- [x] SS-016: Admin Audit Log (action tracking + helper export)
+- [x] SS-017: Moderation Tools (queue + hide + warn/ban)
+- [x] SS-020: ChallengeList null check on empty array
+- [x] SS-021: PaceChart unused import cleanup
+- [x] SS-022: Social feed pagination indicator
+- [x] SS-023: Readiness cross-training support (0.5x multiplier)
+- [x] SS-024: Chat rate limiting (20 msg/min)
+- [x] SS-025: Railway deployment (RESOLVED — app is live)
+- [x] SS-026: Landing page fix (logo top, no text overlap, login visible)
 
 ---
 
-## Priority 2: Engagement & Retention
+## Backlog — Not Started
 
-### SS-013: Push Notifications
-- [ ] Add `push_subscriptions` + `notifications` tables
-- [ ] Generate VAPID keys
-- [ ] Create service worker for push
-- [ ] Create `server/src/routes/admin-notifications.routes.ts`
-- [ ] Create `client/src/pages/admin/AdminNotifications.tsx`
-- [ ] Types: run reminder, challenge nudge, session alert, PR celebration
+### Deployment / Infra
+- [ ] SS-030: Set ANTHROPIC_API_KEY on Railway (enables AI chat)
+- [ ] SS-031: Set RAZORPAY keys on Railway (enables payments)
+- [ ] SS-032: PostgreSQL migration (DEFERRED — only after 100 users)
 
-### SS-014: Content CMS
-- [ ] Add `content_blocks` table
-- [ ] Create `server/src/routes/admin-content.routes.ts`
-- [ ] Create `client/src/pages/admin/AdminContent.tsx`
-- [ ] Display coaching tips on runner dashboard
+### Subscription Tier Alignment
+- [x] SS-033: Update pricing to ₹9 Base (Haiku) / ₹99 Pro (Sonnet) — ₹199 + nutrition dropped
 
----
+### AI Features (v1.2 scope — needs ANTHROPIC_API_KEY on Railway)
+- [ ] SS-034: Background Haiku evaluation on Strava sync (auto-adjust training plan)
+- [ ] SS-035: Weekly AI Summary card generation (Sunday)
 
-## Priority 3: Polish & Scale
+### AI Features (v1.3 scope — ONLY after 50 real users + AI usage validated)
+- [ ] SS-036: "My AI Profile" page (user-visible, editable)
+- [ ] SS-037: AI memory extraction improvement
+- [ ] SS-038: Pre-run / post-run check-in rituals (MCQ + free-text)
 
-### SS-015: Engineering Hub (Admin Panel Tab)
-- [ ] Add `sprint_history` table to DB
-- [ ] Create admin tab: sprint history, backlog, autonomy level
-- [ ] Show recent agent work (from git log)
-
-### SS-016: Admin Audit Log
-- [ ] Add `admin_audit_log` table
-- [ ] Auto-log all admin actions
-- [ ] Create `client/src/pages/admin/AdminAuditLog.tsx`
-
-### SS-017: Moderation Tools
-- [ ] Comment moderation queue
-- [ ] User reporting/flagging
-- [ ] Auto-hide system
+### Future (only after validation with real users)
+- [ ] SS-040: Waitlist page (email collection, position display)
+- [ ] SS-041: Push notification service worker (actual Web Push delivery)
+- [ ] SS-042: Admin multi-page layout with sidebar nav
+- [ ] SS-043: Email campaigns (Resend integration)
+- [ ] SS-044: Apple Health / Google Fit integration
+- [ ] SS-045: Built-in GPS (reduce Strava dependency)
 
 ---
 
-## Bugs & Improvements (auto-fix eligible by /sprint-engine)
+## Previously Completed
 
-- [ ] SS-020: ChallengeList null check on empty array first load
-- [ ] SS-021: PaceChart unused import when data empty
-- [ ] SS-022: Social feed pagination indicator missing
-- [ ] SS-023: Readiness doesn't account for cross-training activities
-- [ ] SS-024: Chat /message endpoint needs rate limiting
-- [ ] SS-025: Fix Railway deployment (nixpacks build conflict)
-
----
-
-## Completed
-
-- [x] SS-001: Adaptive training engine (ATL/CTL/TSB, plan adaptation)
+- [x] SS-001: Adaptive training engine (ATL/CTL/TSB)
 - [x] SS-002: Heart rate zone engine (Karvonen 5-zone)
 - [x] SS-003: Personal records (all distances + auto-detect)
 - [x] SS-004: Social layer (follows, kudos, comments, feed)
-- [x] SS-005: AI chat coaching (rule-based, context-aware)
-- [x] SS-006: Dashboard UI overhaul (spring physics, skeletons, celebrations)
-- [x] SS-007: /sprint-engine command + memory system foundation
+- [x] SS-005: AI chat coaching (rule-based + Sonnet)
+- [x] SS-006: Dashboard UI overhaul (spring physics, skeletons)
+- [x] SS-007: /sprint-engine + memory system foundation
+- [x] SS-008: Events + Communities (RSVP, check-in, WhatsApp-style)
+- [x] SS-009: V2 Classification Engine (5-factor weighted scoring)
 
 ---
 
 ## Conventions
 
 - Task IDs: `SS-###`
-- Priority: P1 = highest ROI, P2 = engagement, P3 = scale
-- `/sprint-engine` auto-fixes items in "Bugs & Improvements"
-- `/sprint-engine` proposes before building P1-P3 features
+- `/kendu-ishu` auto-fixes bugs, asks before new features
+- Tasks are updated BEFORE implementation begins (not after)
