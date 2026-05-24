@@ -280,8 +280,6 @@ export function HomePage() {
                   </h1>
                   <p className="text-white/60 text-[11px] mt-1 drop-shadow">World's 1st AI-powered running community</p>
                 </div>
-                {/* Skip */}
-                <button className="absolute top-4 right-4 z-20 text-[11px] text-zinc-400 hover:text-white transition-colors">Skip</button>
               </div>
 
               {/* Card section */}
@@ -345,10 +343,17 @@ export function HomePage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col justify-center px-6 pb-8">
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto space-y-4">
-                <div className="text-center mb-6">
-                  <img src="/icons/logo.png" alt="Sprint Society" className="w-12 h-12 rounded-lg object-cover mx-auto mb-3" />
+            <div className="flex-1 flex flex-col px-6 pb-8">
+              {/* Header for login */}
+              <div className="pt-5 pb-4 flex items-center gap-2.5">
+                <img src="/icons/logo.png" alt="Sprint Society" className="w-9 h-9 rounded-lg object-cover" />
+                <div>
+                  <h1 className="font-heading text-lg font-bold tracking-tight leading-none">Sprint <span className="text-accent">Society</span></h1>
+                  <p className="text-zinc-500 text-[10px] mt-0.5">World's 1st AI-powered running community</p>
+                </div>
+              </div>
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto space-y-4 flex-1 flex flex-col justify-center">
+                <div className="text-center mb-4">
                   <h2 className="font-heading text-xl font-bold text-white">Welcome back</h2>
                   <p className="text-zinc-500 text-sm mt-1">Log in to continue your journey</p>
                 </div>
