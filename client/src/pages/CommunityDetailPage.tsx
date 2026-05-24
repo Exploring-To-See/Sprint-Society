@@ -468,7 +468,7 @@ function CommunityChat({ communityId }: { communityId: string }) {
     if (!token) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '') || window.location.host;
+    const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws?token=${token}&community=${communityId}`;
 
     try {

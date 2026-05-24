@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface EventMapProps {
   events: any[];
@@ -7,24 +9,15 @@ interface EventMapProps {
 
 export function EventMapView({ events, onEventClick }: EventMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [mapInstance, setMapInstance] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || mapInstance) return;
 
-    let L: any;
-    try {
-      L = require('leaflet');
-    } catch {
-      setError('Map library not loaded. Install: npm install leaflet react-leaflet');
-      return;
-    }
-
     const map = L.map(mapRef.current, {
       zoomControl: false,
       attributionControl: false,
-    }).setView([19.076, 72.8777], 12); // Mumbai default
+    }).setView([19.076, 72.8777], 12);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
@@ -40,10 +33,7 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
   useEffect(() => {
     if (!mapInstance) return;
 
-    let L: any;
-    try { L = require('leaflet'); } catch { return; }
-
-    const bounds: [number, number][] = [];
+    const bounds: L.LatLngTuple[] = [];
 
     events.forEach(event => {
       if (!event.latitude || !event.longitude) return;
@@ -77,17 +67,6 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
       mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
   }, [mapInstance, events, onEventClick]);
-
-  if (error) {
-    return (
-      <div className="h-full flex items-center justify-center text-center p-6">
-        <div>
-          <span className="text-2xl">🗺️</span>
-          <p className="text-[12px] text-zinc-500 mt-2">{error}</p>
-        </div>
-      </div>
-    );
-  }
 
   const eventsWithLocation = events.filter(e => e.latitude && e.longitude);
 
