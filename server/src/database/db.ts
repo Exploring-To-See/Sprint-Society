@@ -23,6 +23,25 @@ export function initializeDatabase() {
   seedSprintSocialClub();
   seedAchievements();
   seedSubscriptionPlans();
+  seedInviteCodes();
+}
+
+function seedInviteCodes() {
+  const adminId = (db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as any)?.id;
+  if (!adminId) return;
+
+  const codes = [
+    { code: 'SPRINT50', name: 'Beta Launch — First 50', max_uses: 50 },
+    { code: 'KENDU', name: 'Kendu VIP — Unlimited', max_uses: 9999 },
+    { code: 'FOUNDERS', name: 'Founding Members', max_uses: 10 },
+  ];
+
+  for (const c of codes) {
+    const existing = db.prepare('SELECT id FROM invite_codes WHERE code = ?').get(c.code);
+    if (existing) continue;
+    db.prepare('INSERT INTO invite_codes (code, name, max_uses, created_by, active) VALUES (?, ?, ?, ?, 1)')
+      .run(c.code, c.name, c.max_uses, adminId);
+  }
 }
 
 function runMigrations() {

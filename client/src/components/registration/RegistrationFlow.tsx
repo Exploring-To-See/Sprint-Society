@@ -135,7 +135,15 @@ export function RegistrationFlow() {
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
-      <div className="px-5 pt-5 pb-3">
+      {/* Brand header */}
+      <div className="px-5 pt-5 pb-3 flex items-center gap-2.5">
+        <img src="/icons/logo.png" alt="Sprint Society" className="w-8 h-8 rounded-lg object-cover" />
+        <div>
+          <h1 className="font-heading text-base font-bold tracking-tight leading-none">Sprint <span className="text-accent">Society</span></h1>
+          <p className="text-zinc-600 text-[9px] mt-0.5">World's 1st AI-powered running community</p>
+        </div>
+      </div>
+      <div className="px-5 pb-3">
         <div className="flex items-center justify-between mb-3">
           {step > 0 ? (
             <button onClick={() => setStep(step - 1)} className="flex items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors active:scale-95">

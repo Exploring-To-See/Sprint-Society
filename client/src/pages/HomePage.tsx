@@ -107,7 +107,7 @@ function CardPreview({ index, isActive }: { index: number; isActive: boolean }) 
           {[
             { name: 'Sprint Social Club', members: 247, color: 'from-blue-500 to-purple-600', verified: true },
             { name: 'Kolkata Runners', members: 312, color: 'from-emerald-500 to-cyan-600' },
-            { name: 'Run Raw', members: 89, color: 'from-orange-500 to-red-600' },
+            { name: 'Sunrise Runners', members: 89, color: 'from-orange-500 to-red-600' },
           ].map((c, i) => (
             <motion.div key={c.name} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.15 }} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-tertiary/40">
               <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${c.color} flex items-center justify-center text-[8px] font-bold text-white`}>{c.name[0]}</div>
@@ -250,21 +250,21 @@ export function HomePage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Header */}
-          <header className="sticky top-0 z-50 px-5 py-3.5 flex items-center gap-3 bg-bg-primary/90 backdrop-blur-md">
-            <img src="/icons/logo.png" alt="Sprint Society" className="w-10 h-10 rounded-lg object-cover" />
+          {/* Brand — inside hero, overlaid top-left, no panel */}
+          <div className="absolute top-0 left-0 right-0 z-20 px-5 pt-4 flex items-center gap-2.5">
+            <img src="/icons/logo.png" alt="Sprint Society" className="w-9 h-9 rounded-lg object-cover" />
             <div>
-              <h1 className="font-heading text-xl font-bold tracking-tight leading-none">
+              <h1 className="font-heading text-xl font-bold tracking-tight leading-none text-white drop-shadow-lg">
                 Sprint <span className="text-accent">Society</span>
               </h1>
-              <p className="text-zinc-500 text-[10px] mt-1.5">World's 1st AI-powered running community</p>
+              <p className="text-white/60 text-[10px] mt-0.5 drop-shadow">World's 1st AI-powered running community</p>
             </div>
-          </header>
+          </div>
 
             {!showLogin ? (
               <div className="flex-1 flex flex-col">
-                {/* HERO — Photo, no text overlay */}
-                <div className="relative h-[32vh] min-h-[180px] overflow-hidden">
+                {/* HERO — Photo with brand overlaid */}
+                <div className="relative h-[28vh] min-h-[160px] overflow-hidden">
                   <img
                     src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80&auto=format&fit=crop"
                     alt="Runners"
@@ -274,7 +274,7 @@ export function HomePage() {
                 </div>
 
                 {/* Feature cards */}
-                <div className="flex-1 flex flex-col gap-5 pt-5">
+                <div className="flex-1 flex flex-col gap-4 pt-3">
                   <div
                     ref={scrollRef}
                     onScroll={handleScroll}
@@ -291,7 +291,7 @@ export function HomePage() {
                         className={`snap-start shrink-0 w-[80%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-4 flex flex-col min-h-[240px]`}
                       >
                         <div className="mb-2">
-                          <h3 className="font-heading text-base font-bold text-white">{card.title}</h3>
+                          <h3 className="font-heading text-lg font-bold text-white tracking-tight">{card.title}</h3>
                           <p className="text-zinc-400 text-[11px] mt-0.5">{card.description}</p>
                         </div>
                         <div className="flex-1 rounded-xl bg-bg-primary/80 backdrop-blur border border-white/10 p-3 overflow-hidden">
@@ -326,8 +326,9 @@ export function HomePage() {
             ) : (
               <div className="flex-1 flex flex-col justify-center px-6 pb-8">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto space-y-4">
-                  <div className="text-center mb-4">
-                    <h2 className="font-heading text-xl font-semibold text-white">Welcome back</h2>
+                  <div className="flex flex-col items-center mb-6">
+                    <img src="/icons/logo.png" alt="Sprint Society" className="w-12 h-12 rounded-lg object-cover mb-3" />
+                    <h2 className="font-heading text-xl font-bold text-white">Welcome back</h2>
                     <p className="text-zinc-500 text-sm mt-1">Log in to continue your journey</p>
                   </div>
                   <input type="text" placeholder="Email or phone number" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors" autoFocus />
