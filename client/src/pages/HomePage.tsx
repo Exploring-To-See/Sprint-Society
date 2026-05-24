@@ -35,6 +35,91 @@ const cards = [
   },
 ];
 
+function CardPreview({ index }: { index: number }) {
+  if (index === 0) {
+    // AI Coach — mini chat preview
+    return (
+      <div className="space-y-2 text-[10px]">
+        <div className="bg-bg-secondary/80 rounded-lg px-2.5 py-1.5 max-w-[85%]">
+          <p className="text-zinc-300">Your tempo improved <span className="text-accent font-semibold">12%</span> this month</p>
+        </div>
+        <div className="bg-accent/10 rounded-lg px-2.5 py-1.5 max-w-[70%] ml-auto">
+          <p className="text-zinc-300">Should I run easy today?</p>
+        </div>
+        <div className="bg-bg-secondary/80 rounded-lg px-2.5 py-1.5 max-w-[85%]">
+          <p className="text-zinc-300">Yes — recovery day. Keep it under 6:00/km.</p>
+        </div>
+      </div>
+    );
+  }
+  if (index === 1) {
+    // Training — pace zones mini
+    const zones = [
+      { label: 'Easy', pace: '6:15', w: '100%', color: 'bg-emerald-500' },
+      { label: 'Tempo', pace: '5:02', w: '75%', color: 'bg-orange-500' },
+      { label: 'Interval', pace: '4:28', w: '55%', color: 'bg-red-500' },
+    ];
+    return (
+      <div className="space-y-2.5">
+        <div className="flex justify-between text-[9px] text-zinc-500">
+          <span>PACE ZONES</span>
+          <span className="text-emerald-400">VDOT 42</span>
+        </div>
+        {zones.map(z => (
+          <div key={z.label}>
+            <div className="flex justify-between text-[9px] mb-0.5">
+              <span className="text-zinc-500">{z.label}</span>
+              <span className="text-white font-mono">{z.pace}/km</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+              <div className={`h-full rounded-full ${z.color}`} style={{ width: z.w }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (index === 2) {
+    // Communities — mini member list
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-[10px]">
+          <div className="w-5 h-5 rounded-full bg-blue-500/30 flex items-center justify-center text-[8px] font-bold text-white">S</div>
+          <span className="text-white font-medium">Sprint Social Club</span>
+          <span className="ml-auto text-zinc-500">247</span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px]">
+          <div className="w-5 h-5 rounded-full bg-purple-500/30 flex items-center justify-center text-[8px] font-bold text-white">R</div>
+          <span className="text-zinc-300">Run Raw</span>
+          <span className="ml-auto text-zinc-500">89</span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px]">
+          <div className="w-5 h-5 rounded-full bg-emerald-500/30 flex items-center justify-center text-[8px] font-bold text-white">K</div>
+          <span className="text-zinc-300">Kolkata Runners</span>
+          <span className="ml-auto text-zinc-500">312</span>
+        </div>
+      </div>
+    );
+  }
+  // Events — mini event card
+  return (
+    <div className="space-y-2">
+      <div className="text-[9px] text-amber-400 font-mono">THIS SATURDAY</div>
+      <p className="text-[11px] text-white font-semibold">Morning Tempo Run</p>
+      <div className="flex items-center gap-2 text-[9px] text-zinc-500">
+        <span>📍 Kolkata</span>
+        <span>6:00 AM</span>
+      </div>
+      <div className="flex items-center gap-1 mt-1">
+        {['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500'].map((c, i) => (
+          <div key={i} className={`w-4 h-4 rounded-full ${c} border border-bg-primary`} />
+        ))}
+        <span className="text-[9px] text-emerald-400 ml-1">+23</span>
+      </div>
+    </div>
+  );
+}
+
 export function HomePage() {
   const { login } = useAuth();
   const [introDone, setIntroDone] = useState(false);
@@ -113,7 +198,7 @@ export function HomePage() {
                 layoutId="app-logo"
                 src="/icons/logo.png"
                 alt="Sprint Society"
-                className="w-16 h-16 rounded-2xl object-cover"
+                className="w-16 h-16 rounded-lg object-cover"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
@@ -133,7 +218,7 @@ export function HomePage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
-                AI-powered running community
+                World's 1st AI-powered running community
               </motion.p>
             </motion.div>
           )}
@@ -153,7 +238,7 @@ export function HomePage() {
                 layoutId="app-logo"
                 src="/icons/logo.png"
                 alt="Sprint Society"
-                className="w-9 h-9 rounded-xl object-cover"
+                className="w-9 h-9 rounded-lg object-cover"
               />
               <motion.h1
                 layoutId="app-title"
@@ -170,22 +255,14 @@ export function HomePage() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
-                  className="space-y-8"
+                  className="flex flex-col gap-6 flex-1"
                 >
-                  {/* Tagline */}
-                  <div className="px-6 text-center">
-                    <h2 className="font-heading text-2xl font-bold text-white leading-tight">
-                      Run smarter.<br />Together.
-                    </h2>
-                    <p className="text-zinc-400 text-sm mt-2">Kolkata's AI-powered running community</p>
-                  </div>
-
-                  {/* Horizontal scroll cards */}
+                  {/* Horizontal scroll cards — taller with app snippet previews */}
                   <div
                     ref={scrollRef}
                     onScroll={handleScroll}
                     onTouchStart={handleTouchStart}
-                    className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-6 pb-2"
+                    className="flex-1 flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 pb-2"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
                     {cards.map((card, i) => (
@@ -194,12 +271,16 @@ export function HomePage() {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
-                        className={`snap-start shrink-0 w-[78%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-6 flex flex-col justify-between min-h-[180px]`}
+                        className={`snap-start shrink-0 w-[80%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-5 flex flex-col min-h-[280px]`}
                       >
-                        <span className="text-3xl">{card.icon}</span>
-                        <div className="mt-4">
-                          <h3 className="font-heading text-lg font-bold text-white">{card.title}</h3>
-                          <p className="text-zinc-400 text-sm mt-1 leading-relaxed">{card.description}</p>
+                        <div className="mb-3">
+                          <span className="text-2xl">{card.icon}</span>
+                          <h3 className="font-heading text-lg font-bold text-white mt-2">{card.title}</h3>
+                          <p className="text-zinc-400 text-xs mt-1">{card.description}</p>
+                        </div>
+                        {/* Mini app preview snippet */}
+                        <div className="flex-1 rounded-xl bg-bg-primary/60 border border-white/5 p-3 overflow-hidden">
+                          <CardPreview index={i} />
                         </div>
                       </motion.div>
                     ))}
