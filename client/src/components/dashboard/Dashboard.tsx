@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useCountUp } from '../../hooks/useCountUp';
 import { playSound } from '../../lib/sounds';
 import { PaceChart } from './PaceChart';
 import { ChallengeList } from './ChallengeList';
@@ -38,13 +39,17 @@ function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-bg-tertiary/50 ${className}`} />;
 }
 
-function StatCard({ label, value, unit, accent }: { label: string; value: string | number; unit?: string; accent?: boolean }) {
+function StatCard({ label, value, unit, accent, animate }: { label: string; value: string | number; unit?: string; accent?: boolean; animate?: boolean }) {
+  const numericValue = typeof value === 'number' ? value : parseInt(value as string, 10);
+  const animatedValue = useCountUp(animate && !isNaN(numericValue) ? numericValue : 0, 900);
+  const displayValue = animate && !isNaN(numericValue) ? animatedValue : value;
+
   return (
     <div className="flex-1 p-4">
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mb-2">{label}</p>
       <div className="flex items-baseline gap-1">
         <span className={`font-mono font-bold text-[22px] tabular-nums tracking-tight ${accent ? 'text-accent' : 'text-white'}`}>
-          {value}
+          {displayValue}
         </span>
         {unit && <span className="text-[10px] text-zinc-600 font-medium">{unit}</span>}
       </div>
@@ -118,6 +123,11 @@ export function Dashboard() {
   const { data: subscription } = useQuery({
     queryKey: ['subscription-status'],
     queryFn: () => api.get('/subscription/status').then(r => r.data),
+  });
+
+  const { data: friendStreaks } = useQuery({
+    queryKey: ['friend-streaks'],
+    queryFn: () => api.get('/gamification/friend-streaks').then(r => r.data).catch(() => null),
   });
 
   const level = xp?.current_level || 1;
@@ -274,6 +284,58 @@ export function Dashboard() {
         </motion.div>
       )}
 
+      {/* TODAY'S ACTION — What should I do right now? */}
+      <ReadinessCard />
+      <TodaySession streak={streak} />
+
+      {/* Social Ticker — Who's running? */}
+      <motion.div variants={fadeUp}>
+        <div className="px-3 py-2.5 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
+          <p className="text-[11px] text-zinc-500 text-center">
+            <span className="text-zinc-400">👟</span> 3 runners in your community ran today
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Streak Visual */}
+      {streak > 0 && (
+        <motion.div variants={fadeUp}>
+          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading font-semibold text-[14px]">Streak</h3>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[14px]">{streak >= 30 ? '🌟' : streak >= 14 ? '⚡' : '🔥'}</span>
+                <span className="font-mono font-bold text-[18px] text-accent tabular-nums">{streak}</span>
+                <span className="text-[10px] text-zinc-600">days</span>
+              </div>
+            </div>
+            <div className="flex gap-[3px]">
+              {Array.from({ length: 7 }).map((_, i) => {
+                const isActive = i < Math.min(streak, 7);
+                const dayLabel = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className={`w-full h-8 rounded-md transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-t from-accent/60 to-accent/20 border border-accent/30'
+                        : 'bg-bg-tertiary/30 border border-bg-tertiary/50'
+                    }`} />
+                    <span className={`text-[8px] font-semibold ${isActive ? 'text-accent' : 'text-zinc-700'}`}>
+                      {dayLabel[i]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {streak >= 7 && (
+              <p className="text-[10px] text-accent-gold mt-2 text-center font-medium">
+                {streak >= 30 ? '🌟 Legendary streak!' : streak >= 14 ? '⚡ On fire!' : '✓ Week complete!'}
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {/* V2 Classification Level Card */}
       <motion.div variants={fadeUp}>
         <LevelCard />
@@ -332,12 +394,6 @@ export function Dashboard() {
         </motion.div>
       )}
 
-      {/* Readiness */}
-      <ReadinessCard />
-
-      {/* Today's Session */}
-      <TodaySession />
-
       {/* Training Load */}
       {adaptive?.status === 'active' && (
         <motion.div variants={fadeUp}>
@@ -362,8 +418,8 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="flex rounded-xl bg-bg-secondary border border-bg-tertiary divide-x divide-bg-tertiary overflow-hidden">
-            <StatCard label="Runs" value={stats?.total_runs || 0} />
-            <StatCard label="Distance" value={stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0} unit="km" />
+            <StatCard label="Runs" value={stats?.total_runs || 0} animate />
+            <StatCard label="Distance" value={stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0} unit="km" animate />
             <StatCard label="Best pace" value={stats?.best_pace ? formatPace(stats.best_pace) : '--'} unit="/km" accent />
           </div>
         )}
@@ -435,54 +491,6 @@ export function Dashboard() {
           {trendTab === 'pace' && <PaceChart />}
           {trendTab === 'km' && <WeeklyKmChart />}
           {trendTab === 'consistency' && <ConsistencyChart />}
-        </div>
-      </motion.div>
-
-      {/* Streak Visual */}
-      {streak > 0 && (
-        <motion.div variants={fadeUp}>
-          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-heading font-semibold text-[14px]">Streak</h3>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[14px]">🔥</span>
-                <span className="font-mono font-bold text-[18px] text-accent tabular-nums">{streak}</span>
-                <span className="text-[10px] text-zinc-600">days</span>
-              </div>
-            </div>
-            <div className="flex gap-[3px]">
-              {Array.from({ length: 7 }).map((_, i) => {
-                const isActive = i < Math.min(streak, 7);
-                const dayLabel = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className={`w-full h-8 rounded-md transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-t from-accent/60 to-accent/20 border border-accent/30'
-                        : 'bg-bg-tertiary/30 border border-bg-tertiary/50'
-                    }`} />
-                    <span className={`text-[8px] font-semibold ${isActive ? 'text-accent' : 'text-zinc-700'}`}>
-                      {dayLabel[i]}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            {streak >= 7 && (
-              <p className="text-[10px] text-accent-gold mt-2 text-center font-medium">
-                {streak >= 30 ? '🌟 Legendary streak!' : streak >= 14 ? '⚡ On fire!' : '✓ Week complete!'}
-              </p>
-            )}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Subtle Social Ticker */}
-      <motion.div variants={fadeUp}>
-        <div className="px-3 py-2 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
-          <p className="text-[11px] text-zinc-600 text-center">
-            <span className="text-zinc-500">👟</span> 3 runners in your community ran today
-          </p>
         </div>
       </motion.div>
 
