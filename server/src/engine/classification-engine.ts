@@ -25,10 +25,18 @@ export interface FactorScores {
   paceCompliance: number; // 1-40
 }
 
+export type ClassificationStatus = 'calibrating' | 'provisional' | 'validated';
+
 export interface LevelResult {
   tier: ClassificationTier;
   subLevel: number;
   rawScore: number;
+  status: ClassificationStatus;
+}
+
+export interface CalibrationInput {
+  weeksOnPlatform: number;
+  hasRaceResult: boolean;
 }
 
 export interface BestTimes {
@@ -248,9 +256,14 @@ function timeToLevel(timeSeconds: number, distance: DistanceKey, age: number, ge
 // ============================================================================
 
 /**
- * 1. calculateRunnerLevel — composite weighted score → tier + sub-level
+ * 1. calculateRunnerLevel — composite weighted score → tier + sub-level + status
+ *
+ * Status logic:
+ * - "calibrating": user has < 3 weeks on platform (cold start period)
+ * - "validated": user has a verified race result backing their performance score
+ * - "provisional": training data only, no race verification
  */
-export function calculateRunnerLevel(factors: FactorScores): LevelResult {
+export function calculateRunnerLevel(factors: FactorScores, calibration?: CalibrationInput): LevelResult {
   const rawScore =
     factors.performance * 0.40 +
     factors.volume * 0.15 +
@@ -269,7 +282,24 @@ export function calculateRunnerLevel(factors: FactorScores): LevelResult {
   else if (level <= 30) { tier = 'A'; subLevel = level - 20; }
   else { tier = 'P'; subLevel = level - 30; }
 
-  return { tier, subLevel, rawScore };
+  // Determine classification status
+  let status: ClassificationStatus;
+  if (calibration && calibration.weeksOnPlatform < 3) {
+    status = 'calibrating';
+  } else if (calibration && calibration.hasRaceResult) {
+    status = 'validated';
+  } else {
+    status = 'provisional';
+  }
+
+  // During calibration, cap advancement at I5 (level 15) to prevent over-classification
+  if (status === 'calibrating' && level > 15) {
+    tier = 'I';
+    subLevel = 5;
+    return { tier, subLevel, rawScore, status };
+  }
+
+  return { tier, subLevel, rawScore, status };
 }
 
 /**
@@ -634,6 +664,7 @@ export function classifyRunner(params: {
   vo2maxMeasuredDate?: Date;
   runs: RunForCompliance[];
   prescribedZones: PaceZones;
+  hasRaceResult?: boolean;
 }): LevelResult & { factors: FactorScores } {
   const performance = normalizePerformance(params.bestTimes, params.age, params.gender);
   const volume = normalizeVolume(params.avgWeeklyKm, params.gender);
@@ -643,7 +674,13 @@ export function classifyRunner(params: {
   const paceCompliance = normalizePaceCompliance(params.runs, params.prescribedZones);
 
   const factors: FactorScores = { performance, volume, consistency, recovery, vo2max, paceCompliance };
-  const result = calculateRunnerLevel(factors);
+
+  const calibration: CalibrationInput = {
+    weeksOnPlatform: Math.round(params.totalWeeksOnPlatform),
+    hasRaceResult: params.hasRaceResult ?? false,
+  };
+
+  const result = calculateRunnerLevel(factors, calibration);
 
   return { ...result, factors };
 }

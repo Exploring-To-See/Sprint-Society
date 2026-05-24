@@ -44,11 +44,23 @@ export function LevelCard() {
           </span>
           <span className="text-[10px] text-zinc-500">Level {data.subLevel}</span>
         </div>
-        {data.safetyRails && !data.safetyRails.canAdvance && (
-          <span className="text-[9px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-            On Hold
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {data.status && (
+            <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+              data.status === 'calibrating' ? 'text-cyan-400 bg-cyan-500/10' :
+              data.status === 'validated' ? 'text-emerald-400 bg-emerald-500/10' :
+              'text-zinc-400 bg-zinc-500/10'
+            }`}>
+              {data.status === 'calibrating' ? 'Calibrating' :
+               data.status === 'validated' ? 'Verified' : 'Provisional'}
+            </span>
+          )}
+          {data.safetyRails && !data.safetyRails.canAdvance && (
+            <span className="text-[9px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+              On Hold
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Progress Bar */}
