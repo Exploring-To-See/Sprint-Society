@@ -274,8 +274,8 @@ export function HomePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/60 to-bg-primary/20" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                  <img src="/icons/logo.png" alt="Sprint Society" className="w-14 h-14 rounded-lg object-cover mb-2" />
-                  <h1 className="font-heading text-2xl font-bold tracking-tight text-white drop-shadow-lg">
+                  <img src="/icons/logo.png" alt="Sprint Society" className="w-18 h-18 rounded-xl object-cover mb-2" style={{ width: '72px', height: '72px' }} />
+                  <h1 className="font-heading text-3xl font-bold tracking-tight text-white drop-shadow-lg">
                     Sprint <span className="text-accent">Society</span>
                   </h1>
                   <p className="text-white/60 text-[11px] mt-1 drop-shadow">World's 1st AI-powered running community</p>
