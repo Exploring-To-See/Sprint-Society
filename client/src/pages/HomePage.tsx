@@ -33,83 +33,136 @@ const cards = [
 
 function CardPreview({ index }: { index: number }) {
   if (index === 0) {
+    // AI Coach — matches real ChatPage: coach header + quick prompts + conversation
     return (
-      <div className="space-y-2 text-[10px]">
-        <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="bg-bg-secondary/80 rounded-lg px-2.5 py-2 max-w-[90%]">
-          <p className="text-zinc-300">Your tempo improved <span className="text-accent font-semibold">12%</span> this month</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.9 }} className="bg-accent/10 rounded-lg px-2.5 py-2 max-w-[75%] ml-auto">
-          <p className="text-zinc-300">Should I run easy today?</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.3 }} className="bg-bg-secondary/80 rounded-lg px-2.5 py-2 max-w-[90%]">
-          <p className="text-zinc-300">Yes — recovery day. Keep it under <span className="text-emerald-400 font-semibold">6:00/km</span>.</p>
+      <div className="flex flex-col h-full text-[10px]">
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-500 to-accent flex items-center justify-center text-[8px]">⚡</div>
+          <span className="text-zinc-400 text-[9px] font-medium">Kai — The Motivator</span>
+          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        </div>
+        <div className="flex-1 space-y-1.5 overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-bg-tertiary/60 rounded-lg px-2 py-1.5 max-w-[92%]">
+            <p className="text-zinc-300 leading-relaxed">Your tempo pace improved <span className="text-accent font-bold">12%</span> this month. I'm adjusting tomorrow's intervals.</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }} className="bg-accent/10 border border-accent/20 rounded-lg px-2 py-1.5 max-w-[70%] ml-auto">
+            <p className="text-zinc-200">Should I run easy today?</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }} className="bg-bg-tertiary/60 rounded-lg px-2 py-1.5 max-w-[92%]">
+            <p className="text-zinc-300 leading-relaxed">Yes — load is <span className="text-amber-400 font-semibold">elevated</span>. Stay under 6:00/km.</p>
+          </motion.div>
+        </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }} className="flex gap-1 mt-2 pt-2 border-t border-white/5">
+          {['🏃 Train today?', '⚠️ Overtraining?'].map(p => (
+            <span key={p} className="px-1.5 py-0.5 rounded-md bg-bg-tertiary/80 text-[8px] text-zinc-400">{p}</span>
+          ))}
         </motion.div>
       </div>
     );
   }
   if (index === 1) {
-    const zones = [
-      { label: 'Easy', pace: '6:15', w: '100%', color: 'bg-emerald-500', delay: 0.5 },
-      { label: 'Tempo', pace: '5:02', w: '75%', color: 'bg-orange-500', delay: 0.7 },
-      { label: 'Interval', pace: '4:28', w: '55%', color: 'bg-red-500', delay: 0.9 },
-      { label: 'Race', pace: '4:45', w: '65%', color: 'bg-amber-500', delay: 1.1 },
+    // Training — matches real TrainPage: winding path with workout nodes
+    const nodes = [
+      { type: 'easy', label: 'Easy 5K', done: true, color: 'bg-emerald-500', biome: '🌿' },
+      { type: 'tempo', label: 'Tempo 4K', done: true, color: 'bg-violet-500', biome: '⚡' },
+      { type: 'interval', label: '800m x5', done: false, color: 'bg-amber-500', biome: '🏔️', current: true },
+      { type: 'long', label: 'Long 12K', done: false, color: 'bg-cyan-500', biome: '💧' },
     ];
     return (
-      <div className="space-y-2">
-        <div className="flex justify-between text-[9px] text-zinc-500">
-          <span className="uppercase tracking-wider">Pace Zones</span>
-          <span className="text-emerald-400 font-mono">VDOT 42</span>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[9px] text-zinc-500 uppercase tracking-wider">Week 3 — Speed Work</span>
+          <span className="text-[9px] text-violet-400 font-mono">⚡</span>
         </div>
-        {zones.map(z => (
-          <div key={z.label}>
-            <div className="flex justify-between text-[9px] mb-0.5">
-              <span className="text-zinc-500">{z.label}</span>
-              <span className="text-white font-mono">{z.pace}/km</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${z.color}`}
-                initial={{ width: '0%' }}
-                animate={{ width: z.w }}
-                transition={{ delay: z.delay, duration: 0.6, ease: 'easeOut' }}
-              />
-            </div>
-          </div>
-        ))}
+        <div className="flex-1 space-y-1.5">
+          {nodes.map((n, i) => (
+            <motion.div
+              key={n.label}
+              initial={{ opacity: 0, x: i % 2 === 0 ? -8 : 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 + i * 0.2 }}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg ${n.current ? 'bg-accent/10 border border-accent/20' : 'bg-bg-tertiary/40'}`}
+            >
+              <div className={`w-4 h-4 rounded-full ${n.done ? n.color : 'bg-bg-tertiary'} ${n.current ? 'ring-2 ring-accent/40' : ''} flex items-center justify-center`}>
+                {n.done && <span className="text-[7px] text-white">✓</span>}
+              </div>
+              <span className={`text-[9px] flex-1 ${n.current ? 'text-white font-semibold' : n.done ? 'text-zinc-400' : 'text-zinc-600'}`}>{n.label}</span>
+              <span className="text-[8px]">{n.biome}</span>
+            </motion.div>
+          ))}
+        </div>
       </div>
     );
   }
   if (index === 2) {
-    const clubs = [
-      { name: 'Sprint Social Club', letter: 'S', color: 'bg-blue-500/30', members: 247, delay: 0.5 },
-      { name: 'Run Raw', letter: 'R', color: 'bg-purple-500/30', members: 89, delay: 0.7 },
-      { name: 'Kolkata Runners', letter: 'K', color: 'bg-emerald-500/30', members: 312, delay: 0.9 },
-    ];
+    // Communities — matches real CommunitiesPage: category pills + community cards
     return (
-      <div className="space-y-2.5">
-        {clubs.map(c => (
-          <motion.div key={c.name} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: c.delay }} className="flex items-center gap-2 text-[10px]">
-            <div className={`w-6 h-6 rounded-full ${c.color} flex items-center justify-center text-[9px] font-bold text-white`}>{c.letter}</div>
-            <span className="text-zinc-200 flex-1">{c.name}</span>
-            <span className="text-zinc-500 text-[9px]">{c.members}</span>
-          </motion.div>
-        ))}
+      <div className="flex flex-col h-full">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex gap-1 mb-2">
+          {['All', 'Run Clubs', 'Social'].map((cat, i) => (
+            <span key={cat} className={`px-2 py-0.5 rounded-full text-[8px] font-semibold ${i === 0 ? 'bg-accent text-black' : 'bg-bg-tertiary text-zinc-500'}`}>{cat}</span>
+          ))}
+        </motion.div>
+        <div className="flex-1 space-y-2">
+          {[
+            { name: 'Sprint Social Club', members: 247, color: 'from-blue-500 to-purple-600', verified: true },
+            { name: 'Kolkata Runners', members: 312, color: 'from-emerald-500 to-cyan-600', verified: false },
+            { name: 'Run Raw', members: 89, color: 'from-orange-500 to-red-600', verified: false },
+          ].map((c, i) => (
+            <motion.div
+              key={c.name}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + i * 0.15 }}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-tertiary/40"
+            >
+              <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${c.color} flex items-center justify-center text-[8px] font-bold text-white`}>
+                {c.name[0]}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] text-white font-medium truncate">{c.name}</p>
+                <p className="text-[8px] text-zinc-500">{c.members} members</p>
+              </div>
+              {c.verified && <span className="text-[8px] text-accent">✓</span>}
+            </motion.div>
+          ))}
+        </div>
       </div>
     );
   }
+  // Events — matches real EventsPage: filter tabs + event card with RSVP
   return (
-    <div className="space-y-2">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-[9px] text-amber-400 font-mono">THIS SATURDAY</motion.div>
-      <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="text-[11px] text-white font-semibold">Morning Tempo Run</motion.p>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="flex items-center gap-2 text-[9px] text-zinc-500">
-        <span>📍 Kolkata</span>
-        <span>6:00 AM</span>
-      </motion.div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }} className="flex items-center gap-1 mt-1">
-        {['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500'].map((c, i) => (
-          <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.1 + i * 0.08 }} className={`w-4 h-4 rounded-full ${c} border border-bg-primary`} />
+    <div className="flex flex-col h-full">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex gap-1 mb-2">
+        {['All', 'Runs', 'Social'].map((f, i) => (
+          <span key={f} className={`px-2 py-0.5 rounded-full text-[8px] font-semibold ${i === 0 ? 'bg-accent text-black' : 'bg-bg-tertiary text-zinc-500'}`}>{f}</span>
         ))}
-        <span className="text-[9px] text-emerald-400 ml-1">+23</span>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="flex-1 rounded-lg bg-bg-tertiary/40 p-2.5"
+      >
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[8px] text-amber-400 font-mono font-semibold">UPCOMING</span>
+          <span className="text-[8px] text-emerald-400">Going ✓</span>
+        </div>
+        <p className="text-[10px] text-white font-semibold">Morning Tempo Run</p>
+        <div className="flex items-center gap-2 text-[8px] text-zinc-500 mt-1">
+          <span>📍 Kolkata</span>
+          <span>Sat 6:00 AM</span>
+        </div>
+        <div className="flex items-center gap-1 mt-2">
+          {['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-pink-500'].map((c, i) => (
+            <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.8 + i * 0.06 }} className={`w-4 h-4 rounded-full ${c} border border-bg-primary`} />
+          ))}
+          <span className="text-[8px] text-zinc-400 ml-1">+23</span>
+        </div>
+      </motion.div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="mt-2 rounded-lg bg-bg-tertiary/40 px-2.5 py-1.5 flex items-center gap-2">
+        <span className="text-[8px] text-emerald-400">✓</span>
+        <span className="text-[9px] text-zinc-400">Coffee Run — 18 showed up</span>
       </motion.div>
     </div>
   );
