@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
@@ -104,7 +105,17 @@ app.use(errorHandler);
 
 initializeDatabase();
 
-app.listen(config.port, '0.0.0.0', () => {
+const server = createServer(app);
+
+try {
+  const { initWebSocket } = require('./websocket');
+  initWebSocket(server);
+  console.log('  WebSocket server attached at /ws');
+} catch (e) {
+  console.log('  WebSocket skipped (ws package not installed)');
+}
+
+server.listen(config.port, '0.0.0.0', () => {
   console.log(`\n  Sprint Society API running on http://localhost:${config.port}`);
   console.log(`  Environment: ${config.nodeEnv}\n`);
 });

@@ -25,7 +25,7 @@ function formatPace(seconds: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-export function TodaySession() {
+export function TodaySession({ streak = 0 }: { streak?: number }) {
   const { data, isLoading } = useQuery({
     queryKey: ['training-week'],
     queryFn: () => api.get('/training/week').then(r => r.data),
@@ -44,10 +44,21 @@ export function TodaySession() {
   const config = SESSION_CONFIG[todaySession.type] || SESSION_CONFIG.easy;
   const isRest = todaySession.type === 'rest';
 
+  const urgencyText = streak >= 7
+    ? `Keep the ${streak}-day fire alive`
+    : streak >= 3
+    ? `Don't break your ${streak}-day streak`
+    : null;
+
   return (
     <motion.div variants={fadeUp} className="card p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Today</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Today</p>
+          {urgencyText && (
+            <span className="text-[9px] text-accent font-medium">{urgencyText}</span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] font-mono text-zinc-700">W{data.current_week}/{data.total_weeks}</span>
           <span className={`text-[9px] px-1.5 py-[1px] rounded font-medium capitalize ${config.bg} ${config.color}`}>

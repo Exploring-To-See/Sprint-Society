@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
-type View = 'feed' | 'members' | 'info';
+type View = 'feed' | 'chat' | 'leaderboard' | 'members' | 'info';
 
 export function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -120,7 +120,7 @@ export function CommunityDetailPage() {
 
         {/* Tab Navigation */}
         <div className="flex gap-1 mt-3">
-          {(['feed', 'members', 'info'] as View[]).map(tab => (
+          {(['feed', 'chat', 'leaderboard', 'members', 'info'] as View[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveView(tab)}
@@ -128,7 +128,7 @@ export function CommunityDetailPage() {
                 activeView === tab ? 'bg-accent/10 text-accent' : 'text-zinc-600'
               }`}
             >
-              {tab === 'feed' ? 'Feed' : tab === 'members' ? 'Members' : 'Info'}
+              {tab === 'feed' ? 'Feed' : tab === 'chat' ? 'Chat' : tab === 'leaderboard' ? 'Ranking' : tab === 'members' ? 'Members' : 'Info'}
             </button>
           ))}
         </div>
@@ -214,6 +214,21 @@ export function CommunityDetailPage() {
                 </motion.div>
               ))}
             </motion.div>
+          )}
+
+          {activeView === 'chat' && community.is_member && (
+            <CommunityChat communityId={id!} />
+          )}
+
+          {activeView === 'chat' && !community.is_member && (
+            <motion.div key="chat-locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-12 text-center">
+              <span className="text-2xl">🔒</span>
+              <p className="text-[12px] text-zinc-500 mt-2">Join to access chat</p>
+            </motion.div>
+          )}
+
+          {activeView === 'leaderboard' && (
+            <CommunityLeaderboard communityId={id!} />
           )}
 
           {activeView === 'members' && (
@@ -430,6 +445,202 @@ function PollsSection({ communityId, isMember, queryClient }: { communityId: num
 function getCategoryIcon(category: string): string {
   const icons: Record<string, string> = { run_club: '🏃', training: '🎯', nutrition: '🥗', wellness: '🧘', social: '🎉', brand: '✨', custom: '⭐' };
   return icons[category] || '⭐';
+}
+
+function CommunityChat({ communityId }: { communityId: string }) {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [input, setInput] = useState('');
+  const [connected, setConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { data: history } = useQuery({
+    queryKey: ['community-chat', communityId],
+    queryFn: () => api.get(`/communities/${communityId}/chat`).then(r => r.data),
+  });
+
+  useEffect(() => {
+    if (history?.messages) setMessages(history.messages);
+  }, [history]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '') || window.location.host;
+    const wsUrl = `${protocol}//${host}/ws?token=${token}&community=${communityId}`;
+
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => setConnected(true);
+      ws.onclose = () => setConnected(false);
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'chat') {
+          setMessages(prev => [...prev, msg]);
+        }
+      };
+
+      return () => { ws.close(); };
+    } catch {
+      setConnected(false);
+    }
+  }, [communityId]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = () => {
+    if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ type: 'chat', body: input.trim() }));
+    setInput('');
+  };
+
+  return (
+    <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-[400px]">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] text-zinc-600">
+          {connected ? <span className="text-accent-green">● Live</span> : <span className="text-zinc-600">○ Connecting...</span>}
+        </p>
+      </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 pb-2">
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <span className="text-xl">💬</span>
+            <p className="text-[11px] text-zinc-600 mt-2">Start the conversation</p>
+          </div>
+        )}
+        {messages.map((msg: any) => (
+          <div key={msg.id} className="flex gap-2">
+            <div className="w-6 h-6 rounded-full bg-bg-tertiary flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-[8px] font-bold text-zinc-500">{msg.user_name?.[0]?.toUpperCase()}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[10px] font-semibold text-zinc-300">{msg.user_name}</span>
+                <span className="text-[8px] text-zinc-700">
+                  {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
+              </div>
+              <p className="text-[12px] text-zinc-400 break-words">{msg.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2 pt-2 border-t border-bg-tertiary/50">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder={connected ? 'Type a message...' : 'Connecting...'}
+          disabled={!connected}
+          maxLength={1000}
+          className="flex-1 px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-zinc-600 focus:outline-none disabled:opacity-40"
+        />
+        <button
+          onClick={sendMessage}
+          disabled={!input.trim() || !connected}
+          className="px-3 py-2 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95 transition-all"
+        >
+          Send
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function CommunityLeaderboard({ communityId }: { communityId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['community-leaderboard', communityId],
+    queryFn: () => api.get(`/communities/${communityId}/leaderboard`).then(r => r.data),
+  });
+
+  const { data: digest } = useQuery({
+    queryKey: ['community-digest', communityId],
+    queryFn: () => api.get(`/communities/${communityId}/digest`).then(r => r.data),
+  });
+
+  if (isLoading) return <div className="py-10 text-center text-zinc-600 text-sm">Loading...</div>;
+
+  return (
+    <motion.div key="leaderboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+      {/* Weekly digest summary */}
+      {digest && (
+        <div className="rounded-xl bg-accent/5 border border-accent/10 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-2">This Week</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="font-mono text-lg font-bold text-white">{digest.active_members}</p>
+              <p className="text-[8px] text-zinc-500 uppercase">Active</p>
+            </div>
+            <div>
+              <p className="font-mono text-lg font-bold text-white">{digest.total_runs}</p>
+              <p className="text-[8px] text-zinc-500 uppercase">Runs</p>
+            </div>
+            <div>
+              <p className="font-mono text-lg font-bold text-white">{digest.total_distance_km}</p>
+              <p className="text-[8px] text-zinc-500 uppercase">km</p>
+            </div>
+          </div>
+          {digest.top_runner && (
+            <p className="text-[10px] text-zinc-500 mt-2 text-center">
+              Top runner: <span className="text-accent font-medium">{digest.top_runner.name}</span> ({digest.top_runner.distance_km} km)
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Leaderboard */}
+      {data?.my_rank && (
+        <p className="text-[11px] text-zinc-500">Your rank: <span className="text-accent font-semibold">#{data.my_rank}</span></p>
+      )}
+
+      {data?.leaderboard?.length > 0 ? (
+        <div className="space-y-1.5">
+          {data.leaderboard.map((entry: any) => (
+            <div key={entry.user_id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
+              entry.rank <= 3 ? 'bg-accent-gold/5 border border-accent-gold/10' : 'bg-bg-secondary border border-bg-tertiary'
+            }`}>
+              <span className={`w-6 text-center font-mono text-[12px] font-bold ${
+                entry.rank === 1 ? 'text-accent-gold' : entry.rank === 2 ? 'text-zinc-400' : entry.rank === 3 ? 'text-amber-600' : 'text-zinc-600'
+              }`}>
+                {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : `#${entry.rank}`}
+              </span>
+              <div className="w-7 h-7 rounded-full bg-bg-tertiary overflow-hidden flex-shrink-0">
+                {entry.profile_image_url ? (
+                  <img src={entry.profile_image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-500">
+                    {entry.name?.[0]?.toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-white truncate">{entry.name}</p>
+                <p className="text-[9px] text-zinc-600">{entry.total_runs} runs</p>
+              </div>
+              <div className="text-right">
+                <p className="font-mono text-[12px] font-bold text-accent">{entry.total_distance_km} km</p>
+                {entry.streak > 0 && <p className="text-[8px] text-zinc-600">🔥 {entry.streak}d</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-10 text-center">
+          <span className="text-2xl">🏆</span>
+          <p className="text-[12px] text-zinc-500 mt-2">No activity this week yet</p>
+        </div>
+      )}
+    </motion.div>
+  );
 }
 
 function formatTimeAgo(date: string): string {

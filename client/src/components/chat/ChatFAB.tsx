@@ -1,8 +1,18 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../lib/api';
 
 export function ChatFAB() {
   const navigate = useNavigate();
+
+  const { data: suggestions } = useQuery({
+    queryKey: ['chat-suggestions'],
+    queryFn: () => api.get('/chat/suggestions').then(r => r.data).catch(() => null),
+    refetchInterval: 60000,
+  });
+
+  const hasContextualSuggestion = suggestions?.suggestions?.some((s: any) => s.priority <= 2);
 
   return (
     <motion.button
@@ -19,6 +29,9 @@ export function ChatFAB() {
         <circle cx="9" cy="7" r="0.75" fill="#F97316"/>
         <circle cx="11" cy="7" r="0.75" fill="#F97316"/>
       </svg>
+      {hasContextualSuggestion && (
+        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-accent-green border-2 border-bg-primary" />
+      )}
     </motion.button>
   );
 }

@@ -105,6 +105,60 @@ router.get('/improvement', (req: AuthRequest, res: Response) => {
   });
 });
 
+// GET /progress/journey — milestone timeline
+router.get('/journey', (req: AuthRequest, res: Response) => {
+  const milestones: { date: string; type: string; title: string; detail: string; icon: string }[] = [];
+
+  // Tier changes
+  const tierChanges = db.prepare(
+    `SELECT tier, calculated_at FROM tier_history WHERE user_id = ? ORDER BY calculated_at ASC`
+  ).all(req.userId) as any[];
+
+  tierChanges.forEach((t, i) => {
+    if (i === 0) {
+      milestones.push({ date: t.calculated_at, type: 'tier', title: `Classified: ${t.tier}`, detail: 'First tier assessment', icon: t.tier === 'advanced' ? '👑' : t.tier === 'intermediate' ? '⚡' : '🌱' });
+    } else if (tierChanges[i - 1].tier !== t.tier) {
+      milestones.push({ date: t.calculated_at, type: 'tier', title: `Promoted to ${t.tier}`, detail: `Upgraded from ${tierChanges[i - 1].tier}`, icon: t.tier === 'advanced' ? '👑' : '⚡' });
+    }
+  });
+
+  // Distance milestones (50km, 100km, 250km, 500km)
+  const totalDist = (db.prepare('SELECT COALESCE(SUM(distance_meters), 0) as total FROM activities WHERE user_id = ?').get(req.userId) as any).total / 1000;
+  const distMilestones = [50, 100, 250, 500, 1000];
+  for (const km of distMilestones) {
+    if (totalDist >= km) {
+      const milestone = db.prepare(`
+        SELECT start_date FROM (
+          SELECT start_date, SUM(distance_meters / 1000.0) OVER (ORDER BY start_date) as running_total
+          FROM activities WHERE user_id = ?
+        ) WHERE running_total >= ? LIMIT 1
+      `).get(req.userId, km) as any;
+      if (milestone) {
+        milestones.push({ date: milestone.start_date, type: 'distance', title: `${km}km Total`, detail: 'Distance milestone reached', icon: '🗺️' });
+      }
+    }
+  }
+
+  // Achievements earned
+  const achievements = db.prepare(
+    `SELECT a.name, a.icon, ua.earned_at FROM user_achievements ua JOIN achievements a ON a.id = ua.achievement_id WHERE ua.user_id = ? ORDER BY ua.earned_at ASC`
+  ).all(req.userId) as any[];
+
+  achievements.forEach(a => {
+    milestones.push({ date: a.earned_at, type: 'achievement', title: a.name, detail: 'Achievement unlocked', icon: a.icon });
+  });
+
+  // First run
+  const firstRun = db.prepare('SELECT start_date, distance_meters FROM activities WHERE user_id = ? ORDER BY start_date ASC LIMIT 1').get(req.userId) as any;
+  if (firstRun) {
+    milestones.push({ date: firstRun.start_date, type: 'first', title: 'First Run', detail: `${(firstRun.distance_meters / 1000).toFixed(1)}km`, icon: '🎯' });
+  }
+
+  milestones.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  res.json({ milestones, total_distance_km: Math.round(totalDist) });
+});
+
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();

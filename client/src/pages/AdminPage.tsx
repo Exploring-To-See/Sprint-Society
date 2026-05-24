@@ -127,6 +127,11 @@ export function AdminPage() {
 }
 
 function OverviewTab({ stats, runners }: { stats: any; runners: any[] }) {
+  const { data: streakData } = useQuery({
+    queryKey: ['admin-streaks'],
+    queryFn: () => api.get('/admin/streak-health').then(r => r.data).catch(() => null),
+  });
+
   if (!stats) return <div className="text-zinc-600 text-sm py-10 text-center">Loading...</div>;
 
   return (
@@ -144,6 +149,40 @@ function OverviewTab({ stats, runners }: { stats: any; runners: any[] }) {
           </div>
         ))}
       </motion.div>
+
+      {/* Streak Health */}
+      {streakData && (
+        <motion.div variants={fadeUp} className="card p-5">
+          <p className="label mb-3">Streak Health</p>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="text-center p-2 rounded-lg bg-accent-green/5 border border-accent-green/10">
+              <p className="font-mono text-lg font-bold text-accent-green">{streakData.active_streaks}</p>
+              <p className="text-[9px] text-zinc-500 uppercase">Active</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-amber-400/5 border border-amber-400/10">
+              <p className="font-mono text-lg font-bold text-amber-400">{streakData.at_risk}</p>
+              <p className="text-[9px] text-zinc-500 uppercase">At Risk</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-red-400/5 border border-red-400/10">
+              <p className="font-mono text-lg font-bold text-red-400">{streakData.lost_today}</p>
+              <p className="text-[9px] text-zinc-500 uppercase">Lost Today</p>
+            </div>
+          </div>
+          {streakData.at_risk_runners?.length > 0 && (
+            <div>
+              <p className="text-[10px] text-zinc-600 font-semibold uppercase mb-2">At-risk runners (no run today)</p>
+              <div className="space-y-1">
+                {streakData.at_risk_runners.slice(0, 5).map((r: any) => (
+                  <div key={r.id} className="flex items-center justify-between px-2 py-1.5 rounded bg-bg-primary">
+                    <span className="text-[11px] text-zinc-400">{r.name}</span>
+                    <span className="text-[10px] font-mono text-amber-400">🔥 {r.streak}d streak</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {stats.tier_breakdown && stats.tier_breakdown.length > 0 && (
         <motion.div variants={fadeUp} className="card p-5">
@@ -614,6 +653,75 @@ function AnalyticsTab() {
             ))}
           </div>
         </motion.div>
+      )}
+
+      <EngagementMetrics />
+    </motion.div>
+  );
+}
+
+function EngagementMetrics() {
+  const { data } = useQuery({
+    queryKey: ['admin-engagement'],
+    queryFn: () => api.get('/admin/analytics/engagement').then(r => r.data).catch(() => null),
+  });
+
+  if (!data) return null;
+
+  return (
+    <motion.div variants={fadeUp} className="space-y-4">
+      <p className="label">Engagement (P2 Features)</p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="card p-3 text-center">
+          <p className="font-mono text-lg font-bold text-accent-gold">{data.badges.total_earned}</p>
+          <p className="text-[9px] text-zinc-500 uppercase">Badges Earned</p>
+        </div>
+        <div className="card p-3 text-center">
+          <p className="font-mono text-lg font-bold text-accent">{data.reactions.total}</p>
+          <p className="text-[9px] text-zinc-500 uppercase">Reactions</p>
+        </div>
+        <div className="card p-3 text-center">
+          <p className="font-mono text-lg font-bold text-accent-green">{data.streaks.top?.[0]?.streak || 0}d</p>
+          <p className="text-[9px] text-zinc-500 uppercase">Top Streak</p>
+        </div>
+        <div className="card p-3 text-center">
+          <p className="font-mono text-lg font-bold text-white">{data.communities.active_this_week}</p>
+          <p className="text-[9px] text-zinc-500 uppercase">Active Clubs</p>
+        </div>
+      </div>
+
+      {/* Reaction breakdown */}
+      {data.reactions.breakdown?.length > 0 && (
+        <div className="card p-4">
+          <p className="text-[10px] font-semibold text-zinc-600 uppercase mb-2">Reaction Types</p>
+          <div className="flex gap-3">
+            {data.reactions.breakdown.map((r: any) => {
+              const emojis: Record<string, string> = { high_five: '🙌', fire: '🔥', impressive: '💪', respect: '🫡', lets_go: '⚡' };
+              return (
+                <div key={r.type} className="flex items-center gap-1.5">
+                  <span className="text-[14px]">{emojis[r.type] || '🙌'}</span>
+                  <span className="font-mono text-[11px] text-zinc-400">{r.count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Top streaks */}
+      {data.streaks.top?.length > 0 && (
+        <div className="card p-4">
+          <p className="text-[10px] font-semibold text-zinc-600 uppercase mb-2">Top Streaks</p>
+          <div className="space-y-1">
+            {data.streaks.top.map((s: any, i: number) => (
+              <div key={i} className="flex items-center justify-between px-2 py-1 rounded bg-bg-primary">
+                <span className="text-[11px] text-zinc-400">{s.name}</span>
+                <span className="font-mono text-[10px] text-accent">🔥 {s.streak}d</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </motion.div>
   );

@@ -412,6 +412,9 @@ export function EventDetailPage() {
           </motion.div>
         )}
 
+        {/* Event Recap Leaderboard (completed events) */}
+        {event.status === 'completed' && <EventRecap eventId={id!} />}
+
         {/* Comments */}
         <div className="space-y-3 pt-2 border-t border-bg-tertiary/50">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Discussion</h3>
@@ -464,5 +467,60 @@ export function EventDetailPage() {
         </div>
       </motion.div>
     </AppShell>
+  );
+}
+
+function EventRecap({ eventId }: { eventId: string }) {
+  const { data: recap } = useQuery({
+    queryKey: ['event-recap', eventId],
+    queryFn: () => api.get(`/events/${eventId}/recap`).then(r => r.data).catch(() => null),
+  });
+
+  if (!recap?.stats || recap.leaderboard.length === 0) return null;
+
+  return (
+    <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Event Recap</p>
+        <span className="text-[10px] text-zinc-600">{recap.attendee_count} attended</span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div>
+          <p className="font-mono text-lg font-bold text-white">{recap.stats.total_distance_km}</p>
+          <p className="text-[8px] text-zinc-600 uppercase">km total</p>
+        </div>
+        <div>
+          <p className="font-mono text-lg font-bold text-white">{recap.stats.total_runs}</p>
+          <p className="text-[8px] text-zinc-600 uppercase">runs</p>
+        </div>
+        <div>
+          <p className="font-mono text-lg font-bold text-accent">
+            {recap.stats.avg_pace ? `${Math.floor(recap.stats.avg_pace / 60)}:${String(Math.round(recap.stats.avg_pace % 60)).padStart(2, '0')}` : '--'}
+          </p>
+          <p className="text-[8px] text-zinc-600 uppercase">avg pace</p>
+        </div>
+      </div>
+
+      {/* Leaderboard */}
+      <div className="space-y-1.5">
+        {recap.leaderboard.slice(0, 5).map((entry: any) => (
+          <div key={entry.rank} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-primary">
+            <span className="text-[10px] font-mono text-zinc-600 w-5">
+              {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : `#${entry.rank}`}
+            </span>
+            <div className="w-5 h-5 rounded-full bg-bg-tertiary overflow-hidden flex-shrink-0">
+              {entry.profile_image_url ? (
+                <img src={entry.profile_image_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[7px] font-bold text-zinc-500 flex items-center justify-center w-full h-full">{entry.name?.[0]}</span>
+              )}
+            </div>
+            <span className="text-[11px] text-zinc-300 flex-1 truncate">{entry.name}</span>
+            <span className="font-mono text-[10px] text-accent font-semibold">{entry.distance_km}km</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

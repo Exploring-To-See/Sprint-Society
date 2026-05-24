@@ -69,6 +69,9 @@ export function ReadinessCard() {
             <span className="text-[10px] font-mono text-zinc-600 tabular-nums">{data.score}%</span>
           </div>
           <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{data.recommendation}</p>
+          {data.coach_tip && (
+            <p className="text-[10px] text-accent mt-1 font-medium">Coach: {data.coach_tip}</p>
+          )}
         </div>
       </div>
     </motion.div>

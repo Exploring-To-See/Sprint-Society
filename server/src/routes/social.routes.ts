@@ -24,18 +24,22 @@ router.get('/feed', (req: AuthRequest, res: Response) => {
     SELECT a.*, u.name as user_name, u.profile_image_url,
       (SELECT COUNT(*) FROM kudos WHERE activity_id = a.id) as kudos_count,
       (SELECT COUNT(*) FROM comments WHERE activity_id = a.id) as comments_count,
-      (SELECT COUNT(*) FROM kudos WHERE activity_id = a.id AND user_id = ?) as user_gave_kudos
+      (SELECT COUNT(*) FROM kudos WHERE activity_id = a.id AND user_id = ?) as user_gave_kudos,
+      (SELECT reaction_type FROM kudos WHERE activity_id = a.id AND user_id = ? LIMIT 1) as user_reaction_type
     FROM activities a
     JOIN users u ON a.user_id = u.id
     WHERE a.user_id IN (${placeholders})
     ORDER BY a.start_date DESC
     LIMIT ? OFFSET ?
-  `).all(req.userId, ...followingIds, limit, offset) as any[];
+  `).all(req.userId, req.userId, ...followingIds, limit, offset) as any[];
+
+  const EMOJIS: Record<string, string> = { high_five: '🙌', fire: '🔥', impressive: '💪', respect: '🫡', lets_go: '⚡' };
 
   res.json({
     feed: activities.map(a => ({
       ...a,
       user_gave_kudos: a.user_gave_kudos > 0,
+      user_reaction_emoji: a.user_reaction_type ? (EMOJIS[a.user_reaction_type] || '🙌') : null,
       distance_km: Math.round(a.distance_meters / 100) / 10,
       duration_minutes: Math.round(a.moving_time_seconds / 60),
       pace_formatted: formatPace(a.average_pace_per_km),
@@ -45,31 +49,34 @@ router.get('/feed', (req: AuthRequest, res: Response) => {
   });
 });
 
-// POST /social/kudos/:activityId — Give kudos
+const REACTION_EMOJIS: Record<string, string> = { high_five: '🙌', fire: '🔥', impressive: '💪', respect: '🫡', lets_go: '⚡' };
+
+// POST /social/kudos/:activityId — Give reaction
 router.post('/kudos/:activityId', (req: AuthRequest, res: Response) => {
   const activityId = parseInt(req.params.activityId);
+  const reactionType = req.body?.reaction_type || 'high_five';
 
   const activity = db.prepare('SELECT * FROM activities WHERE id = ?').get(activityId) as any;
   if (!activity) return res.status(404).json({ error: 'Activity not found' });
 
   try {
-    db.prepare('INSERT INTO kudos (user_id, activity_id) VALUES (?, ?)').run(req.userId, activityId);
+    db.prepare('INSERT INTO kudos (user_id, activity_id, reaction_type) VALUES (?, ?, ?)').run(req.userId, activityId, reactionType);
 
-    // Award XP to the runner who received kudos
     if (activity.user_id !== req.userId) {
       db.prepare('UPDATE user_xp SET total_xp = total_xp + 5 WHERE user_id = ?').run(activity.user_id);
       db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)').run(
         activity.user_id, 5, 'kudos_received', 'Received kudos from a club member'
       );
+      const emoji = REACTION_EMOJIS[reactionType] || '🙌';
       const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
-      createNotification(activity.user_id, 'kudos', `${actorName} gave you kudos`, 'On your recent run', req.userId, 'activity', activityId);
+      createNotification(activity.user_id, 'kudos', `${actorName} reacted ${emoji}`, 'On your recent run', req.userId, 'activity', activityId);
     }
 
     const count = db.prepare('SELECT COUNT(*) as count FROM kudos WHERE activity_id = ?').get(activityId) as any;
     res.json({ success: true, kudos_count: count.count });
   } catch (e: any) {
     if (e.message?.includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Already gave kudos' });
+      return res.status(409).json({ error: 'Already reacted' });
     }
     throw e;
   }

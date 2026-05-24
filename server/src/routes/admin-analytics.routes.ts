@@ -124,4 +124,36 @@ router.post('/track', (req: AuthRequest, res: Response) => {
   res.status(201).json({ id: result.lastInsertRowid, success: true });
 });
 
+// GET /engagement — engagement metrics for P2 features
+router.get('/engagement', (req: AuthRequest, res: Response) => {
+  const totalBadgesEarned = (db.prepare('SELECT COUNT(*) as count FROM user_achievements').get() as any).count;
+  const uniqueBadgeHolders = (db.prepare('SELECT COUNT(DISTINCT user_id) as count FROM user_achievements').get() as any).count;
+  const totalReactions = (db.prepare('SELECT COUNT(*) as count FROM kudos').get() as any).count;
+
+  const reactionBreakdown = db.prepare(`
+    SELECT COALESCE(reaction_type, 'high_five') as type, COUNT(*) as count
+    FROM kudos GROUP BY reaction_type ORDER BY count DESC
+  `).all() as any[];
+
+  const topStreaks = db.prepare(`
+    SELECT u.name, ux.current_streak_days as streak
+    FROM user_xp ux JOIN users u ON u.id = ux.user_id
+    WHERE ux.current_streak_days > 0
+    ORDER BY ux.current_streak_days DESC LIMIT 5
+  `).all() as any[];
+
+  const communitiesWithActivity = (db.prepare(`
+    SELECT COUNT(DISTINCT cm.community_id) as count
+    FROM community_members cm
+    JOIN activities a ON a.user_id = cm.user_id AND a.start_date > datetime('now', '-7 days')
+  `).get() as any).count;
+
+  res.json({
+    badges: { total_earned: totalBadgesEarned, unique_holders: uniqueBadgeHolders },
+    reactions: { total: totalReactions, breakdown: reactionBreakdown },
+    streaks: { top: topStreaks },
+    communities: { active_this_week: communitiesWithActivity },
+  });
+});
+
 export default router;

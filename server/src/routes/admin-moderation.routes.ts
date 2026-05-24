@@ -118,4 +118,31 @@ router.post('/users/:id/ban', (req: AuthRequest, res: Response) => {
   res.json({ success: true, message: `Ban logged for user ${user.name}. Use disable endpoint to restrict access.` });
 });
 
+// GET /chat-messages — recent chat messages across all communities
+router.get('/chat-messages', (req: AuthRequest, res: Response) => {
+  const messages = db.prepare(`
+    SELECT m.id, m.body, m.created_at, m.user_id, m.community_id,
+      u.name as author_name, c.name as community_name
+    FROM community_chat_messages m
+    JOIN users u ON m.user_id = u.id
+    JOIN communities c ON m.community_id = c.id
+    ORDER BY m.created_at DESC
+    LIMIT 50
+  `).all() as any[];
+
+  res.json(messages);
+});
+
+// DELETE /chat-messages/:id — delete a chat message
+router.delete('/chat-messages/:id', (req: AuthRequest, res: Response) => {
+  const msgId = parseInt(req.params.id);
+  const msg = db.prepare('SELECT * FROM community_chat_messages WHERE id = ?').get(msgId) as any;
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+  db.prepare('DELETE FROM community_chat_messages WHERE id = ?').run(msgId);
+  logAuditAction(req.userId!, 'delete_chat_message', 'chat_message', msgId, JSON.stringify({ body: msg.body, community_id: msg.community_id }));
+
+  res.json({ success: true });
+});
+
 export default router;

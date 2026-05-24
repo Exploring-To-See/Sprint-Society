@@ -52,15 +52,58 @@ router.get('/', (req: AuthRequest, res: Response) => {
     LIMIT ? OFFSET ?
   `).all(req.userId, ...params, limitNum, offset) as any[];
 
+  const friendsGoingStmt = db.prepare(`
+    SELECT u.id, u.name, u.profile_image_url
+    FROM event_rsvps er
+    JOIN users u ON er.user_id = u.id
+    JOIN follows f ON f.following_id = er.user_id AND f.follower_id = ?
+    WHERE er.event_id = ? AND er.status = 'going'
+    LIMIT 5
+  `);
+
   res.json({
-    events: events.map(e => ({
-      ...e,
-      is_recurring: !!e.is_recurring,
-      is_full: e.max_attendees ? e.attendee_count >= e.max_attendees : false,
-    })),
+    events: events.map(e => {
+      const friends_going = friendsGoingStmt.all(req.userId, e.id) as any[];
+      return {
+        ...e,
+        is_recurring: !!e.is_recurring,
+        is_full: e.max_attendees ? e.attendee_count >= e.max_attendees : false,
+        friends_going,
+        friends_going_count: friends_going.length,
+      };
+    }),
     page: pageNum,
     has_more: events.length === limitNum,
   });
+});
+
+// GET /events/nearby — events within radius (haversine)
+router.get('/nearby', (req: AuthRequest, res: Response) => {
+  const lat = parseFloat(req.query.lat as string);
+  const lng = parseFloat(req.query.lng as string);
+  const radiusKm = parseFloat(req.query.radius as string) || 10;
+
+  if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
+
+  const events = db.prepare(`
+    SELECT e.*, u.name as creator_name,
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count
+    FROM events e
+    JOIN users u ON e.creator_id = u.id
+    WHERE e.status IN ('upcoming', 'live') AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
+    ORDER BY e.date ASC
+  `).all() as any[];
+
+  const nearby = events.filter(e => {
+    const dLat = (parseFloat(e.latitude) - lat) * Math.PI / 180;
+    const dLng = (parseFloat(e.longitude) - lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(parseFloat(e.latitude) * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    const distance = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    (e as any).distance_km = Math.round(distance * 10) / 10;
+    return distance <= radiusKm;
+  });
+
+  res.json({ events: nearby, radius_km: radiusKm });
 });
 
 // GET /events/my — events user is attending or hosting
@@ -244,6 +287,62 @@ router.get('/:id/checkins', (req: AuthRequest, res: Response) => {
   `).all(parseInt(req.params.id)) as any[];
 
   res.json(checkins);
+});
+
+// GET /events/:id/recap — post-event recap with stats
+router.get('/:id/recap', (req: AuthRequest, res: Response) => {
+  const eventId = parseInt(req.params.id);
+  const event = db.prepare('SELECT * FROM events WHERE id = ?').get(eventId) as any;
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const attendees = db.prepare(`
+    SELECT u.id, u.name, u.profile_image_url
+    FROM event_checkins ec
+    JOIN users u ON ec.user_id = u.id
+    WHERE ec.event_id = ?
+  `).all(eventId) as any[];
+
+  const attendeeIds = attendees.map((a: any) => a.id);
+  if (attendeeIds.length === 0) {
+    return res.json({ event_title: event.title, attendees: [], stats: null, leaderboard: [] });
+  }
+
+  const placeholders = attendeeIds.map(() => '?').join(',');
+  const eventDate = event.date;
+
+  const runs = db.prepare(`
+    SELECT a.user_id, u.name, u.profile_image_url, a.distance_meters, a.moving_time_seconds, a.average_pace_per_km
+    FROM activities a
+    JOIN users u ON a.user_id = u.id
+    WHERE a.user_id IN (${placeholders})
+    AND DATE(a.start_date) = ?
+    ORDER BY a.average_pace_per_km ASC
+  `).all(...attendeeIds, eventDate) as any[];
+
+  const totalDistance = runs.reduce((s: number, r: any) => s + r.distance_meters, 0);
+  const avgPace = runs.length > 0 ? runs.reduce((s: number, r: any) => s + r.average_pace_per_km, 0) / runs.length : 0;
+
+  const leaderboard = runs.map((r: any, i: number) => ({
+    rank: i + 1,
+    name: r.name,
+    profile_image_url: r.profile_image_url,
+    distance_km: Math.round(r.distance_meters / 100) / 10,
+    pace: r.average_pace_per_km,
+  }));
+
+  res.json({
+    event_title: event.title,
+    event_date: event.date,
+    attendee_count: attendees.length,
+    attendees: attendees.slice(0, 12),
+    stats: {
+      total_distance_km: Math.round(totalDistance / 1000),
+      total_runs: runs.length,
+      avg_pace: Math.round(avgPace),
+      fastest_runner: leaderboard[0] || null,
+    },
+    leaderboard: leaderboard.slice(0, 10),
+  });
 });
 
 export default router;

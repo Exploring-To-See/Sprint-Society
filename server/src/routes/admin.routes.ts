@@ -516,6 +516,43 @@ router.get('/stats', (req: AuthRequest, res: Response) => {
   });
 });
 
+// ===== STREAK HEALTH =====
+
+router.get('/streak-health', (req: AuthRequest, res: Response) => {
+  const activeStreaks = db.prepare(`
+    SELECT COUNT(*) as count FROM user_xp WHERE current_streak_days > 0
+  `).get() as any;
+
+  const atRiskRunners = db.prepare(`
+    SELECT u.id, u.name, ux.current_streak_days as streak
+    FROM user_xp ux
+    JOIN users u ON u.id = ux.user_id
+    WHERE ux.current_streak_days >= 3
+    AND NOT EXISTS (
+      SELECT 1 FROM activities a WHERE a.user_id = ux.user_id AND a.start_date > datetime('now', '-1 day')
+    )
+    ORDER BY ux.current_streak_days DESC
+    LIMIT 10
+  `).all() as any[];
+
+  const lostToday = db.prepare(`
+    SELECT COUNT(*) as count FROM user_xp
+    WHERE current_streak_days = 0
+    AND longest_streak_days > 0
+    AND user_id IN (
+      SELECT user_id FROM xp_transactions
+      WHERE source = 'streak_broken' AND created_at > datetime('now', '-1 day')
+    )
+  `).get() as any;
+
+  res.json({
+    active_streaks: activeStreaks.count,
+    at_risk: atRiskRunners.length,
+    at_risk_runners: atRiskRunners,
+    lost_today: lostToday?.count || 0,
+  });
+});
+
 // ===== ANALYTICS DASHBOARD =====
 
 router.get('/analytics', (req: AuthRequest, res: Response) => {

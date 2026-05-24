@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
@@ -15,6 +16,8 @@ function formatPace(seconds: number): string {
 }
 
 export function ProgressPage() {
+  const [view, setView] = useState<'stats' | 'journey'>('stats');
+
   const { data: improvement } = useQuery({
     queryKey: ['progress-improvement'],
     queryFn: () => api.get('/progress/improvement').then(r => r.data),
@@ -25,6 +28,12 @@ export function ProgressPage() {
     queryFn: () => api.get('/progress/weekly').then(r => r.data),
   });
 
+  const { data: journey } = useQuery({
+    queryKey: ['progress-journey'],
+    queryFn: () => api.get('/progress/journey').then(r => r.data).catch(() => null),
+    enabled: view === 'journey',
+  });
+
   return (
     <AppShell>
       <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
@@ -32,6 +41,53 @@ export function ProgressPage() {
           <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-600">Your growth</p>
           <h1 className="font-heading text-xl font-bold mt-0.5">Progress</h1>
         </motion.div>
+
+        {/* View toggle */}
+        <motion.div variants={fadeUp} className="flex gap-1">
+          {(['stats', 'journey'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setView(tab)}
+              className={`flex-1 py-2 text-center text-[11px] font-semibold rounded-lg transition-colors ${
+                view === tab ? 'bg-accent/10 text-accent' : 'text-zinc-600'
+              }`}
+            >
+              {tab === 'stats' ? 'Stats' : 'Journey'}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Journey Timeline */}
+        {view === 'journey' && (
+          <motion.div variants={fadeUp} className="space-y-3">
+            {journey?.milestones?.length > 0 ? (
+              <div className="relative pl-6">
+                <div className="absolute left-[9px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-accent/40 to-accent-gold/20 rounded-full" />
+                {journey.milestones.map((m: any, i: number) => (
+                  <div key={i} className="relative flex gap-3 pb-4">
+                    <div className="absolute left-[-15px] w-5 h-5 rounded-full bg-bg-secondary border-2 border-accent/40 flex items-center justify-center z-10">
+                      <span className="text-[10px]">{m.icon}</span>
+                    </div>
+                    <div className="flex-1 ml-2">
+                      <p className="text-[12px] font-semibold text-white">{m.title}</p>
+                      <p className="text-[10px] text-zinc-600">{m.detail}</p>
+                      <p className="text-[9px] text-zinc-700 mt-0.5">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <span className="text-2xl">🗺️</span>
+                <p className="text-[12px] text-zinc-500 mt-2">Complete more runs to build your journey</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {view === 'stats' && (
+          <>
+
 
         {/* Before → After card */}
         {improvement?.has_data && (
@@ -195,6 +251,8 @@ export function ProgressPage() {
             <p className="text-zinc-400 text-sm">Complete a few runs to see your progress</p>
             <p className="text-zinc-600 text-xs mt-1">We track every improvement automatically</p>
           </motion.div>
+        )}
+          </>
         )}
       </motion.div>
     </AppShell>

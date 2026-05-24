@@ -1,8 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
+
+const REACTIONS = [
+  { type: 'high_five', emoji: '🙌', label: 'High Five' },
+  { type: 'fire', emoji: '🔥', label: 'Fire' },
+  { type: 'impressive', emoji: '💪', label: 'Impressive' },
+  { type: 'respect', emoji: '🫡', label: 'Respect' },
+  { type: 'lets_go', emoji: '⚡', label: "Let's Go" },
+] as const;
 
 const stagger = {
   hidden: {},
@@ -40,13 +48,25 @@ export function FeedPage() {
     queryFn: () => api.get('/social/feed').then(r => r.data),
   });
 
+  const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; x: number }[]>([]);
+  const [showReactionPicker, setShowReactionPicker] = useState<number | null>(null);
+
   const kudosMutation = useMutation({
-    mutationFn: ({ activityId, remove }: { activityId: number; remove: boolean }) =>
+    mutationFn: ({ activityId, remove, reactionType }: { activityId: number; remove: boolean; reactionType?: string }) =>
       remove
         ? api.delete(`/social/kudos/${activityId}`)
-        : api.post(`/social/kudos/${activityId}`),
+        : api.post(`/social/kudos/${activityId}`, { reaction_type: reactionType || 'high_five' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['feed'] }),
   });
+
+  const handleReaction = useCallback((activityId: number, emoji: string, reactionType: string) => {
+    kudosMutation.mutate({ activityId, remove: false, reactionType });
+    setShowReactionPicker(null);
+    const id = Date.now() + Math.random();
+    const x = 20 + Math.random() * 60;
+    setFloatingReactions(prev => [...prev, { id, emoji, x }]);
+    setTimeout(() => setFloatingReactions(prev => prev.filter(r => r.id !== id)), 1200);
+  }, [kudosMutation]);
 
   const commentMutation = useMutation({
     mutationFn: ({ activityId, body }: { activityId: number; body: string }) =>
@@ -145,21 +165,47 @@ export function FeedPage() {
               </div>
             </div>
 
-            {/* Actions — Kudos + Comment */}
-            <div className="flex items-center gap-1 px-4 pb-3 border-t border-bg-tertiary/50 pt-3">
+            {/* Actions — Reactions + Comment */}
+            <div className="relative flex items-center gap-1 px-4 pb-3 border-t border-bg-tertiary/50 pt-3">
+              {/* Quick reaction button */}
               <button
-                onClick={() => kudosMutation.mutate({ activityId: activity.id, remove: activity.user_gave_kudos })}
+                onClick={() => activity.user_gave_kudos
+                  ? kudosMutation.mutate({ activityId: activity.id, remove: true })
+                  : setShowReactionPicker(showReactionPicker === activity.id ? null : activity.id)
+                }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-150 active:scale-95 ${
                   activity.user_gave_kudos
                     ? 'bg-accent/10 text-accent'
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-bg-tertiary/50'
                 }`}
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill={activity.user_gave_kudos ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                  <path d="M8 14s-5.5-3.5-5.5-7.5C2.5 4 4.5 2.5 6 2.5c1 0 1.7.5 2 1 .3-.5 1-1 2-1 1.5 0 3.5 1.5 3.5 4S8 14 8 14z"/>
-                </svg>
+                <span className="text-[13px]">{activity.user_reaction_emoji || '🙌'}</span>
                 <span className="text-[11px] font-semibold">{activity.kudos_count || ''}</span>
               </button>
+
+              {/* Reaction picker */}
+              <AnimatePresence>
+                {showReactionPicker === activity.id && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, y: 8 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    className="absolute bottom-full left-2 mb-1 flex gap-1 px-2 py-1.5 rounded-xl bg-bg-secondary border border-bg-tertiary shadow-lg z-10"
+                  >
+                    {REACTIONS.map(r => (
+                      <button
+                        key={r.type}
+                        onClick={() => handleReaction(activity.id, r.emoji, r.type)}
+                        className="w-8 h-8 rounded-lg hover:bg-bg-tertiary flex items-center justify-center transition-all active:scale-125"
+                        title={r.label}
+                      >
+                        <span className="text-[16px]">{r.emoji}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <button
                 onClick={() => setCommentingOn(commentingOn === activity.id ? null : activity.id)}
@@ -170,6 +216,22 @@ export function FeedPage() {
                 </svg>
                 <span className="text-[11px] font-semibold">{activity.comments_count || ''}</span>
               </button>
+
+              {/* Floating reactions */}
+              <AnimatePresence>
+                {floatingReactions.map(fr => (
+                  <motion.span
+                    key={fr.id}
+                    initial={{ opacity: 1, y: 0, x: `${fr.x}%` }}
+                    animate={{ opacity: 0, y: -60 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className="absolute bottom-full text-[20px] pointer-events-none"
+                  >
+                    {fr.emoji}
+                  </motion.span>
+                ))}
+              </AnimatePresence>
             </div>
 
             {/* Comment input */}

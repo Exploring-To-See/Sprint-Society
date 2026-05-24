@@ -520,10 +520,10 @@ export function calculateReadiness(
   score = Math.max(20, Math.min(100, score));
 
   if (score >= 75) {
-    return { score, label: 'Ready', color: 'green', recommendation: 'Good to go. Your body is recovered — train as planned.' };
+    return { score, label: 'Ready', color: 'green', recommendation: 'Good to go. Your body is recovered — train as planned.', coach_tip: yesterdayVolume > 0 ? 'Great recovery. Push today.' : 'Fresh legs — make it count.' };
   } else if (score >= 50) {
-    return { score, label: 'Moderate', color: 'yellow', recommendation: 'Take it easy today. Swap hard sessions for easy runs or rest.' };
+    return { score, label: 'Moderate', color: 'yellow', recommendation: 'Take it easy today. Swap hard sessions for easy runs or rest.', coach_tip: 'Easy pace only. Listen to your legs.' };
   } else {
-    return { score, label: 'Fatigued', color: 'red', recommendation: 'Rest recommended. Your body needs recovery. Light walk or stretching only.' };
+    return { score, label: 'Fatigued', color: 'red', recommendation: 'Rest recommended. Your body needs recovery. Light walk or stretching only.', coach_tip: 'Skip the run. Walk or stretch instead.' };
   }
 }

@@ -19,8 +19,24 @@ KPI cards refresh on load:
 - **This Week** — runs recorded in the current week
 
 Plus:
+- **Streak Health Panel** — shows active streaks count, at-risk runners (have streak but haven't run today), and streaks lost today. Lists top at-risk runners by name + streak length for targeted re-engagement nudges.
 - Tier breakdown (how many runners in each tier)
 - Top 5 runners by XP
+
+### Moderation Tab — Chat Messages
+
+New endpoints for moderating community real-time chat:
+- **GET /admin/moderation/chat-messages** — view 50 most recent chat messages across all communities
+- **DELETE /admin/moderation/chat-messages/:id** — delete a specific chat message (logged to audit)
+
+### Analytics Tab — Engagement Metrics
+
+New "Engagement (P2 Features)" section at bottom of Analytics showing:
+- **Badges Earned** — total achievements unlocked across all users
+- **Reactions** — total reactions with breakdown by type (🙌 🔥 💪 🫡 ⚡)
+- **Top Streak** — longest active streak
+- **Active Clubs** — communities with member activity this week
+- Top streaks leaderboard (top 5 by streak length)
 
 ### Runners Tab
 
@@ -71,16 +87,32 @@ Sign Up → Profile Setup → Connect Strava → Run → Auto-Sync → Tier Calc
 
 Runs automatically when a user visits their Coaching tab:
 
-1. Pulls user's recent runs (up to 30)
-2. Calculates 4 metrics:
-   - **Age-graded %** (35% weight) — pace normalized for age/gender
-   - **VO2max estimate** (25%) — from pace + distance data
-   - **Distance score** (20%) — weekly volume
-   - **Consistency score** (20%) — regularity of activity
-3. Composite score → tier assignment:
-   - 0–34: Beginner
-   - 35–64: Intermediate
-   - 65+: Advanced
+1. Pulls user's recent runs (up to 50)
+2. Calculates 6 factors (V2 engine, audited):
+   - **Performance** (40%) — race/best times, age-graded, interpolated against benchmark table (5K/10K/HM/Marathon)
+   - **Volume** (15%) — avg weekly km, gender-adjusted (women get 13% boost)
+   - **Consistency** (15%) — active weeks out of last 12, platform maturity bonus
+   - **Recovery** (15%) — rest days, HRV trend, RPE, sleep hours
+   - **VO2max** (10%) — with freshness decay (halved after 3 months stale)
+   - **Pace Compliance** (5%) — GPS-only, % runs in prescribed zone
+3. Composite score → 40-level system:
+   - B1–B10: Beginner
+   - I1–I10: Intermediate
+   - A1–A10: Advanced
+   - P1–P10: Pro (gated behind A5+)
+
+4. **Classification Status** (new):
+   - `calibrating` — first 3 weeks, level capped at I5, displayed to user as "Calibrating (X weeks remaining)"
+   - `provisional` — training data only, no verified race
+   - `validated` — user has at least one Strava race activity (workout_type=1) or manual race PR
+
+5. **Safety Rails** (parallel system, blocks advancement):
+   - ACWR > 1.5 (elevated) / > 1.8 (critical)
+   - Volume spike > 20% (warning) / > 30% (blocks)
+   - Extended break (4+ weeks without activity)
+
+6. **Advancement**: requires 3 consecutive weeks at target level + performance at target + no blocking rails + recovery >= 15/40
+7. **Regression**: 4 weeks below → sub-level drop; 8 weeks below tier floor → tier demotion
 
 ### Pace Zone Calculation
 

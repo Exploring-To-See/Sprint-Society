@@ -26,10 +26,14 @@ export function initializeDatabase() {
 }
 
 function runMigrations() {
-  // Add activity_type column if it doesn't exist (cross-training support)
-  const columns = db.prepare("PRAGMA table_info(activities)").all() as any[];
-  if (!columns.find((c: any) => c.name === 'activity_type')) {
+  const activityCols = db.prepare("PRAGMA table_info(activities)").all() as any[];
+  if (!activityCols.find((c: any) => c.name === 'activity_type')) {
     db.exec("ALTER TABLE activities ADD COLUMN activity_type TEXT DEFAULT 'Run'");
+  }
+
+  const kudosCols = db.prepare("PRAGMA table_info(kudos)").all() as any[];
+  if (!kudosCols.find((c: any) => c.name === 'reaction_type')) {
+    db.exec("ALTER TABLE kudos ADD COLUMN reaction_type TEXT DEFAULT 'high_five'");
   }
 }
 

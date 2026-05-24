@@ -234,23 +234,65 @@ function PRBoard({ records }: { records: any }) {
 }
 
 function AchievementShowcase({ achievements }: { achievements: Achievement[] }) {
-  const earned = achievements.filter(a => a.earned).slice(0, 4);
-  if (earned.length === 0) return null;
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const { data: badgeCollection } = useQuery({
+    queryKey: ['badge-collection'],
+    queryFn: () => api.get('/gamification/badge-collection').then(r => r.data).catch(() => null),
+  });
+
+  if (!badgeCollection && (!achievements || achievements.length === 0)) return null;
+
+  const categories = badgeCollection?.categories || {};
+  const categoryNames = Object.keys(categories);
+  const displayCategory = activeCategory || categoryNames[0] || 'running';
+  const badges = categories[displayCategory] || [];
+  const summary = badgeCollection?.summary;
 
   return (
-    <motion.div variants={fadeUp} className="space-y-2">
+    <motion.div variants={fadeUp} className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Achievements</h3>
-        <span className="text-[10px] font-mono text-zinc-600">{earned.length} earned</span>
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Badge Collection</h3>
+        {summary && (
+          <span className="text-[10px] font-mono text-zinc-600">{summary.earned}/{summary.total} ({summary.completion_percent}%)</span>
+        )}
       </div>
-      <div className="flex gap-2">
-        {earned.map((a) => (
+
+      {/* Category tabs */}
+      {categoryNames.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+          {categoryNames.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-2.5 py-1 rounded-md text-[9px] font-semibold capitalize whitespace-nowrap transition-colors ${
+                displayCategory === cat ? 'bg-accent/10 text-accent' : 'text-zinc-600 hover:text-zinc-400'
+              }`}
+            >
+              {cat.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Badge grid */}
+      <div className="grid grid-cols-4 gap-2">
+        {badges.map((badge: any) => (
           <div
-            key={a.id}
-            className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl bg-bg-secondary border border-bg-tertiary"
+            key={badge.id}
+            className={`relative flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all ${
+              badge.earned
+                ? 'bg-bg-secondary border-accent/20'
+                : 'bg-bg-secondary/50 border-bg-tertiary opacity-40'
+            }`}
           >
-            <span className="text-[22px]">{a.icon}</span>
-            <span className="text-[8px] text-zinc-500 font-medium text-center line-clamp-1">{a.name}</span>
+            <span className={`text-[20px] ${badge.earned ? '' : 'grayscale'}`}>{badge.icon}</span>
+            <span className="text-[7px] text-zinc-500 font-medium text-center line-clamp-1">{badge.name}</span>
+            {badge.is_rare && badge.earned && (
+              <span className="absolute -top-1 -right-1 text-[7px] px-1 py-0.5 rounded bg-accent-gold/20 text-accent-gold font-bold">RARE</span>
+            )}
+            {badge.earned && (
+              <span className="text-[6px] text-zinc-700">{badge.rarity_percent}% have this</span>
+            )}
           </div>
         ))}
       </div>

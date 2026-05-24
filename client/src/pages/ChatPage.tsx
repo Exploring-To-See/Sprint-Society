@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 
-const QUICK_PROMPTS = [
+const FALLBACK_PROMPTS = [
   { label: 'How should I train today?', icon: '🏃' },
   { label: 'Am I overtraining?', icon: '⚠️' },
   { label: 'Predict my 5K time', icon: '⏱️' },
@@ -21,6 +21,15 @@ export function ChatPage() {
     queryKey: ['chat-history'],
     queryFn: () => api.get('/chat/history').then(r => r.data),
   });
+
+  const { data: suggestionsData } = useQuery({
+    queryKey: ['chat-suggestions'],
+    queryFn: () => api.get('/chat/suggestions').then(r => r.data).catch(() => null),
+  });
+
+  const quickPrompts = suggestionsData?.suggestions?.length > 0
+    ? suggestionsData.suggestions
+    : FALLBACK_PROMPTS;
 
   const sendMessage = useMutation({
     mutationFn: (message: string) => api.post('/chat/message', { message }),
@@ -81,7 +90,7 @@ export function ChatPage() {
               </div>
 
               <div className="w-full grid grid-cols-2 gap-2 max-w-[300px]">
-                {QUICK_PROMPTS.map((prompt) => (
+                {quickPrompts.map((prompt: any) => (
                   <button
                     key={prompt.label}
                     onClick={() => sendMessage.mutate(prompt.label)}

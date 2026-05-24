@@ -492,4 +492,109 @@ router.post('/request', (req: AuthRequest, res: Response) => {
   res.json({ success: true, message: 'Request submitted for review' });
 });
 
+// GET /communities/:id/chat — chat message history
+router.get('/:id/chat', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const limit = parseInt(req.query.limit as string) || 50;
+  const before = req.query.before as string;
+
+  let query = `
+    SELECT m.id, m.body, m.created_at, m.user_id, u.name as user_name, u.profile_image_url
+    FROM community_chat_messages m
+    JOIN users u ON m.user_id = u.id
+    WHERE m.community_id = ?
+  `;
+  const params: any[] = [communityId];
+
+  if (before) {
+    query += ' AND m.id < ?';
+    params.push(parseInt(before));
+  }
+
+  query += ' ORDER BY m.id DESC LIMIT ?';
+  params.push(limit);
+
+  const messages = db.prepare(query).all(...params) as any[];
+
+  res.json({ messages: messages.reverse(), has_more: messages.length === limit });
+});
+
+// GET /communities/:id/leaderboard — weekly leaderboard for community members
+router.get('/:id/leaderboard', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const period = (req.query.period as string) || 'week';
+  const dateFilter = period === 'month' ? '-30 days' : '-7 days';
+
+  const leaderboard = db.prepare(`
+    SELECT u.id, u.name, u.profile_image_url,
+      COALESCE(SUM(a.distance_meters), 0) as total_distance,
+      COUNT(a.id) as total_runs,
+      MIN(a.average_pace_per_km) as best_pace,
+      ux.current_streak_days as streak
+    FROM community_members cm
+    JOIN users u ON cm.user_id = u.id
+    LEFT JOIN activities a ON a.user_id = u.id AND a.start_date > datetime('now', ?)
+    LEFT JOIN user_xp ux ON ux.user_id = u.id
+    WHERE cm.community_id = ?
+    GROUP BY u.id
+    HAVING total_runs > 0
+    ORDER BY total_distance DESC
+    LIMIT 20
+  `).all(dateFilter, communityId) as any[];
+
+  const myRank = leaderboard.findIndex(r => r.id === req.userId) + 1;
+
+  res.json({
+    leaderboard: leaderboard.map((r, i) => ({
+      rank: i + 1,
+      user_id: r.id,
+      name: r.name,
+      profile_image_url: r.profile_image_url,
+      total_distance_km: Math.round(r.total_distance / 100) / 10,
+      total_runs: r.total_runs,
+      best_pace: r.best_pace,
+      streak: r.streak || 0,
+    })),
+    my_rank: myRank || null,
+    period,
+  });
+});
+
+// GET /communities/:id/digest — auto-generated weekly summary
+router.get('/:id/digest', (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+
+  const stats = db.prepare(`
+    SELECT
+      COUNT(DISTINCT a.user_id) as active_members,
+      COUNT(a.id) as total_runs,
+      COALESCE(SUM(a.distance_meters), 0) as total_distance,
+      COALESCE(AVG(a.average_pace_per_km), 0) as avg_pace
+    FROM community_members cm
+    JOIN activities a ON a.user_id = cm.user_id AND a.start_date > datetime('now', '-7 days')
+    WHERE cm.community_id = ?
+  `).get(communityId) as any;
+
+  const topRunner = db.prepare(`
+    SELECT u.name, SUM(a.distance_meters) as dist
+    FROM community_members cm
+    JOIN users u ON cm.user_id = u.id
+    JOIN activities a ON a.user_id = u.id AND a.start_date > datetime('now', '-7 days')
+    WHERE cm.community_id = ?
+    GROUP BY u.id ORDER BY dist DESC LIMIT 1
+  `).get(communityId) as any;
+
+  const memberCount = (db.prepare('SELECT member_count FROM communities WHERE id = ?').get(communityId) as any)?.member_count || 0;
+
+  res.json({
+    period: 'This week',
+    active_members: stats?.active_members || 0,
+    total_members: memberCount,
+    total_runs: stats?.total_runs || 0,
+    total_distance_km: Math.round((stats?.total_distance || 0) / 1000),
+    avg_pace: stats?.avg_pace || 0,
+    top_runner: topRunner ? { name: topRunner.name, distance_km: Math.round(topRunner.dist / 1000) } : null,
+  });
+});
+
 export default router;

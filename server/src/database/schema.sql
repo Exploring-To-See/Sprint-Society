@@ -214,11 +214,12 @@ CREATE TABLE IF NOT EXISTS follows (
     UNIQUE(follower_id, following_id)
 );
 
--- Social: Kudos (likes on activities)
+-- Social: Kudos / Reactions on activities
 CREATE TABLE IF NOT EXISTS kudos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     activity_id INTEGER NOT NULL,
+    reaction_type TEXT DEFAULT 'high_five',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE,
@@ -795,4 +796,15 @@ CREATE TABLE IF NOT EXISTS ai_checkins (
   responses TEXT NOT NULL DEFAULT '{}',
   ai_summary TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Community Real-Time Chat Messages
+CREATE TABLE IF NOT EXISTS community_chat_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  community_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

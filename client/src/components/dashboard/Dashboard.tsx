@@ -288,13 +288,45 @@ export function Dashboard() {
       <ReadinessCard />
       <TodaySession streak={streak} />
 
-      {/* Social Ticker — Who's running? */}
+      {/* Friend Streaks — Who's running with you? */}
       <motion.div variants={fadeUp}>
-        <div className="px-3 py-2.5 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
-          <p className="text-[11px] text-zinc-500 text-center">
-            <span className="text-zinc-400">👟</span> 3 runners in your community ran today
-          </p>
-        </div>
+        {friendStreaks?.friends_active_today?.length > 0 ? (
+          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Running today</p>
+              <span className="text-[10px] text-zinc-600">{friendStreaks.total_friends_ran_today} friends</span>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+              {friendStreaks.friends_active_today.slice(0, 6).map((f: any) => (
+                <div key={f.user_id} className="flex flex-col items-center gap-1 min-w-[44px]">
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-full bg-bg-tertiary overflow-hidden border-2 border-accent/30">
+                      {f.profile_image_url ? (
+                        <img src={f.profile_image_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-zinc-500">
+                          {f.name?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    {f.streak_days >= 3 && (
+                      <span className="absolute -bottom-0.5 -right-0.5 text-[8px]">
+                        {f.streak_days >= 30 ? '🌟' : f.streak_days >= 14 ? '⚡' : '🔥'}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[8px] text-zinc-600 truncate max-w-[40px]">{f.name?.split(' ')[0]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="px-3 py-2.5 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
+            <p className="text-[11px] text-zinc-500 text-center">
+              <span className="text-zinc-400">👟</span> Follow runners to see who's active today
+            </p>
+          </div>
+        )}
       </motion.div>
 
       {/* Streak Visual */}

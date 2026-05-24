@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { EventCard } from '../components/events/EventCard';
+import { EventMapView } from '../components/events/EventMapView';
 
 const stagger = {
   hidden: {},
@@ -26,6 +27,7 @@ const FILTERS = [
 export function EventsPage() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const { data, isLoading } = useQuery({
     queryKey: ['events', activeFilter],
@@ -37,9 +39,27 @@ export function EventsPage() {
   return (
     <AppShell>
       <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4 pb-6">
-        <motion.div variants={fadeUp}>
-          <h1 className="font-heading text-[22px] font-bold">Events</h1>
-          <p className="text-[11px] text-zinc-600 mt-0.5">Meet up, run together, vibe</p>
+        <motion.div variants={fadeUp} className="flex items-start justify-between">
+          <div>
+            <h1 className="font-heading text-[22px] font-bold">Events</h1>
+            <p className="text-[11px] text-zinc-600 mt-0.5">Meet up, run together, vibe</p>
+          </div>
+          <button
+            onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-secondary border border-bg-tertiary text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
+          >
+            {viewMode === 'list' ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h8"/></svg>
+                Map
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M6 2v12M10 2v12"/></svg>
+                List
+              </>
+            )}
+          </button>
         </motion.div>
 
         {/* Filter tabs */}
@@ -64,8 +84,15 @@ export function EventsPage() {
           ))}
         </motion.div>
 
+        {/* Map View */}
+        {viewMode === 'map' && (
+          <motion.div variants={fadeUp} className="rounded-xl overflow-hidden border border-bg-tertiary h-[400px] bg-bg-secondary">
+            <EventMapView events={data?.events || []} onEventClick={(id) => navigate(`/events/${id}`)} />
+          </motion.div>
+        )}
+
         {/* Loading skeleton */}
-        {isLoading && (
+        {viewMode === 'list' && isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="card p-4 animate-pulse space-y-3">
@@ -87,7 +114,7 @@ export function EventsPage() {
         )}
 
         {/* Empty state */}
-        {!isLoading && (!data?.events || data.events.length === 0) && (
+        {viewMode === 'list' && !isLoading && (!data?.events || data.events.length === 0) && (
           <motion.div variants={fadeUp} className="flex flex-col items-center py-16 gap-3">
             <div className="w-12 h-12 rounded-xl bg-bg-secondary border border-bg-tertiary flex items-center justify-center">
               <span className="text-2xl">📅</span>
@@ -99,7 +126,7 @@ export function EventsPage() {
         )}
 
         {/* Featured Hero Event (next upcoming) */}
-        {data?.events?.[0] && !isLoading && (
+        {viewMode === 'list' && data?.events?.[0] && !isLoading && (
           <motion.div variants={fadeUp}>
             <button
               onClick={() => navigate(`/events/${data.events[0].id}`)}
@@ -124,7 +151,7 @@ export function EventsPage() {
         )}
 
         {/* Event cards */}
-        {data?.events?.slice(1).map((event: any) => (
+        {viewMode === 'list' && data?.events?.slice(1).map((event: any) => (
           <motion.div key={event.id} variants={fadeUp}>
             <EventCard event={event} onClick={() => navigate(`/events/${event.id}`)} />
           </motion.div>

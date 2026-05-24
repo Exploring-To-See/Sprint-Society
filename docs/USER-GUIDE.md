@@ -35,14 +35,53 @@ That's it. Go run. Your data flows in from Strava and the app does the rest.
 
 ### ⚡ Dashboard (Home)
 
-Your daily hub. Shows:
+Your daily hub, prioritized for action:
 
+- **Readiness + Today's Session** — what to do right now (with streak urgency: "Don't break your 7-day streak")
+- **Coach Says** — one-liner daily recommendation based on recovery
+- **Friends Running Today** — see which friends are active with escalating streak badges (🔥 3d, ⚡ 14d, 🌟 30d)
+- **Streak Visual** — weekly streak bar with escalating fire/lightning/star badges
 - **Level & XP** — your current level and progress to the next one
-- **Streak** — how many consecutive days you've been active
-- **Weekly Summary** — km run, number of runs, average pace, improvement %
+- **Daily Insight** — AI-generated tip based on your data
+- **AI Score** — composite score (consistency + improvement + load balance)
 - **Pace Trend** — 12-week chart showing your pace over time
 - **Weekly Challenges** — tap to complete, earn XP
-- **All-Time Stats** — total distance, runs, best pace, longest run
+- **Quick Stats** — total runs, distance, best pace
+
+### 🏘️ Communities
+
+Join or create run clubs:
+
+- **Feed** — community posts with likes and comments
+- **Chat** — real-time messaging with other members (WebSocket-powered, typing indicators)
+- **Leaderboard** — weekly ranking of members by distance (with medals for top 3)
+- **Weekly Digest** — auto-generated summary: active members, total runs, km, top runner
+- **Members** — see who's in the community with roles
+- **Info** — community description and settings
+
+### 📅 Events
+
+- **List View** — filter by type (All, Runs, Social, Health)
+- **Map View** — toggle to see events on an interactive map with pins
+- **Social Proof** — see which friends are going (friend avatars on cards)
+- **Nearby** — discover events within your area
+- **Recaps** — completed events show leaderboard with who ran fastest
+
+### 🤖 AI Coach
+
+Your AI coach now shows **contextual suggestions** based on your state:
+- Days since last run → "3 days since your run — need a comeback plan?"
+- Event tomorrow → "Want a pre-event checklist?"
+- Streak fire → "7-day streak! Should I adjust targets?"
+- Post-run → "How was today's run? Let me analyze it"
+
+Green dot on chat button when coach has a proactive suggestion for you.
+
+### 📈 Progress
+
+Two views:
+- **Stats** — before/after pace comparison, weekly pace chart, personal records, improvement velocity
+- **Journey** — visual timeline of all your milestones (first run, tier promotions, distance milestones, badge unlocks)
 
 ### 🎯 Coaching
 
@@ -67,13 +106,19 @@ All your synced runs in one place:
 
 ### 📸 Share
 
-Create shareable run cards for social media:
+Create viral shareable run cards with 5 templates:
 
 1. Pick a run from your recent activity
-2. Card auto-generates in Instagram Story format (9:16)
-3. Shows: distance, time, pace, streak, tier badge
-4. Tap **Download** to save as PNG
-5. Tap **Share** to send directly to apps
+2. Choose a template:
+   - **Dark Minimal** — clean dark theme with green accents
+   - **Gradient Pace** — vibrant gradient highlighting your pace
+   - **Achievement** — trophy-focused celebration card
+   - **Streak Fire** — shows your streak prominently with fire/star badges
+   - **Race Recap** — detailed stat breakdown in blue tones
+3. All templates are Instagram Story format (9:16, 1080x1920)
+4. Shows: distance, time, pace, streak badge, tier badge
+5. Tap **Download** to save as PNG
+6. Tap **Share** to send directly to WhatsApp/Instagram
 
 ### 👤 Profile
 
@@ -139,19 +184,30 @@ Challenge difficulty and XP rewards scale with your tier:
 
 Your tier reflects your actual running ability:
 
-| Tier | Score Range | What It Means |
+| Tier | Level Range | What It Means |
 |------|-------------|---------------|
-| Beginner | 0–34 | Building your base |
-| Intermediate | 35–64 | Solid runner, consistent |
-| Advanced | 65–100 | Competitive, high fitness |
+| Beginner | B1–B10 | Building your base |
+| Intermediate | I1–I10 | Solid runner, consistent |
+| Advanced | A1–A10 | Competitive, high fitness |
+| Pro | P1–P10 | Elite-level (unlocks at A5+) |
 
-Score is calculated from:
-- Age-graded performance (35%)
-- VO2max estimate (25%)
-- Weekly distance (20%)
-- Consistency (20%)
+Score is calculated from 6 factors:
+- Performance — race/training times (40%)
+- Volume — weekly distance (15%)
+- Consistency — active weeks (15%)
+- Recovery/Readiness — rest, HRV, sleep (15%)
+- VO2max estimate (10%)
+- Pace Compliance — training to zones (5%)
 
-Your tier updates automatically as you improve.
+### Classification Status
+
+Your classification has one of three statuses:
+
+- **Calibrating** — first 3 weeks on the platform. Your level is preliminary and capped at I5 while we gather enough data.
+- **Provisional** — based on training data only. Accurate but unverified.
+- **Validated** — backed by a verified race result. This is the gold standard.
+
+Your tier updates automatically as you improve. Advancement requires 3 consecutive weeks at the next level, passing safety checks, and adequate recovery.
 
 ---
 

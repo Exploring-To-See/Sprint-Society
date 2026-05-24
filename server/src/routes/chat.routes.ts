@@ -91,6 +91,51 @@ router.delete('/history', (req: AuthRequest, res: Response) => {
   res.json({ success: true });
 });
 
+// GET /chat/suggestions — dynamic contextual prompts based on user state
+router.get('/suggestions', (req: AuthRequest, res: Response) => {
+  const suggestions: { label: string; icon: string; priority: number }[] = [];
+
+  const lastRun = db.prepare(
+    `SELECT start_date FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 1`
+  ).get(req.userId) as any;
+
+  const xp = db.prepare('SELECT current_streak_days FROM user_xp WHERE user_id = ?').get(req.userId) as any;
+  const streak = xp?.current_streak_days || 0;
+
+  const upcomingEvent = db.prepare(`
+    SELECT e.title FROM events e
+    JOIN event_rsvps er ON er.event_id = e.id
+    WHERE er.user_id = ? AND er.status = 'going' AND e.date >= date('now') AND e.date <= date('now', '+2 days')
+    LIMIT 1
+  `).get(req.userId) as any;
+
+  if (lastRun) {
+    const daysSinceRun = Math.floor((Date.now() - new Date(lastRun.start_date).getTime()) / 86400000);
+    if (daysSinceRun >= 3) {
+      suggestions.push({ label: `${daysSinceRun} days since your last run — need a comeback plan?`, icon: '⏰', priority: 1 });
+    }
+    if (daysSinceRun === 0) {
+      suggestions.push({ label: 'How was today\'s run? Let me analyze it', icon: '📊', priority: 2 });
+    }
+  } else {
+    suggestions.push({ label: 'Help me plan my first run', icon: '🌱', priority: 1 });
+  }
+
+  if (streak >= 7) {
+    suggestions.push({ label: `${streak}-day streak! Should I adjust your targets?`, icon: '🔥', priority: 3 });
+  }
+
+  if (upcomingEvent) {
+    suggestions.push({ label: `Event "${upcomingEvent.title}" soon — want a pre-event checklist?`, icon: '📅', priority: 1 });
+  }
+
+  suggestions.push({ label: 'Predict my 5K time', icon: '⏱️', priority: 4 });
+  suggestions.push({ label: 'Am I overtraining?', icon: '⚠️', priority: 4 });
+
+  suggestions.sort((a, b) => a.priority - b.priority);
+  res.json({ suggestions: suggestions.slice(0, 4) });
+});
+
 // ===== Context Builder =====
 
 function buildRunnerContext(userId: number, user: any) {

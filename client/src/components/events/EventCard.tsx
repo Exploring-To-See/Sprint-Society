@@ -62,14 +62,36 @@ export function EventCard({ event, onClick }: EventCardProps) {
         </div>
       )}
 
-      {/* Bottom row: attendees + spots left + RSVP status */}
+      {/* Bottom row: friends going + spots left + RSVP status */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2">
-          {event.attendee_count > 0 && (
+          {/* Friend avatars */}
+          {event.friends_going?.length > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <div className="flex -space-x-1.5">
+                {event.friends_going.slice(0, 3).map((f: any) => (
+                  <div key={f.id} className="w-5 h-5 rounded-full bg-bg-tertiary border border-bg-primary overflow-hidden">
+                    {f.profile_image_url ? (
+                      <img src={f.profile_image_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[7px] font-bold text-zinc-500">
+                        {f.name?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <span className="text-[10px] text-accent font-medium">
+                {event.friends_going_count === 1
+                  ? `${event.friends_going[0].name?.split(' ')[0]} is going`
+                  : `${event.friends_going_count} friends going`}
+              </span>
+            </div>
+          ) : event.attendee_count > 0 ? (
             <span className="text-[10px] text-zinc-500 font-medium">
               {event.attendee_count} going
             </span>
-          )}
+          ) : null}
           {event.max_attendees && !event.is_full && (
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
               (event.max_attendees - (event.attendee_count || 0)) <= 10
