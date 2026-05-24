@@ -478,7 +478,7 @@ export function predictRaceTime(vdot: number, distanceMeters: number): number {
 export function calculateReadiness(
   runs: RunHistory[],
   currentPlan?: TrainingWeek
-): { score: number; label: string; color: string; recommendation: string } {
+): { score: number; label: string; color: string; recommendation: string; coach_tip: string } {
   const today = new Date();
   const yesterday = new Date(today.getTime() - 86400000);
   const twoDaysAgo = new Date(today.getTime() - 2 * 86400000);
