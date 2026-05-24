@@ -37,8 +37,8 @@ function CardPreview({ index }: { index: number }) {
     return (
       <div className="flex flex-col h-full text-[10px]">
         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
-          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-500 to-accent flex items-center justify-center text-[8px]">⚡</div>
-          <span className="text-zinc-400 text-[9px] font-medium">Kai — The Motivator</span>
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-[8px]">🔥</div>
+          <span className="text-zinc-400 text-[9px] font-medium">Kendu_Nainu — The Energizer</span>
           <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>
         <div className="flex-1 space-y-1.5 overflow-hidden">
