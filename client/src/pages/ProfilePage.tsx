@@ -424,12 +424,12 @@ function SettingsSection() {
         </button>
       ) : (
         <div className="px-4 py-4 rounded-xl bg-bg-secondary border border-bg-tertiary space-y-2">
-          <p className="text-[11px] font-semibold text-zinc-400 mb-2">Choose your Kendu Coach</p>
+          <p className="text-[11px] font-semibold text-zinc-400 mb-2">Choose your Coach</p>
           {[
-            { name: 'Kendu_Ishu', title: 'The Scientist', vibe: 'Data-driven. Logical.', color: 'text-blue-400' },
-            { name: 'Kendu_Nainu', title: 'The Energizer', vibe: 'Fun. Lively. Action.', color: 'text-pink-400' },
-            { name: 'Kendu_Goggins', title: 'The Warrior', vibe: 'No excuses. Grind.', color: 'text-red-400' },
-            { name: 'Kendu_Kip', title: 'The Sage', vibe: 'Patient. Wise. Recovery.', color: 'text-emerald-400' },
+            { name: 'The Scientist', title: 'The Scientist', vibe: 'Data-driven. Logical.', color: 'text-blue-400' },
+            { name: 'The Energizer', title: 'The Energizer', vibe: 'Fun. Lively. Action.', color: 'text-pink-400' },
+            { name: 'The Warrior', title: 'The Warrior', vibe: 'No excuses. Grind.', color: 'text-red-400' },
+            { name: 'The Sage', title: 'The Sage', vibe: 'Patient. Wise. Recovery.', color: 'text-emerald-400' },
           ].map(c => (
             <button
               key={c.name}

@@ -27,10 +27,10 @@ interface WorkoutNode {
 }
 
 const KENDU_COACHES: Record<string, { name: string; title: string; color: string }> = {
-  'Kendu_Ishu': { name: 'Kendu_Ishu', title: 'The Scientist', color: 'text-blue-400' },
-  'Kendu_Nainu': { name: 'Kendu_Nainu', title: 'The Energizer', color: 'text-pink-400' },
-  'Kendu_Goggins': { name: 'Kendu_Goggins', title: 'The Warrior', color: 'text-red-400' },
-  'Kendu_Kip': { name: 'Kendu_Kip', title: 'The Sage', color: 'text-emerald-400' },
+  'The Scientist': { name: 'The Scientist', title: 'The Scientist', color: 'text-blue-400' },
+  'The Energizer': { name: 'The Energizer', title: 'The Energizer', color: 'text-pink-400' },
+  'The Warrior': { name: 'The Warrior', title: 'The Warrior', color: 'text-red-400' },
+  'The Sage': { name: 'The Sage', title: 'The Sage', color: 'text-emerald-400' },
 };
 
 function generateWindingPath(nodeCount: number): string {
@@ -142,8 +142,8 @@ export function TrainPage() {
     queryFn: () => api.get('/training/plan').then(r => r.data).catch(() => null),
   });
 
-  const coachName = profile?.ai_coach_name || 'Kendu_Nainu';
-  const coach = KENDU_COACHES[coachName] || KENDU_COACHES['Kendu_Nainu'];
+  const coachName = profile?.ai_coach_name || 'The Energizer';
+  const coach = KENDU_COACHES[coachName] || KENDU_COACHES['The Energizer'];
   const trainingDays = profile?.training_days || 4;
 
   // Use real plan data if available, otherwise fall back to sample
@@ -182,10 +182,10 @@ export function TrainPage() {
           <div>
             <p className={`text-[10px] font-bold ${coach.color}`}>{coach.name}</p>
             <p className="text-[12px] text-zinc-400 mt-0.5">
-              {coachName === 'Kendu_Goggins' && "No days off. Today's tempo run builds mental steel. You kendu this."}
-              {coachName === 'Kendu_Ishu' && "Your acute load is 85 TSS. Today's tempo targets lactate threshold at 4:38/km. Optimal adaptation zone."}
-              {coachName === 'Kendu_Nainu' && "Hey! Today's a tempo day — you're gonna feel amazing after this one. Let's go! 🔥"}
-              {coachName === 'Kendu_Kip' && "Patience builds champions. Today's tempo is about controlled effort — 80% feel, 100% consistency."}
+              {coachName === 'The Warrior' && "No days off. Today's tempo run builds mental steel. You kendu this."}
+              {coachName === 'The Scientist' && "Your acute load is 85 TSS. Today's tempo targets lactate threshold at 4:38/km. Optimal adaptation zone."}
+              {coachName === 'The Energizer' && "Hey! Today's a tempo day — you're gonna feel amazing after this one. Let's go! 🔥"}
+              {coachName === 'The Sage' && "Patience builds champions. Today's tempo is about controlled effort — 80% feel, 100% consistency."}
             </p>
           </div>
         </motion.div>
@@ -383,10 +383,10 @@ export function TrainPage() {
                 <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3">
                   <p className={`text-[10px] font-bold ${coach.color}`}>{coach.name}:</p>
                   <p className="text-[11px] text-zinc-400 italic mt-0.5">
-                    {coachName === 'Kendu_Ishu' && '"Track your HR drift. If it creeps above threshold, pull back. Data doesn\'t lie."'}
-                    {coachName === 'Kendu_Nainu' && '"Don\'t overthink it! Shoes on, go. You\'ll feel amazing after 🔥"'}
-                    {coachName === 'Kendu_Goggins' && '"Nobody cares about your excuses. Show up. Suffer. Grow."'}
-                    {coachName === 'Kendu_Kip' && '"This single run means nothing alone — but accumulated over weeks, it builds champions."'}
+                    {coachName === 'The Scientist' && '"Track your HR drift. If it creeps above threshold, pull back. Data doesn\'t lie."'}
+                    {coachName === 'The Energizer' && '"Don\'t overthink it! Shoes on, go. You\'ll feel amazing after 🔥"'}
+                    {coachName === 'The Warrior' && '"Nobody cares about your excuses. Show up. Suffer. Grow."'}
+                    {coachName === 'The Sage' && '"This single run means nothing alone — but accumulated over weeks, it builds champions."'}
                   </p>
                 </div>
 

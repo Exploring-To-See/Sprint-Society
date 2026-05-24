@@ -37,7 +37,7 @@ const NUM_USERS = 100;
 const FIRST_NAMES = ['Arjun', 'Priya', 'Rahul', 'Neha', 'Vikram', 'Aisha', 'Karan', 'Ananya', 'Rohan', 'Divya', 'Aditya', 'Sakshi', 'Varun', 'Ishita', 'Dev', 'Kavya', 'Nikhil', 'Shruti', 'Aman', 'Riya', 'Siddharth', 'Pooja', 'Akash', 'Tanya', 'Manish', 'Sneha', 'Yash', 'Meghna', 'Kunal', 'Nisha', 'Deepak', 'Anjali', 'Harsh', 'Ritika', 'Gaurav', 'Simran', 'Mohit', 'Swati', 'Pranav', 'Kriti', 'Abhi', 'Diya', 'Sahil', 'Bhavna', 'Jay', 'Aditi', 'Raghav', 'Lavanya', 'Ankur', 'Fatima', 'Vivek', 'Kiara', 'Tushar', 'Muskaan', 'Parth', 'Aanchal', 'Shivam', 'Tanvi', 'Dhruv', 'Megha', 'Om', 'Palak', 'Rishabh', 'Saanvi', 'Aryan', 'Naina', 'Kabir', 'Isha', 'Reyansh', 'Zara', 'Advait', 'Anushka', 'Ishan', 'Myra', 'Krishna', 'Sara', 'Vihaan', 'Aanya', 'Atharv', 'Pihu', 'Ayaan', 'Kirti', 'Rudra', 'Avni', 'Aakash', 'Jiya', 'Laksh', 'Rhea', 'Arnav', 'Siya', 'Darsh', 'Nandini', 'Shivansh', 'Anika', 'Veer', 'Mahika', 'Aarav', 'Disha', 'Kabeer', 'Trisha'];
 const LAST_NAMES = ['Sharma', 'Patel', 'Singh', 'Kumar', 'Gupta', 'Joshi', 'Verma', 'Shah', 'Reddy', 'Nair', 'Mehta', 'Iyer', 'Kapoor', 'Rao', 'Bhat', 'Chopra', 'Malhotra', 'Saxena', 'Agarwal', 'Sinha'];
 
-const COACH_STYLES = ['Kendu_Ishu', 'Kendu_Nainu', 'Kendu_Goggins', 'Kendu_Kip'] as const;
+const COACH_STYLES = ['The Scientist', 'The Energizer', 'The Warrior', 'The Sage'] as const;
 
 // ============================================================================
 // Helpers

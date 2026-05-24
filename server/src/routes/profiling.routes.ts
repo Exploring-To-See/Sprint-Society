@@ -7,7 +7,7 @@ import {
   normalizeRecovery, normalizeVO2max, normalizePaceCompliance,
   calculateRunnerLevel, checkSafetyRails, tierDisplayName,
 } from '../engine/classification-engine';
-import type { Gender, BestTimes, RecoveryData } from '../engine/classification-engine';
+import type { Gender, BestTimes, RecoveryData, CalibrationInput } from '../engine/classification-engine';
 
 const router = Router();
 router.use(authenticate);
@@ -90,7 +90,7 @@ router.get('/dna', (req: AuthRequest, res: Response) => {
 // PUT /profiling/coach — switch AI coach
 router.put('/coach', (req: AuthRequest, res: Response) => {
   const { ai_coach_name } = req.body;
-  const validCoaches = ['Kendu_Ishu', 'Kendu_Nainu', 'Kendu_Goggins', 'Kendu_Kip'];
+  const validCoaches = ['The Scientist', 'The Energizer', 'The Warrior', 'The Sage'];
 
   if (!ai_coach_name || !validCoaches.includes(ai_coach_name)) {
     return res.status(400).json({ error: 'Invalid coach. Choose: ' + validCoaches.join(', ') });
@@ -167,6 +167,12 @@ router.get('/classification', (req: AuthRequest, res: Response) => {
   const createdAt = new Date(user.created_at || Date.now());
   const totalWeeksOnPlatform = Math.max(1, Math.round((Date.now() - createdAt.getTime()) / 604800000));
 
+  // Detect if user has verified race results (Strava race activities or manual race PRs)
+  const raceActivity = db.prepare(
+    `SELECT id FROM activities WHERE user_id = ? AND workout_type = 1 LIMIT 1`
+  ).get(req.userId) as any;
+  const hasRaceResult = !!raceActivity || prs.some((pr: any) => pr.source === 'race');
+
   // Normalize all factors
   const gender: Gender = user.gender === 'female' ? 'female' : 'male';
   const performanceScore = normalizePerformance(bestTimes, user.age || 25, gender);
@@ -185,7 +191,12 @@ router.get('/classification', (req: AuthRequest, res: Response) => {
     paceCompliance: complianceScore,
   };
 
-  const level = calculateRunnerLevel(factors);
+  const calibration: CalibrationInput = {
+    weeksOnPlatform: totalWeeksOnPlatform,
+    hasRaceResult,
+  };
+
+  const level = calculateRunnerLevel(factors, calibration);
 
   // Safety rails
   const acuteLoad = recentRuns.filter(r => {
@@ -211,6 +222,10 @@ router.get('/classification', (req: AuthRequest, res: Response) => {
     tierName: tierDisplayName(level.tier),
     subLevel: level.subLevel,
     rawScore: Math.round(level.rawScore * 100) / 100,
+    status: level.status,
+    statusLabel: level.status === 'calibrating'
+      ? `Calibrating (${3 - totalWeeksOnPlatform} week${3 - totalWeeksOnPlatform === 1 ? '' : 's'} remaining)`
+      : level.status === 'validated' ? 'Validated (Race verified)' : 'Provisional (Training data only)',
     display: `${tierDisplayName(level.tier)} ${level.subLevel}`,
     factors: {
       performance: Math.round(performanceScore * 10) / 10,

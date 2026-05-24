@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 
@@ -8,26 +8,26 @@ const cards = [
   {
     title: 'AI Coach',
     description: 'Your plan adapts after every run',
-    gradient: 'from-orange-500/15 to-amber-500/5',
-    border: 'border-orange-500/20',
+    gradient: 'from-orange-500/25 to-amber-500/10',
+    border: 'border-orange-500/30',
   },
   {
     title: 'Get Faster',
     description: 'Science-backed pace zones + race predictions',
-    gradient: 'from-emerald-500/15 to-cyan-500/5',
-    border: 'border-emerald-500/20',
+    gradient: 'from-emerald-500/25 to-cyan-500/10',
+    border: 'border-emerald-500/30',
   },
   {
     title: 'Communities',
     description: 'Find your crew. Join clubs. Run together.',
-    gradient: 'from-blue-500/15 to-purple-500/5',
-    border: 'border-blue-500/20',
+    gradient: 'from-blue-500/25 to-purple-500/10',
+    border: 'border-blue-500/30',
   },
   {
     title: 'Events',
     description: 'Show up. Check in. Earn awards.',
-    gradient: 'from-amber-500/15 to-rose-500/5',
-    border: 'border-amber-500/20',
+    gradient: 'from-amber-500/25 to-rose-500/10',
+    border: 'border-amber-500/30',
   },
 ];
 
@@ -204,102 +204,73 @@ export function HomePage() {
   };
 
   return (
-    <LayoutGroup>
-      <div className="min-h-screen bg-bg-primary flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-bg-primary flex flex-col relative overflow-hidden">
 
-        {/* SPLASH */}
-        <AnimatePresence>
-          {!introDone && (
-            <motion.div
-              className="fixed inset-0 z-[100] bg-bg-primary flex flex-col items-center justify-center gap-3"
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <motion.img
-                layoutId="app-logo"
-                src="/icons/logo.png"
-                alt="Sprint Society"
-                className="w-16 h-16 rounded-lg object-cover"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-              />
-              <motion.h1
-                layoutId="app-title"
-                className="font-heading text-2xl font-bold tracking-tight"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-              >
-                Sprint <span className="text-accent">Society</span>
-              </motion.h1>
-              <motion.p
-                className="text-zinc-500 text-xs"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                World's 1st AI-powered running community
-              </motion.p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* MAIN */}
-        {introDone && (
+      {/* SPLASH */}
+      <AnimatePresence>
+        {!introDone && (
           <motion.div
-            className="min-h-screen flex flex-col"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[100] bg-bg-primary flex flex-col items-center justify-center gap-3"
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Header — clean, no border, more space */}
-            <header className="sticky top-0 z-50 px-5 py-3.5 flex items-center gap-3 bg-bg-primary/90 backdrop-blur-md">
-              <motion.img
-                layoutId="app-logo"
-                src="/icons/logo.png"
-                alt="Sprint Society"
-                className="w-10 h-10 rounded-lg object-cover"
-              />
-              <div>
-                <motion.h1
-                  layoutId="app-title"
-                  className="font-heading text-lg font-bold tracking-tight leading-none"
-                >
-                  Sprint <span className="text-accent">Society</span>
-                </motion.h1>
-                <p className="text-zinc-500 text-[10px] mt-1">World's 1st AI-powered running community</p>
-              </div>
-            </header>
+            <motion.img
+              src="/icons/logo.png"
+              alt="Sprint Society"
+              className="w-16 h-16 rounded-lg object-cover"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+            />
+            <motion.h1
+              className="font-heading text-2xl font-bold tracking-tight"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+            >
+              Sprint <span className="text-accent">Society</span>
+            </motion.h1>
+            <motion.p
+              className="text-zinc-500 text-xs"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              World's 1st AI-powered running community
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MAIN */}
+      {introDone && (
+        <motion.div
+          className="min-h-screen flex flex-col"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Header */}
+          <header className="sticky top-0 z-50 px-5 py-3.5 flex items-center gap-3 bg-bg-primary/90 backdrop-blur-md">
+            <img src="/icons/logo.png" alt="Sprint Society" className="w-10 h-10 rounded-lg object-cover" />
+            <div>
+              <h1 className="font-heading text-xl font-bold tracking-tight leading-none">
+                Sprint <span className="text-accent">Society</span>
+              </h1>
+              <p className="text-zinc-500 text-[10px] mt-1.5">World's 1st AI-powered running community</p>
+            </div>
+          </header>
 
             {!showLogin ? (
               <div className="flex-1 flex flex-col">
-                {/* HERO — Photo with overlay text */}
-                <div className="relative h-[38vh] min-h-[220px] overflow-hidden">
+                {/* HERO — Photo, no text overlay */}
+                <div className="relative h-[32vh] min-h-[180px] overflow-hidden">
                   <img
                     src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80&auto=format&fit=crop"
                     alt="Runners"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <motion.h2
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="font-heading text-2xl font-bold text-white leading-tight"
-                    >
-                      Run smarter.<br />Together.
-                    </motion.h2>
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                      className="text-zinc-300 text-sm mt-2"
-                    >
-                      AI coaching, real events, a community that shows up.
-                    </motion.p>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/40 to-transparent" />
                 </div>
 
                 {/* Feature cards */}
@@ -323,7 +294,7 @@ export function HomePage() {
                           <h3 className="font-heading text-base font-bold text-white">{card.title}</h3>
                           <p className="text-zinc-400 text-[11px] mt-0.5">{card.description}</p>
                         </div>
-                        <div className="flex-1 rounded-xl bg-bg-primary/60 border border-white/5 p-3 overflow-hidden">
+                        <div className="flex-1 rounded-xl bg-bg-primary/80 backdrop-blur border border-white/8 p-3 overflow-hidden">
                           <CardPreview index={i} isActive={activeCard === i} />
                         </div>
                       </motion.div>
@@ -375,6 +346,6 @@ export function HomePage() {
           </motion.div>
         )}
       </div>
-    </LayoutGroup>
+    </div>
   );
 }

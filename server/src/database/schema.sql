@@ -558,7 +558,7 @@ CREATE TABLE IF NOT EXISTS runner_profiles (
     estimated_vo2max REAL,
     estimated_5k_time_sec INTEGER,
     personality_tags TEXT DEFAULT '[]',
-    ai_coach_name TEXT DEFAULT 'Kai',
+    ai_coach_name TEXT DEFAULT 'The Energizer',
     weekly_plan_generated INTEGER DEFAULT 0,
     profiling_complete INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

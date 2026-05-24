@@ -149,12 +149,12 @@ function determineCoachStyle(input: ProfilingInput): 'motivator' | 'analyst' | '
 
 function getCoachName(style: string): string {
   const names: Record<string, string> = {
-    motivator: 'Kendu_Nainu',
-    analyst: 'Kendu_Ishu',
-    zen: 'Kendu_Kip',
-    drill_sergeant: 'Kendu_Goggins',
+    motivator: 'The Energizer',
+    analyst: 'The Scientist',
+    zen: 'The Sage',
+    drill_sergeant: 'The Warrior',
   };
-  return names[style] || 'Kendu_Nainu';
+  return names[style] || 'The Energizer';
 }
 
 function buildPersonalityTags(input: ProfilingInput): string[] {

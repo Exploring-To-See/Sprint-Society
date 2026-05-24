@@ -71,10 +71,10 @@ const BAD_RUN_OPTIONS = [
 ];
 
 const KENDU_COACHES: Record<string, { name: string; title: string; vibe: string; gradient: string }> = {
-  'Kendu_Ishu': { name: 'Kendu_Ishu', title: 'The Scientist', vibe: 'Data-driven. Logical. Optimizes everything.', gradient: 'from-blue-500/20 to-cyan-500/20' },
-  'Kendu_Nainu': { name: 'Kendu_Nainu', title: 'The Energizer', vibe: 'Fun. Lively. Gets you moving.', gradient: 'from-pink-500/20 to-rose-500/20' },
-  'Kendu_Goggins': { name: 'Kendu_Goggins', title: 'The Warrior', vibe: 'No excuses. Discipline. Mental toughness.', gradient: 'from-red-500/20 to-orange-500/20' },
-  'Kendu_Kip': { name: 'Kendu_Kip', title: 'The Sage', vibe: 'Patient. Wise. Trusts the process.', gradient: 'from-emerald-500/20 to-teal-500/20' },
+  'The Scientist': { name: 'The Scientist', title: 'The Scientist', vibe: 'Data-driven. Logical. Optimizes everything.', gradient: 'from-blue-500/20 to-cyan-500/20' },
+  'The Energizer': { name: 'The Energizer', title: 'The Energizer', vibe: 'Fun. Lively. Gets you moving.', gradient: 'from-pink-500/20 to-rose-500/20' },
+  'The Warrior': { name: 'The Warrior', title: 'The Warrior', vibe: 'No excuses. Discipline. Mental toughness.', gradient: 'from-red-500/20 to-orange-500/20' },
+  'The Sage': { name: 'The Sage', title: 'The Sage', vibe: 'Patient. Wise. Trusts the process.', gradient: 'from-emerald-500/20 to-teal-500/20' },
 };
 
 interface ProfilingData {
@@ -580,7 +580,7 @@ export function AIProfilingPage() {
 }
 
 function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
-  const coach = KENDU_COACHES[dna.ai_coach_name] || KENDU_COACHES['Kendu_Ishu'];
+  const coach = KENDU_COACHES[dna.ai_coach_name] || KENDU_COACHES['The Scientist'];
 
   return (
     <div className="min-h-screen bg-bg-primary">
