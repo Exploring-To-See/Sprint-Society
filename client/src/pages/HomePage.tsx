@@ -294,7 +294,7 @@ export function HomePage() {
                           <h3 className="font-heading text-base font-bold text-white">{card.title}</h3>
                           <p className="text-zinc-400 text-[11px] mt-0.5">{card.description}</p>
                         </div>
-                        <div className="flex-1 rounded-xl bg-bg-primary/80 backdrop-blur border border-white/8 p-3 overflow-hidden">
+                        <div className="flex-1 rounded-xl bg-bg-primary/80 backdrop-blur border border-white/10 p-3 overflow-hidden">
                           <CardPreview index={i} isActive={activeCard === i} />
                         </div>
                       </motion.div>
@@ -346,6 +346,5 @@ export function HomePage() {
           </motion.div>
         )}
       </div>
-    </div>
   );
 }
