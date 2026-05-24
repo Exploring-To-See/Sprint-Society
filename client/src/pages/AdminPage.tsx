@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../lib/api';
 import { Button } from '../components/ui/Button';
+import { useAuth } from '../context/AuthContext';
 
 type Tab = 'overview' | 'runners' | 'events' | 'communities' | 'sessions' | 'announcements' | 'analytics' | 'flags' | 'segments' | 'notifications' | 'content' | 'audit' | 'engineering' | 'moderation';
 
@@ -20,6 +21,7 @@ function formatPace(seconds: number) {
 export function AdminPage() {
   const [tab, setTab] = useState<Tab>('overview');
   const queryClient = useQueryClient();
+  const { logout } = useAuth();
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
@@ -78,13 +80,14 @@ export function AdminPage() {
       {/* Header */}
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-3">
         <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-            <span className="text-sm font-heading font-bold text-black">K</span>
-          </div>
+          <img src="/icons/logo.png" alt="Sprint Society" className="w-8 h-8 rounded-lg object-cover" />
           <h1 className="font-heading text-lg font-bold">
             Sprint <span className="text-accent">Society</span>
           </h1>
           <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-bg-tertiary text-zinc-400 ml-1">ADMIN</span>
+          <button onClick={logout} className="ml-auto text-[11px] text-zinc-500 hover:text-red-400 transition-colors">
+            Log out
+          </button>
         </div>
 
         {/* Tabs */}

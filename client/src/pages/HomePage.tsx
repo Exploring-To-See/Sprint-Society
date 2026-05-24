@@ -175,7 +175,7 @@ export function HomePage() {
       const cardWidth = container.offsetWidth * 0.82;
       const nextIndex = (activeCard + 1) % cards.length;
       container.scrollTo({ left: nextIndex * cardWidth, behavior: 'smooth' });
-    }, 4500);
+    }, 2500);
     return () => clearInterval(interval);
   }, [introDone, showLogin, activeCard]);
 
@@ -204,7 +204,7 @@ export function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-bg-primary flex flex-col relative overflow-hidden">
 
       {/* SPLASH */}
       <AnimatePresence>
@@ -245,19 +245,19 @@ export function HomePage() {
       {/* MAIN */}
       {introDone && (
         <motion.div
-          className="min-h-screen flex flex-col"
+          className="h-full flex flex-col"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
           {/* Brand — inside hero, overlaid top-left, no panel */}
-          <div className="absolute top-0 left-0 right-0 z-20 px-5 pt-4 flex items-center gap-2.5">
-            <img src="/icons/logo.png" alt="Sprint Society" className="w-9 h-9 rounded-lg object-cover" />
+          <div className="absolute top-0 left-0 right-0 z-20 px-5 pt-5 flex items-center gap-3">
+            <img src="/icons/logo.png" alt="Sprint Society" className="w-11 h-11 rounded-lg object-cover" />
             <div>
-              <h1 className="font-heading text-xl font-bold tracking-tight leading-none text-white drop-shadow-lg">
+              <h1 className="font-heading text-2xl font-bold tracking-tight leading-none text-white drop-shadow-lg">
                 Sprint <span className="text-accent">Society</span>
               </h1>
-              <p className="text-white/60 text-[10px] mt-0.5 drop-shadow">World's 1st AI-powered running community</p>
+              <p className="text-white/70 text-[11px] mt-1 drop-shadow">World's 1st AI-powered running community</p>
             </div>
           </div>
 
@@ -288,7 +288,7 @@ export function HomePage() {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 + i * 0.1, duration: 0.4 }}
-                        className={`snap-start shrink-0 w-[80%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-4 flex flex-col min-h-[240px]`}
+                        className={`snap-start shrink-0 w-[80%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-4 flex flex-col h-[220px]`}
                       >
                         <div className="mb-2">
                           <h3 className="font-heading text-lg font-bold text-white tracking-tight">{card.title}</h3>
@@ -309,7 +309,7 @@ export function HomePage() {
                   </div>
 
                   {/* CTA */}
-                  <div className="px-6 pb-8 space-y-3">
+                  <div className="px-6 pb-4 space-y-2.5">
                     <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
                       Join Sprint Society
                     </Button>
@@ -326,8 +326,7 @@ export function HomePage() {
             ) : (
               <div className="flex-1 flex flex-col justify-center px-6 pb-8">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto space-y-4">
-                  <div className="flex flex-col items-center mb-6">
-                    <img src="/icons/logo.png" alt="Sprint Society" className="w-12 h-12 rounded-lg object-cover mb-3" />
+                  <div className="text-center mb-6">
                     <h2 className="font-heading text-xl font-bold text-white">Welcome back</h2>
                     <p className="text-zinc-500 text-sm mt-1">Log in to continue your journey</p>
                   </div>

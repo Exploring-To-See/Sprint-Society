@@ -136,11 +136,11 @@ export function RegistrationFlow() {
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
       {/* Brand header */}
-      <div className="px-5 pt-5 pb-3 flex items-center gap-2.5">
-        <img src="/icons/logo.png" alt="Sprint Society" className="w-8 h-8 rounded-lg object-cover" />
+      <div className="px-5 pt-5 pb-2 flex items-center gap-2.5">
+        <img src="/icons/logo.png" alt="Sprint Society" className="w-9 h-9 rounded-lg object-cover" />
         <div>
-          <h1 className="font-heading text-base font-bold tracking-tight leading-none">Sprint <span className="text-accent">Society</span></h1>
-          <p className="text-zinc-600 text-[9px] mt-0.5">World's 1st AI-powered running community</p>
+          <h1 className="font-heading text-lg font-bold tracking-tight leading-none">Sprint <span className="text-accent">Society</span></h1>
+          <p className="text-zinc-500 text-[10px] mt-0.5">World's 1st AI-powered running community</p>
         </div>
       </div>
       <div className="px-5 pb-3">
