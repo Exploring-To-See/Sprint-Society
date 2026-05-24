@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, LayoutGroup, useInView } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 
