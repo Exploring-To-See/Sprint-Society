@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playSound } from '../../lib/sounds';
 
 interface Particle {
   id: number;
@@ -96,6 +97,7 @@ export function CelebrationToast({ title, message, type, visible, onDismiss }: C
 
   useEffect(() => {
     if (visible) {
+      playSound('achievement');
       const timeout = setTimeout(onDismiss, 5000);
       return () => clearTimeout(timeout);
     }

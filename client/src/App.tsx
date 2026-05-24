@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { PageTransition } from './components/ui/PageTransition';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -78,40 +80,44 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+  const location = useLocation();
+
   return (
-    <Routes>
-      <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
-      <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-      <Route path="/forgot-password" element={<Suspense fallback={null}><ForgotPasswordPage /></Suspense>} />
-      <Route path="/reset-password/:token" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
-      <Route path="/join" element={<LandingPage />} />
-      <Route path="/founding" element={<LandingPage />} />
-      <Route path="/strava/callback" element={<StravaCallbackPage />} />
-      <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/coaching" element={<ProtectedRoute><CoachingPage /></ProtectedRoute>} />
-      <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
-      <Route path="/train" element={<ProtectedRoute><TrainPage /></ProtectedRoute>} />
-      <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
-      <Route path="/runs" element={<ProtectedRoute><RunHistoryPage /></ProtectedRoute>} />
-      <Route path="/share" element={<ProtectedRoute><SharePage /></ProtectedRoute>} />
-      <Route path="/heart-rate" element={<ProtectedRoute><HRZonesPage /></ProtectedRoute>} />
-      <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
-      <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
-      <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-      <Route path="/events/:id" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
-      <Route path="/communities" element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>} />
-      <Route path="/communities/create" element={<ProtectedRoute><CreateCommunityPage /></ProtectedRoute>} />
-      <Route path="/communities/:id" element={<ProtectedRoute><CommunityDetailPage /></ProtectedRoute>} />
-      <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-      <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-      <Route path="/profiling" element={<ProtectedRoute><AIProfilingPage /></ProtectedRoute>} />
-      <Route path="/ai-profile" element={<ProtectedRoute><AIProfilePage /></ProtectedRoute>} />
-      <Route path="/user/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PublicRoute><PageTransition><HomePage /></PageTransition></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
+        <Route path="/forgot-password" element={<PageTransition><Suspense fallback={null}><ForgotPasswordPage /></Suspense></PageTransition>} />
+        <Route path="/reset-password/:token" element={<PageTransition><Suspense fallback={null}><ResetPasswordPage /></Suspense></PageTransition>} />
+        <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route path="/strava/callback" element={<StravaCallbackPage />} />
+        <Route path="/admin" element={<AdminRoute><PageTransition><AdminPage /></PageTransition></AdminRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/coaching" element={<ProtectedRoute><PageTransition><CoachingPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/training" element={<ProtectedRoute><PageTransition><TrainingPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/train" element={<ProtectedRoute><PageTransition><TrainPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/progress" element={<ProtectedRoute><PageTransition><ProgressPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/runs" element={<ProtectedRoute><PageTransition><RunHistoryPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/share" element={<ProtectedRoute><PageTransition><SharePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/heart-rate" element={<ProtectedRoute><PageTransition><HRZonesPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/records" element={<ProtectedRoute><PageTransition><RecordsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/feed" element={<ProtectedRoute><PageTransition><FeedPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/events" element={<ProtectedRoute><PageTransition><EventsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/events/:id" element={<ProtectedRoute><PageTransition><EventDetailPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/communities" element={<ProtectedRoute><PageTransition><CommunitiesPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/communities/create" element={<ProtectedRoute><PageTransition><CreateCommunityPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/communities/:id" element={<ProtectedRoute><PageTransition><CommunityDetailPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><PageTransition><ChatPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><PageTransition><NotificationsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/subscription" element={<ProtectedRoute><PageTransition><SubscriptionPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/profiling" element={<ProtectedRoute><PageTransition><AIProfilingPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/ai-profile" element={<ProtectedRoute><PageTransition><AIProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/user/:id" element={<ProtectedRoute><PageTransition><UserProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 

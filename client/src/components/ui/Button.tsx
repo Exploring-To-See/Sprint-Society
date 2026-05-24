@@ -1,4 +1,6 @@
 import { ReactNode } from 'react';
+import { motion } from 'framer-motion';
+import { hapticLight } from '../../lib/haptics';
 
 interface ButtonProps {
   children: ReactNode;
@@ -12,7 +14,7 @@ interface ButtonProps {
 }
 
 export function Button({ children, onClick, variant = 'primary', size = 'md', disabled, fullWidth, type = 'button', className = '' }: ButtonProps) {
-  const base = 'font-semibold rounded-lg transition-all duration-100 flex items-center justify-center gap-2 active:scale-[0.97]';
+  const base = 'font-semibold rounded-lg flex items-center justify-center gap-2';
 
   const variants = {
     primary: 'bg-accent text-black hover:bg-accent-warm',
@@ -27,13 +29,16 @@ export function Button({ children, onClick, variant = 'primary', size = 'md', di
   };
 
   return (
-    <button
+    <motion.button
       type={type}
-      onClick={onClick}
+      onClick={onClick ? () => { hapticLight(); onClick(); } : undefined}
       disabled={disabled}
+      whileTap={disabled ? undefined : { scale: 0.96 }}
+      whileHover={disabled ? undefined : { scale: 1.01 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className={`${base} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''} ${className}`}
     >
       {children}
-    </button>
+    </motion.button>
   );
 }

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { playSound } from '../../lib/sounds';
 import { PaceChart } from './PaceChart';
 import { ChallengeList } from './ChallengeList';
 import { ReadinessCard } from './ReadinessCard';
@@ -22,6 +23,16 @@ const fadeUp = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 28 } },
 };
+
+function getGreeting(name: string): { text: string; icon: string } {
+  const hour = new Date().getHours();
+  const firstName = name?.split(' ')[0] || 'Runner';
+  if (hour < 5) return { text: `Rest up, ${firstName}`, icon: '\u{1F319}' };
+  if (hour < 12) return { text: `Good morning, ${firstName}`, icon: '\u{2600}\u{FE0F}' };
+  if (hour < 17) return { text: `Keep pushing, ${firstName}`, icon: '\u{1F4AA}' };
+  if (hour < 21) return { text: `Evening grind, ${firstName}`, icon: '\u{1F306}' };
+  return { text: `Rest up, ${firstName}`, icon: '\u{1F319}' };
+}
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-bg-tertiary/50 ${className}`} />;
@@ -45,6 +56,7 @@ type TrendTab = 'pace' | 'km' | 'consistency';
 
 export function Dashboard() {
   const { user } = useAuth();
+  const smartGreeting = getGreeting((user as any)?.name || 'Runner');
   const navigate = useNavigate();
   const [trendTab, setTrendTab] = useState<TrendTab>('pace');
   const [showConfetti, setShowConfetti] = useState(false);
@@ -62,6 +74,7 @@ export function Dashboard() {
     if (lastLevelRef.current !== null && xp.current_level > lastLevelRef.current) {
       setShowConfetti(true);
       setLevelUpToast({ title: `Level ${xp.current_level}!`, message: `You just leveled up. Keep grinding.` });
+      playSound('levelup');
     }
     lastLevelRef.current = xp.current_level;
   }, [xp?.current_level]);
@@ -135,6 +148,12 @@ export function Dashboard() {
       <CelebrationToast title={levelUpToast.title} message={levelUpToast.message} type="gold" visible={!!levelUpToast} onDismiss={() => setLevelUpToast(null)} />
     )}
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
+      {/* Smart Greeting */}
+      <motion.div variants={fadeUp} className="mb-4">
+        <p className="text-zinc-500 text-xs">{smartGreeting.icon} {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+        <h1 className="font-heading text-2xl font-bold text-white mt-1">{smartGreeting.text}</h1>
+      </motion.div>
+
       {/* Header */}
       <motion.div variants={fadeUp} className="pt-1">
         <div className="flex items-start justify-between">
