@@ -7,33 +7,42 @@ import { PageTransition } from './components/ui/PageTransition';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { CoachingPage } from './pages/CoachingPage';
-import { RunHistoryPage } from './pages/RunHistoryPage';
-import { SharePage } from './pages/SharePage';
 import { ProfilePage } from './pages/ProfilePage';
-import { AdminPage } from './pages/AdminPage';
 import { StravaCallbackPage } from './pages/StravaCallbackPage';
-import { TrainingPage } from './pages/TrainingPage';
-import { TrainPage } from './pages/TrainPage';
-import { ProgressPage } from './pages/ProgressPage';
-import { HRZonesPage } from './pages/HRZonesPage';
-import { RecordsPage } from './pages/RecordsPage';
-import { FeedPage } from './pages/FeedPage';
-import { ChatPage } from './pages/ChatPage';
-import { EventsPage } from './pages/EventsPage';
-import { EventDetailPage } from './pages/EventDetailPage';
-import { CommunitiesPage } from './pages/CommunitiesPage';
-import { CommunityDetailPage } from './pages/CommunityDetailPage';
-import { CreateCommunityPage } from './pages/CreateCommunityPage';
-import { NotificationsPage } from './pages/NotificationsPage';
-import { UserProfilePage } from './pages/UserProfilePage';
-import { SubscriptionPage } from './pages/SubscriptionPage';
-import { AIProfilingPage } from './pages/AIProfilingPage';
-import { AIProfilePage } from './pages/AIProfilePage';
 import { LandingPage } from './pages/LandingPage';
 
+// Lazy-loaded pages (code splitting)
+const CoachingPage = lazy(() => import('./pages/CoachingPage').then(m => ({ default: m.CoachingPage })));
+const RunHistoryPage = lazy(() => import('./pages/RunHistoryPage').then(m => ({ default: m.RunHistoryPage })));
+const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.SharePage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const TrainingPage = lazy(() => import('./pages/TrainingPage').then(m => ({ default: m.TrainingPage })));
+const TrainPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m.TrainPage })));
+const ProgressPage = lazy(() => import('./pages/ProgressPage').then(m => ({ default: m.ProgressPage })));
+const HRZonesPage = lazy(() => import('./pages/HRZonesPage').then(m => ({ default: m.HRZonesPage })));
+const RecordsPage = lazy(() => import('./pages/RecordsPage').then(m => ({ default: m.RecordsPage })));
+const FeedPage = lazy(() => import('./pages/FeedPage').then(m => ({ default: m.FeedPage })));
+const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const EventsPage = lazy(() => import('./pages/EventsPage').then(m => ({ default: m.EventsPage })));
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage').then(m => ({ default: m.EventDetailPage })));
+const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage').then(m => ({ default: m.CommunitiesPage })));
+const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage').then(m => ({ default: m.CommunityDetailPage })));
+const CreateCommunityPage = lazy(() => import('./pages/CreateCommunityPage').then(m => ({ default: m.CreateCommunityPage })));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
+const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })));
+const AIProfilingPage = lazy(() => import('./pages/AIProfilingPage').then(m => ({ default: m.AIProfilingPage })));
+const AIProfilePage = lazy(() => import('./pages/AIProfilePage').then(m => ({ default: m.AIProfilePage })));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+
+function LazyLoad({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg-primary flex items-center justify-center"><div className="animate-pulse text-4xl">⚡</div></div>}>
+      {children}
+    </Suspense>
+  );
+}
 
 function ProtectedRoute({ children, skipProfilingCheck }: { children: React.ReactNode; skipProfilingCheck?: boolean }) {
   const { user, loading } = useAuth();
@@ -87,33 +96,33 @@ function AppRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PublicRoute><PageTransition><HomePage /></PageTransition></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
-        <Route path="/forgot-password" element={<PageTransition><Suspense fallback={null}><ForgotPasswordPage /></Suspense></PageTransition>} />
-        <Route path="/reset-password/:token" element={<PageTransition><Suspense fallback={null}><ResetPasswordPage /></Suspense></PageTransition>} />
+        <Route path="/forgot-password" element={<PageTransition><LazyLoad><ForgotPasswordPage /></LazyLoad></PageTransition>} />
+        <Route path="/reset-password/:token" element={<PageTransition><LazyLoad><ResetPasswordPage /></LazyLoad></PageTransition>} />
         <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/strava/callback" element={<StravaCallbackPage />} />
-        <Route path="/admin" element={<AdminRoute><PageTransition><AdminPage /></PageTransition></AdminRoute>} />
+        <Route path="/admin" element={<AdminRoute><PageTransition><LazyLoad><AdminPage /></LazyLoad></PageTransition></AdminRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/coaching" element={<ProtectedRoute><PageTransition><CoachingPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/training" element={<ProtectedRoute><PageTransition><TrainingPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/train" element={<ProtectedRoute><PageTransition><TrainPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/progress" element={<ProtectedRoute><PageTransition><ProgressPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/runs" element={<ProtectedRoute><PageTransition><RunHistoryPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/share" element={<ProtectedRoute><PageTransition><SharePage /></PageTransition></ProtectedRoute>} />
-        <Route path="/heart-rate" element={<ProtectedRoute><PageTransition><HRZonesPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/records" element={<ProtectedRoute><PageTransition><RecordsPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/feed" element={<ProtectedRoute><PageTransition><FeedPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/events" element={<ProtectedRoute><PageTransition><EventsPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/events/:id" element={<ProtectedRoute><PageTransition><EventDetailPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/communities" element={<ProtectedRoute><PageTransition><CommunitiesPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/communities/create" element={<ProtectedRoute><PageTransition><CreateCommunityPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/communities/:id" element={<ProtectedRoute><PageTransition><CommunityDetailPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><PageTransition><ChatPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><PageTransition><NotificationsPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/subscription" element={<ProtectedRoute><PageTransition><SubscriptionPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/profiling" element={<ProtectedRoute><PageTransition><AIProfilingPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/ai-profile" element={<ProtectedRoute><PageTransition><AIProfilePage /></PageTransition></ProtectedRoute>} />
-        <Route path="/user/:id" element={<ProtectedRoute><PageTransition><UserProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/coaching" element={<ProtectedRoute><PageTransition><LazyLoad><CoachingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/training" element={<ProtectedRoute><PageTransition><LazyLoad><TrainingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/train" element={<ProtectedRoute><PageTransition><LazyLoad><TrainPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/progress" element={<ProtectedRoute><PageTransition><LazyLoad><ProgressPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/runs" element={<ProtectedRoute><PageTransition><LazyLoad><RunHistoryPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/share" element={<ProtectedRoute><PageTransition><LazyLoad><SharePage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/heart-rate" element={<ProtectedRoute><PageTransition><LazyLoad><HRZonesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/records" element={<ProtectedRoute><PageTransition><LazyLoad><RecordsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/feed" element={<ProtectedRoute><PageTransition><LazyLoad><FeedPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/events" element={<ProtectedRoute><PageTransition><LazyLoad><EventsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/events/:id" element={<ProtectedRoute><PageTransition><LazyLoad><EventDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/communities" element={<ProtectedRoute><PageTransition><LazyLoad><CommunitiesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/communities/create" element={<ProtectedRoute><PageTransition><LazyLoad><CreateCommunityPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/communities/:id" element={<ProtectedRoute><PageTransition><LazyLoad><CommunityDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><PageTransition><LazyLoad><ChatPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><PageTransition><LazyLoad><NotificationsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/subscription" element={<ProtectedRoute><PageTransition><LazyLoad><SubscriptionPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/profiling" element={<ProtectedRoute><PageTransition><LazyLoad><AIProfilingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/ai-profile" element={<ProtectedRoute><PageTransition><LazyLoad><AIProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/user/:id" element={<ProtectedRoute><PageTransition><LazyLoad><UserProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

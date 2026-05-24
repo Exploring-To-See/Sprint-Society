@@ -676,4 +676,35 @@ router.patch('/feedback/:id', (req: AuthRequest, res: Response) => {
   res.json({ success: true });
 });
 
+// ===== STREAK NUDGES =====
+
+router.post('/send-streak-nudges', (req: AuthRequest, res: Response) => {
+  const today = new Date().toISOString().split('T')[0];
+
+  const atRiskUsers = db.prepare(`
+    SELECT ux.user_id, ux.current_streak_days, u.name
+    FROM user_xp ux
+    JOIN users u ON ux.user_id = u.id
+    WHERE ux.current_streak_days >= 3
+    AND u.id NOT IN (
+      SELECT user_id FROM activities WHERE DATE(start_date) = ?
+    )
+  `).all(today) as any[];
+
+  let sent = 0;
+  for (const user of atRiskUsers) {
+    db.prepare(`
+      INSERT INTO user_notifications (user_id, type, title, body)
+      VALUES (?, 'ai_insight', ?, ?)
+    `).run(
+      user.user_id,
+      `Don't lose your ${user.current_streak_days}-day streak!`,
+      `Even a quick walk counts. Keep the fire going.`
+    );
+    sent++;
+  }
+
+  res.json({ sent, total_at_risk: atRiskUsers.length });
+});
+
 export default router;

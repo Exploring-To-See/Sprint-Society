@@ -451,8 +451,11 @@ function CommunityChat({ communityId }: { communityId: string }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [connected, setConnected] = useState(false);
+  const [connectionLost, setConnectionLost] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const reconnectAttempts = useRef(0);
+  const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: history } = useQuery({
     queryKey: ['community-chat', communityId],
@@ -463,7 +466,7 @@ function CommunityChat({ communityId }: { communityId: string }) {
     if (history?.messages) setMessages(history.messages);
   }, [history]);
 
-  useEffect(() => {
+  const connectWs = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -475,19 +478,46 @@ function CommunityChat({ communityId }: { communityId: string }) {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      ws.onopen = () => setConnected(true);
-      ws.onclose = () => setConnected(false);
+      ws.onopen = () => {
+        setConnected(true);
+        setConnectionLost(false);
+        reconnectAttempts.current = 0;
+      };
+
+      ws.onclose = () => {
+        setConnected(false);
+        if (reconnectAttempts.current < 5) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+          reconnectAttempts.current++;
+          reconnectTimeout.current = setTimeout(connectWs, delay);
+        } else {
+          setConnectionLost(true);
+        }
+      };
+
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === 'chat') {
           setMessages(prev => [...prev, msg]);
         }
       };
-
-      return () => { ws.close(); };
     } catch {
       setConnected(false);
     }
+  };
+
+  const handleRetry = () => {
+    reconnectAttempts.current = 0;
+    setConnectionLost(false);
+    connectWs();
+  };
+
+  useEffect(() => {
+    connectWs();
+    return () => {
+      if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
+      wsRef.current?.close();
+    };
   }, [communityId]);
 
   useEffect(() => {
@@ -504,7 +534,15 @@ function CommunityChat({ communityId }: { communityId: string }) {
     <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-[400px]">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] text-zinc-600">
-          {connected ? <span className="text-accent-green">● Live</span> : <span className="text-zinc-600">○ Connecting...</span>}
+          {connectionLost ? (
+            <button onClick={handleRetry} className="text-red-400 active:scale-95 transition-transform">
+              ● Connection lost. Tap to retry.
+            </button>
+          ) : connected ? (
+            <span className="text-accent-green">● Live</span>
+          ) : (
+            <span className="text-zinc-600">○ Connecting...</span>
+          )}
         </p>
       </div>
 

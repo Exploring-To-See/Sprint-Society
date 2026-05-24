@@ -250,31 +250,27 @@ export function HomePage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Brand — inside hero, overlaid top-left, no panel */}
-          <div className="absolute top-0 left-0 right-0 z-20 px-5 pt-5 flex items-center gap-3">
-            <img src="/icons/logo.png" alt="Sprint Society" className="w-11 h-11 rounded-lg object-cover" />
-            <div>
-              <h1 className="font-heading text-2xl font-bold tracking-tight leading-none text-white drop-shadow-lg">
-                Sprint <span className="text-accent">Society</span>
-              </h1>
-              <p className="text-white/70 text-[11px] mt-1 drop-shadow">World's 1st AI-powered running community</p>
-            </div>
-          </div>
-
             {!showLogin ? (
               <div className="flex-1 flex flex-col">
-                {/* HERO — Photo with brand overlaid */}
-                <div className="relative h-[28vh] min-h-[160px] overflow-hidden">
+                {/* Hero photo with brand overlaid top-center */}
+                <div className="relative h-[22vh] min-h-[130px] overflow-hidden">
                   <img
                     src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80&auto=format&fit=crop"
                     alt="Runners"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/50 to-bg-primary/30" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                    <img src="/icons/logo.png" alt="Sprint Society" className="w-12 h-12 rounded-lg object-cover" />
+                    <h1 className="font-heading text-2xl font-bold tracking-tight mt-2 text-white drop-shadow-lg">
+                      Sprint <span className="text-accent">Society</span>
+                    </h1>
+                    <p className="text-white/70 text-[11px] mt-1 drop-shadow">World's 1st AI-powered running community</p>
+                  </div>
                 </div>
 
                 {/* Feature cards */}
-                <div className="flex-1 flex flex-col gap-4 pt-3">
+                <div className="flex-1 flex flex-col gap-3">
                   <div
                     ref={scrollRef}
                     onScroll={handleScroll}
@@ -288,7 +284,7 @@ export function HomePage() {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 + i * 0.1, duration: 0.4 }}
-                        className={`snap-start shrink-0 w-[80%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-4 flex flex-col h-[220px]`}
+                        className={`snap-start shrink-0 w-[80%] max-w-[300px] rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-4 flex flex-col h-[260px]`}
                       >
                         <div className="mb-2">
                           <h3 className="font-heading text-lg font-bold text-white tracking-tight">{card.title}</h3>
@@ -309,7 +305,7 @@ export function HomePage() {
                   </div>
 
                   {/* CTA */}
-                  <div className="px-6 pb-4 space-y-2.5">
+                  <div className="px-6 pb-[5vh] space-y-2.5">
                     <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
                       Join Sprint Society
                     </Button>
