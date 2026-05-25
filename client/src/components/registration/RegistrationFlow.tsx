@@ -61,8 +61,6 @@ export function RegistrationFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [stravaConnecting, setStravaConnecting] = useState(false);
-  const [stravaConnected, setStravaConnected] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalSteps = 2;
@@ -88,18 +86,6 @@ export function RegistrationFlow() {
     }
   };
 
-  const handleStravaConnect = async () => {
-    setStravaConnecting(true);
-    try {
-      const res = await fetch('/api/strava/auth');
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      setStravaConnecting(false);
-    }
-  };
 
   const canProceed = () => {
     switch (step) {

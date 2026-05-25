@@ -335,11 +335,6 @@ function SettingsSection() {
   const [passwordErr, setPasswordErr] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { data: stravaStatus } = useQuery({
-    queryKey: ['strava-status'],
-    queryFn: () => api.get('/strava/status').then(r => r.data),
-  });
-
   const { data: dnaProfile } = useQuery({
     queryKey: ['profiling-dna'],
     queryFn: () => api.get('/profiling/dna').then(r => r.data).catch(() => null),
@@ -352,11 +347,6 @@ function SettingsSection() {
       setShowCoachPicker(false);
     },
   });
-
-  const connectStrava = async () => {
-    const { data } = await api.get('/strava/auth');
-    window.location.href = data.url;
-  };
 
   const handleChangePassword = async () => {
     setLoading(true);
@@ -378,30 +368,6 @@ function SettingsSection() {
   return (
     <motion.div variants={fadeUp} className="space-y-3">
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Settings</h3>
-
-      {/* Strava */}
-      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" fill="#FC4C02"/>
-            </svg>
-          </div>
-          <div>
-            <p className="text-[12px] font-medium text-white">Strava</p>
-            <p className="text-[9px] text-zinc-600">
-              {stravaStatus?.connected ? 'Connected' : 'Not connected'}
-            </p>
-          </div>
-        </div>
-        {stravaStatus?.connected ? (
-          <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
-        ) : (
-          <button onClick={connectStrava} className="text-[10px] font-semibold text-accent active:scale-95 transition-all">
-            Connect
-          </button>
-        )}
-      </div>
 
       {/* AI Coach Selection */}
       {!showCoachPicker ? (

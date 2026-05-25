@@ -107,6 +107,42 @@ router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
   res.json(weeks);
 });
 
+// POST /runs/log — Manual run logging (GPS tracker or manual entry)
+router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
+  const { distance_meters, moving_time_seconds, start_date } = req.body;
+
+  if (!distance_meters || !moving_time_seconds) {
+    return res.status(400).json({ error: 'Distance and time required' });
+  }
+
+  const pacePerKm = distance_meters > 0 ? (moving_time_seconds / (distance_meters / 1000)) : 0;
+
+  const result = db.prepare(`
+    INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type)
+    VALUES (?, ?, ?, ?, ?, ?, 'Run')
+  `).run(req.userId, distance_meters, moving_time_seconds, moving_time_seconds, pacePerKm, start_date || new Date().toISOString());
+
+  // Update streak
+  const today = new Date().toISOString().split('T')[0];
+  const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(req.userId) as any;
+  if (xp) {
+    const lastDate = xp.last_activity_date;
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    if (lastDate === yesterday) {
+      db.prepare('UPDATE user_xp SET current_streak_days = current_streak_days + 1, last_activity_date = ?, longest_streak_days = MAX(longest_streak_days, current_streak_days + 1) WHERE user_id = ?').run(today, req.userId);
+    } else if (lastDate !== today) {
+      db.prepare('UPDATE user_xp SET current_streak_days = 1, last_activity_date = ? WHERE user_id = ?').run(today, req.userId);
+    }
+  }
+
+  // Award XP for completing a run
+  db.prepare('UPDATE user_xp SET total_xp = total_xp + 25 WHERE user_id = ?').run(req.userId);
+  db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, 25, ?, ?)').run(req.userId, 'run_completed', `Logged a ${(distance_meters / 1000).toFixed(1)}km run`);
+
+  res.status(201).json({ id: result.lastInsertRowid, message: 'Run saved!' });
+});
+
 router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   const run = db.prepare('SELECT * FROM activities WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!run) return res.status(404).json({ error: 'Run not found' });

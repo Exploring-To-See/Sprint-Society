@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're Invited — Sprint Society</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090B;
+      --surface: #131316;
+      --surface-2: #1E1E22;
+      --border: #2a2a30;
+      --accent: #F97316;
+      --accent-warm: #FB923C;
+      --accent-gold: #FBBF24;
+      --text: #f0f0f2;
+      --text-muted: #8b8b96;
+      --text-dim: #55555f;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      position: relative;
+    }
+
+    .glow-top {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(249, 115, 22, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 60px 0 48px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-logo {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      border-radius: 14px;
+      overflow: hidden;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .hero-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .hero-brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .hero-brand .accent { color: var(--accent); }
+
+    .hero-tagline {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(249, 115, 22, 0.08);
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      animation: pulse-badge 3s ease-in-out infinite;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(36px, 8vw, 48px);
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent), var(--accent-gold));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 360px;
+      margin: 0 auto;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 48px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    /* Gradient border card */
+    .glow-card {
+      position: relative;
+      border-radius: 16px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.4), rgba(251, 191, 36, 0.1), rgba(249, 115, 22, 0.3));
+      animation: border-rotate 6s linear infinite;
+      background-size: 200% 200%;
+    }
+
+    .glow-card-inner {
+      background: var(--surface);
+      border-radius: 15px;
+      padding: 24px;
+    }
+
+    /* Steps */
+    .steps { counter-reset: step; }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      align-items: flex-start;
+    }
+
+    .step + .step { border-top: 1px solid rgba(255, 255, 255, 0.04); }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .step-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .step-text strong { color: var(--text); font-weight: 600; }
+
+    .step-text code {
+      background: rgba(249, 115, 22, 0.12);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Week cards */
+    .week-grid { display: grid; gap: 12px; }
+
+    .week-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      transition: border-color 0.3s;
+    }
+
+    .week-card:hover { border-color: rgba(249, 115, 22, 0.25); }
+
+    .week-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .week-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .week-tasks { list-style: none; }
+
+    .week-tasks li {
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 3px 0 3px 18px;
+      position: relative;
+    }
+
+    .week-tasks li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--accent-warm);
+    }
+
+    /* Perks */
+    .perks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .perk {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      transition: transform 0.2s, border-color 0.3s;
+    }
+
+    .perk:hover {
+      transform: translateY(-2px);
+      border-color: rgba(249, 115, 22, 0.2);
+    }
+
+    .perk-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+    .perk-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .perk-desc { font-size: 11px; color: var(--text-dim); }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      padding: 40px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 36px;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.3s;
+      animation: cta-glow 3s ease-in-out infinite;
+    }
+
+    .cta-btn:hover { transform: scale(1.03); }
+    .cta-btn:active { transform: scale(0.97); }
+
+    .cta-code { margin-top: 12px; font-size: 13px; color: var(--text-muted); }
+    .cta-code span { color: var(--accent); font-family: 'Space Grotesk', monospace; font-weight: 600; }
+
+    /* WhatsApp box */
+    .msg-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      white-space: pre-line;
+      position: relative;
+    }
+
+    .msg-box::before {
+      content: 'COPY & SEND';
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      background: var(--bg);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .msg-box a { color: var(--accent); text-decoration: none; }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer strong { color: var(--text-muted); }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 48px 0;
+    }
+
+    /* Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes pulse-badge {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.1); }
+      50% { box-shadow: 0 0 20px 4px rgba(249, 115, 22, 0.08); }
+    }
+
+    @keyframes border-rotate {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes cta-glow {
+      0%, 100% { box-shadow: 0 0 20px 0 rgba(249, 115, 22, 0.2); }
+      50% { box-shadow: 0 0 40px 8px rgba(249, 115, 22, 0.25); }
+    }
+
+    /* Print */
+    @media print {
+      body { background: #fff; color: #111; }
+      .glow-top { display: none; }
+      .glow-card { background: none; border: 1px solid #ddd; }
+      .glow-card-inner { background: #f8f8f8; }
+      .hero h1 .gradient { -webkit-text-fill-color: #c2410c; background: none; }
+      .cta-btn { background: #ea580c; color: #fff; box-shadow: none; animation: none; }
+      .hero-badge, .hero-logo { animation: none; }
+      .hero-badge { border-color: #fed7aa; color: #c2410c; background: #fff7ed; }
+      .week-card, .perk { border-color: #ddd; background: #f9f9f9; }
+      .step-num { border-color: #fed7aa; background: #fff7ed; color: #c2410c; }
+      .msg-box { background: #f5f5f5; border-color: #ddd; color: #333; }
+      .msg-box::before { background: #fff; color: #c2410c; }
+      p, .step-text, .week-tasks li, .perk-desc, .cta-code { color: #444; }
+      .section-label, .week-num { color: #c2410c; }
+      .hero-brand .accent { color: #c2410c; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-top"></div>
+
+  <div class="page">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-logo">
+        <img src="./beta-tester-logo.png" alt="Sprint Society" onerror="this.parentElement.innerHTML='<div style=&quot;width:100%;height:100%;background:linear-gradient(135deg,#F97316,#FB923C);display:flex;align-items:center;justify-content:center;font-family:Space Grotesk;font-size:24px;font-weight:700;color:#fff;border-radius:14px;&quot;>SS</div>'" />
+      </div>
+      <div class="hero-brand">Sprint <span class="accent">Society</span></div>
+      <div class="hero-tagline">World's 1st AI-powered running community</div>
+
+      <div class="hero-badge">Exclusive Beta Invite</div>
+      <h1>You're <span class="gradient">Invited</span></h1>
+      <p class="hero-sub">We're building something special for runners. You're one of the first to try it.</p>
+    </div>
+
+    <!-- WhatsApp message -->
+    <div class="section">
+      <div class="section-label">Share This</div>
+      <div class="msg-box">Hey! So I built a running app — Sprint Society.
+
+It's an AI-powered running community. Personalized pace zones, training plans that adapt after every run, weekly challenges, XP & levels, group events, and an AI coach that remembers you.
+
+Think Strava meets Duolingo for runners.
+
+We're in beta — small group first. Wanna try?
+
+👉 <a href="https://app.sprintsociety.in">app.sprintsociety.in</a>
+Use code: SPRINT50
+
+30 seconds to sign up. Connect Strava and you're in.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- How to join -->
+    <div class="section">
+      <div class="section-label">Get Started</div>
+      <div class="section-title">Join in 30 seconds</div>
+
+      <div class="glow-card">
+        <div class="glow-card-inner">
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-text">Open <strong><a href="https://app.sprintsociety.in" style="color:var(--accent);text-decoration:none;">app.sprintsociety.in</a></strong></div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-text">Enter invite code <code>SPRINT50</code></div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-text">Sign up — name, email, phone, password</div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-text">Complete <strong>AI profiling</strong> (5 quick questions)</div>
+            </div>
+            <div class="step">
+              <div class="step-num">5</div>
+              <div class="step-text">Connect <strong>Strava</strong> (optional but recommended)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 30 Day Plan -->
+    <div class="section">
+      <div class="section-label">Your Mission</div>
+      <div class="section-title">30-Day Testing Plan</div>
+
+      <div class="week-grid">
+        <div class="week-card">
+          <div class="week-num">Week 1</div>
+          <div class="week-title">Explore</div>
+          <ul class="week-tasks">
+            <li>Browse dashboard (XP, level, streaks)</li>
+            <li>Check AI-generated pace zones</li>
+            <li>Join "Sprint Social Club"</li>
+            <li>Look at upcoming events</li>
+            <li>Try the AI chat coach</li>
+          </ul>
+        </div>
+
+        <div class="week-card">
+          <div class="week-num">Week 2</div>
+          <div class="week-title">Run</div>
+          <ul class="week-tasks">
+            <li>Log at least 3 runs</li>
+            <li>Check if training plan updated</li>
+            <li>Complete 1 weekly challenge</li>
+            <li>Give kudos in the feed</li>
+          </ul>
+        </div>
+
+        <div class="week-card">
+          <div class="week-num">Week 3</div>
+          <div class="week-title">Social</div>
+          <ul class="week-tasks">
+            <li>RSVP to an event (or create one)</li>
+            <li>Post in a community</li>
+            <li>Follow 2-3 other members</li>
+            <li>Check personal records page</li>
+          </ul>
+        </div>
+
+        <div class="week-card">
+          <div class="week-num">Week 4</div>
+          <div class="week-title">Feedback</div>
+          <ul class="week-tasks">
+            <li>Report bugs (in-app button)</li>
+            <li>Fill the feedback form</li>
+            <li>Share with 1 friend (code: SPRINT50)</li>
+            <li>Tell me what you'd pay</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Perks -->
+    <div class="section">
+      <div class="section-label">What You Get</div>
+      <div class="section-title">Founding Member Perks</div>
+
+      <div class="perks-grid">
+        <div class="perk">
+          <span class="perk-icon">🏅</span>
+          <div class="perk-title">Founder Badge</div>
+          <div class="perk-desc">Permanent. In your profile forever.</div>
+        </div>
+        <div class="perk">
+          <span class="perk-icon">♾️</span>
+          <div class="perk-title">Lifetime Free</div>
+          <div class="perk-desc">Full access. No subscription. Ever.</div>
+        </div>
+        <div class="perk">
+          <span class="perk-icon">📛</span>
+          <div class="perk-title">Name in App</div>
+          <div class="perk-desc">Listed as early supporter.</div>
+        </div>
+        <div class="perk">
+          <span class="perk-icon">💬</span>
+          <div class="perk-title">Direct Access</div>
+          <div class="perk-desc">WhatsApp line to founder.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <a href="https://app.sprintsociety.in" class="cta-btn">
+        Join Sprint Society →
+      </a>
+      <p class="cta-code">Invite code: <span>SPRINT50</span></p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p><strong>Sprint Society</strong> by Kendu Entertainment</p>
+      <p style="margin-top: 6px;">Questions? Just text Ishan.</p>
+    </div>
+  </div>
+</body>
+</html>

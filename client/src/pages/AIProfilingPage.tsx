@@ -130,7 +130,7 @@ export function AIProfilingPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 0: return true; // Strava connect is optional
+      case 0: return true; // GPS tracker connect is optional
       case 1: return data.gender;
       case 2: return data.fitness_level && data.running_experience;
       case 3: return data.dream_race;
@@ -206,40 +206,22 @@ export function AIProfilingPage() {
               <>
                 <motion.div variants={fadeUp}>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">First things first</p>
-                  <h2 className="font-heading text-[22px] font-bold leading-tight">Connect your runs</h2>
-                  <p className="text-zinc-500 text-[12px] mt-1">Real data = smarter AI coach. Skip if you don't have Strava yet.</p>
+                  <h2 className="font-heading text-[22px] font-bold leading-tight">Track your runs</h2>
+                  <p className="text-zinc-500 text-[12px] mt-1">Real data = smarter AI coach. You can skip this and track runs later.</p>
                 </motion.div>
                 <motion.div variants={fadeUp} className="space-y-3 pt-2">
-                  <button
-                    onClick={() => { window.location.href = '/api/strava/auth'; }}
-                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-[#FC4C02]/30 bg-[#FC4C02]/10 hover:border-[#FC4C02]/50 transition-all active:scale-[0.98]"
+                  <a
+                    href="/run/track"
+                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-accent/30 bg-accent/10 hover:border-accent/50 transition-all active:scale-[0.98]"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-[#FC4C02]/20 flex items-center justify-center">
-                      <span className="text-[#FC4C02] font-bold text-[14px]">S</span>
+                    <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+                      <span className="text-accent font-bold text-[14px]">📍</span>
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="text-[14px] font-semibold text-[#FC4C02]">Connect Strava</p>
-                      <p className="text-[11px] text-zinc-500">Auto-sync all your runs & activities</p>
+                      <p className="text-[14px] font-semibold text-accent">GPS Run Tracker</p>
+                      <p className="text-[11px] text-zinc-500">Track runs with your phone's GPS</p>
                     </div>
-                  </button>
-                  <button disabled className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-bg-tertiary opacity-50 cursor-not-allowed">
-                    <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
-                      <span className="text-[14px]">❤️</span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="text-[14px] font-semibold text-zinc-500">Apple Health</p>
-                      <p className="text-[11px] text-zinc-700">Coming soon</p>
-                    </div>
-                  </button>
-                  <button disabled className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-bg-tertiary opacity-50 cursor-not-allowed">
-                    <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
-                      <span className="text-[14px]">🟢</span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="text-[14px] font-semibold text-zinc-500">Google Fit</p>
-                      <p className="text-[11px] text-zinc-700">Coming soon</p>
-                    </div>
-                  </button>
+                  </a>
                 </motion.div>
                 <motion.div variants={fadeUp} className="pt-2">
                   <div className="rounded-xl bg-accent/5 border border-accent/10 p-3">

@@ -8,7 +8,6 @@ import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { StravaCallbackPage } from './pages/StravaCallbackPage';
 import { LandingPage } from './pages/LandingPage';
 
 // Lazy-loaded pages (code splitting)
@@ -33,6 +32,7 @@ const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => (
 const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })));
 const AIProfilingPage = lazy(() => import('./pages/AIProfilingPage').then(m => ({ default: m.AIProfilingPage })));
 const AIProfilePage = lazy(() => import('./pages/AIProfilePage').then(m => ({ default: m.AIProfilePage })));
+const RunTrackerPage = lazy(() => import('./pages/RunTrackerPage').then(m => ({ default: m.RunTrackerPage })));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
@@ -100,7 +100,7 @@ function AppRoutes() {
         <Route path="/reset-password/:token" element={<PageTransition><LazyLoad><ResetPasswordPage /></LazyLoad></PageTransition>} />
         <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
-        <Route path="/strava/callback" element={<StravaCallbackPage />} />
+        <Route path="/run/track" element={<ProtectedRoute><PageTransition><LazyLoad><RunTrackerPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/admin" element={<AdminRoute><PageTransition><LazyLoad><AdminPage /></LazyLoad></PageTransition></AdminRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
         <Route path="/coaching" element={<ProtectedRoute><PageTransition><LazyLoad><CoachingPage /></LazyLoad></PageTransition></ProtectedRoute>} />

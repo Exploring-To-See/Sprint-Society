@@ -251,7 +251,7 @@ export function Dashboard() {
                 { done: true, label: 'Create your account', icon: '✓' },
                 { done: !!(user as any)?.profile_image_url, label: 'Add a profile photo', icon: '📸', action: () => navigate('/profile') },
                 { done: false, label: 'Complete AI profiling', icon: '🧬', action: () => navigate('/profiling') },
-                { done: false, label: 'Connect Strava', icon: '🔗', action: () => navigate('/profile') },
+                { done: false, label: 'Track your first run', icon: '📍', action: () => navigate('/run/track') },
                 { done: false, label: 'RSVP to your first event', icon: '📅', action: () => navigate('/events') },
               ].map((step, i) => (
                 <button
@@ -385,7 +385,7 @@ export function Dashboard() {
               <p className="text-[13px] text-zinc-300 leading-relaxed">
                 {stats?.total_runs > 0
                   ? `You've run ${stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0}km total. ${streak > 3 ? `${streak}-day streak — consistency is your superpower.` : 'Build your streak — consistency beats intensity.'}`
-                  : 'Connect Strava to unlock personalized insights from your run data.'
+                  : 'Track your first run to unlock personalized insights from your data.'
                 }
               </p>
             </div>
@@ -496,7 +496,7 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-6 text-center">
-            <p className="text-[12px] text-zinc-500">No runs yet. Connect Strava or complete your first run!</p>
+            <p className="text-[12px] text-zinc-500">No runs yet. Track your first run to get started!</p>
           </div>
         )}
       </motion.div>

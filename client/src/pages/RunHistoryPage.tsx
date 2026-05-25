@@ -66,7 +66,7 @@ export function RunHistoryPage() {
           <motion.div variants={fadeUp} className="text-center py-16">
             <p className="text-3xl mb-3">🏃</p>
             <p className="text-zinc-500 text-sm">No runs yet</p>
-            <p className="text-zinc-600 text-xs mt-1">Connect Strava to sync your activities</p>
+            <p className="text-zinc-600 text-xs mt-1">Use the GPS tracker to log your first run</p>
           </motion.div>
         )}
 

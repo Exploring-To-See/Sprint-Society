@@ -313,7 +313,7 @@ function handleMotivationQuestion(msg: string, ctx: any): string {
 }
 
 function getStatusSummary(ctx: any): string {
-  if (ctx.recentRuns === 0) return 'I see you haven\'t logged any runs yet. Connect Strava or go for a run to get started!';
+  if (ctx.recentRuns === 0) return 'I see you haven\'t logged any runs yet. Use the GPS tracker to log your first run!';
   return `You're currently ${ctx.readiness.toLowerCase()} readiness, VDOT ${ctx.vdot}, ${ctx.streak > 0 ? `on a ${ctx.streak}-day streak.` : 'ready to build momentum.'}`;
 }
 

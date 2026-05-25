@@ -12,18 +12,15 @@ router.get('/status', (req: AuthRequest, res: Response) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const stravaConnected = !!db.prepare('SELECT id FROM strava_tokens WHERE user_id = ?').get(req.userId);
   const runCount = (db.prepare('SELECT COUNT(*) as c FROM activities WHERE user_id = ?').get(req.userId) as any).c;
   const profile = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(req.userId) as any;
   const hasPlan = !!db.prepare('SELECT id FROM transformation_plans WHERE user_id = ? LIMIT 1').get(req.userId);
 
   // Determine what step the user is at
-  let step: 'connect_strava' | 'analyzing' | 'smart_questions' | 'generating_plan' | 'complete';
+  let step: 'track_run' | 'analyzing' | 'smart_questions' | 'generating_plan' | 'complete';
 
-  if (!stravaConnected && runCount === 0) {
-    step = 'connect_strava';
-  } else if (stravaConnected && runCount === 0) {
-    step = 'analyzing'; // Strava connected but no sync yet
+  if (runCount === 0) {
+    step = 'track_run';
   } else if (runCount > 0 && !profile?.primary_goal) {
     step = 'smart_questions'; // Have data, need goals/preferences
   } else if (runCount > 0 && profile?.primary_goal && !hasPlan) {
@@ -44,7 +41,6 @@ router.get('/status', (req: AuthRequest, res: Response) => {
 
   res.json({
     step,
-    strava_connected: stravaConnected,
     run_count: runCount,
     has_plan: hasPlan,
     detected_profile: detectedProfile,
@@ -52,7 +48,7 @@ router.get('/status', (req: AuthRequest, res: Response) => {
   });
 });
 
-// GET /onboarding/detect — Auto-detect everything from Strava data
+// GET /onboarding/detect — Auto-detect runner profile from activity data
 router.get('/detect', (req: AuthRequest, res: Response) => {
   const runs = db.prepare(
     `SELECT id, user_id, distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, max_heartrate, elevation_gain, start_date
@@ -62,7 +58,7 @@ router.get('/detect', (req: AuthRequest, res: Response) => {
   if (runs.length === 0) {
     return res.json({
       has_data: false,
-      message: 'No run data yet. Connect Strava or complete your first run.',
+      message: 'No run data yet. Use the GPS tracker to log your first run.',
     });
   }
 

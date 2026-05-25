@@ -24,12 +24,6 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
-  strava: {
-    clientId: process.env.STRAVA_CLIENT_ID || '',
-    clientSecret: process.env.STRAVA_CLIENT_SECRET || '',
-    redirectUri: process.env.STRAVA_REDIRECT_URI || 'http://localhost:5173/strava/callback',
-    webhookVerifyToken: process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || 'sprint-society-webhook',
-  },
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
   },

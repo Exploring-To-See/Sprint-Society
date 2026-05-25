@@ -38,6 +38,11 @@
 - [ ] SS-031: Set RAZORPAY keys on Railway (enables payments)
 - [ ] SS-032: PostgreSQL migration (DEFERRED — only after 100 users)
 
+### Completed (2026-05-25)
+- [x] SS-050: Built-in GPS run tracker (/run/track — replaces Strava dependency)
+- [x] SS-051: Removed Strava entirely (service, routes, config, UI, env vars)
+- [x] SS-052: Manual run logging endpoint (POST /api/runs/log + XP + streak)
+
 ### Subscription Tier Alignment
 - [x] SS-033: Update pricing to ₹9 Base (Haiku) / ₹99 Pro (Sonnet) — ₹199 + nutrition dropped
 
