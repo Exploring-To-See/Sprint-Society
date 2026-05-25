@@ -9,6 +9,12 @@ interface Position {
   lat: number;
   lon: number;
   timestamp: number;
+  altitude: number | null;
+}
+
+interface Split {
+  km: number;
+  time_seconds: number;
 }
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -48,12 +54,18 @@ export function RunTrackerPage() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [elevationGain, setElevationGain] = useState(0);
+  const [splits, setSplits] = useState<Split[]>([]);
+  const [rpe, setRpe] = useState<number | null>(null);
 
   const positionsRef = useRef<Position[]>([]);
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<string | null>(null);
   const paceCalcRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevAltitudeRef = useRef<number | null>(null);
+  const lastSplitKmRef = useRef(0);
+  const splitStartTimeRef = useRef(0);
 
   // Timer logic
   useEffect(() => {
@@ -108,6 +120,62 @@ export function RunTrackerPage() {
     };
   }, [state]);
 
+  const handlePositionUpdate = useCallback((position: GeolocationPosition) => {
+    const newPos: Position = {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude,
+      timestamp: position.timestamp,
+      altitude: position.coords.altitude,
+    };
+
+    // Elevation gain tracking
+    if (newPos.altitude !== null) {
+      if (prevAltitudeRef.current !== null) {
+        const altDiff = newPos.altitude - prevAltitudeRef.current;
+        // Only count positive changes > 2m (noise filter)
+        if (altDiff > 2) {
+          setElevationGain(prev => prev + altDiff);
+          prevAltitudeRef.current = newPos.altitude;
+        } else if (altDiff < -2) {
+          // Update ref on descent too so next climb starts from correct base
+          prevAltitudeRef.current = newPos.altitude;
+        }
+      } else {
+        prevAltitudeRef.current = newPos.altitude;
+      }
+    }
+
+    const positions = positionsRef.current;
+    if (positions.length > 0) {
+      const lastPos = positions[positions.length - 1];
+      const dist = haversineDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
+      // Filter out GPS jitter (ignore movements < 2m or > 100m in single update)
+      if (dist >= 2 && dist < 100) {
+        positionsRef.current = [...positions, newPos];
+        setTotalDistance(prev => {
+          const newTotal = prev + dist;
+          // Splits tracking: check if we crossed a km boundary
+          const currentKm = Math.floor(newTotal / 1000);
+          if (currentKm > lastSplitKmRef.current) {
+            // Record split for each km crossed
+            for (let km = lastSplitKmRef.current + 1; km <= currentKm; km++) {
+              setSplits(prevSplits => [...prevSplits, {
+                km,
+                time_seconds: Math.round((position.timestamp - splitStartTimeRef.current) / 1000),
+              }]);
+              splitStartTimeRef.current = position.timestamp;
+            }
+            lastSplitKmRef.current = currentKm;
+          }
+          return newTotal;
+        });
+      }
+    } else {
+      positionsRef.current = [newPos];
+      splitStartTimeRef.current = position.timestamp;
+    }
+  }, []);
+
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       setGpsError('GPS not supported on this device');
@@ -120,29 +188,16 @@ export function RunTrackerPage() {
     setTotalDistance(0);
     setElapsedSeconds(0);
     setCurrentPace(0);
+    setElevationGain(0);
+    setSplits([]);
+    setRpe(null);
+    prevAltitudeRef.current = null;
+    lastSplitKmRef.current = 0;
+    splitStartTimeRef.current = 0;
     setState('RUNNING');
 
     watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const newPos: Position = {
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-          timestamp: position.timestamp,
-        };
-
-        const positions = positionsRef.current;
-        if (positions.length > 0) {
-          const lastPos = positions[positions.length - 1];
-          const dist = haversineDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
-          // Filter out GPS jitter (ignore movements < 2m or > 100m in single update)
-          if (dist >= 2 && dist < 100) {
-            positionsRef.current = [...positions, newPos];
-            setTotalDistance(prev => prev + dist);
-          }
-        } else {
-          positionsRef.current = [newPos];
-        }
-      },
+      handlePositionUpdate,
       (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -160,7 +215,7 @@ export function RunTrackerPage() {
       },
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     );
-  }, []);
+  }, [handlePositionUpdate]);
 
   const pauseTracking = useCallback(() => {
     setState('PAUSED');
@@ -173,28 +228,11 @@ export function RunTrackerPage() {
   const resumeTracking = useCallback(() => {
     setState('RUNNING');
     watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const newPos: Position = {
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-          timestamp: position.timestamp,
-        };
-        const positions = positionsRef.current;
-        if (positions.length > 0) {
-          const lastPos = positions[positions.length - 1];
-          const dist = haversineDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
-          if (dist >= 2 && dist < 100) {
-            positionsRef.current = [...positions, newPos];
-            setTotalDistance(prev => prev + dist);
-          }
-        } else {
-          positionsRef.current = [newPos];
-        }
-      },
+      handlePositionUpdate,
       () => {},
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     );
-  }, []);
+  }, [handlePositionUpdate]);
 
   const stopTracking = useCallback(() => {
     setState('FINISHED');
@@ -218,6 +256,9 @@ export function RunTrackerPage() {
           distance_meters: Math.round(totalDistance),
           moving_time_seconds: elapsedSeconds,
           start_date: startTimeRef.current,
+          elevation_gain: Math.round(elevationGain),
+          splits: JSON.stringify(splits),
+          rpe: rpe,
         }),
       });
       const data = await res.json();
@@ -238,6 +279,12 @@ export function RunTrackerPage() {
     setElapsedSeconds(0);
     setTotalDistance(0);
     setCurrentPace(0);
+    setElevationGain(0);
+    setSplits([]);
+    setRpe(null);
+    prevAltitudeRef.current = null;
+    lastSplitKmRef.current = 0;
+    splitStartTimeRef.current = 0;
     positionsRef.current = [];
     startTimeRef.current = null;
     setSaveMessage(null);
@@ -399,13 +446,54 @@ export function RunTrackerPage() {
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Avg Pace</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[24px] font-bold text-white">
-                      {new Date(startTimeRef.current || '').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Date</p>
+                    <p className="text-[24px] font-bold text-white">{Math.round(elevationGain)}m</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Elevation</p>
                   </div>
                 </div>
+
+                {/* Splits */}
+                {splits.length > 0 && (
+                  <div className="border-t border-bg-tertiary pt-4 space-y-2">
+                    <p className="text-[11px] text-zinc-500 uppercase tracking-wider font-medium">Splits</p>
+                    <div className="space-y-1">
+                      {splits.map((split) => (
+                        <div key={split.km} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-bg-primary/50">
+                          <span className="text-[12px] text-zinc-400">Km {split.km}</span>
+                          <span className="text-[12px] font-mono text-white">{formatPace(split.time_seconds)} /km</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* RPE Selector */}
+              {!saveMessage?.includes('saved') && (
+                <div className="space-y-3">
+                  <p className="text-[13px] font-semibold text-white text-center">How hard was that?</p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {([
+                      { value: 1, label: 'Easy', emoji: '\u{1F60A}' },
+                      { value: 2, label: 'Moderate', emoji: '\u{1F4AA}' },
+                      { value: 3, label: 'Hard', emoji: '\u{1F624}' },
+                      { value: 4, label: 'Very Hard', emoji: '\u{1F975}' },
+                      { value: 5, label: 'All Out', emoji: '\u{1F480}' },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setRpe(option.value)}
+                        className={`px-3 py-2 rounded-xl text-[12px] font-medium transition-all active:scale-95 ${
+                          rpe === option.value
+                            ? 'bg-accent text-black border border-accent'
+                            : 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
+                        }`}
+                      >
+                        <span className="mr-1">{option.emoji}</span>{option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {saveMessage && (
                 <div className={`rounded-xl px-4 py-3 text-center ${

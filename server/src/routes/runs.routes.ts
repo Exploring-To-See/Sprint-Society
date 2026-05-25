@@ -109,7 +109,7 @@ router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
 
 // POST /runs/log — Manual run logging (GPS tracker or manual entry)
 router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
-  const { distance_meters, moving_time_seconds, start_date } = req.body;
+  const { distance_meters, moving_time_seconds, start_date, elevation_gain, splits, rpe } = req.body;
 
   if (!distance_meters || !moving_time_seconds) {
     return res.status(400).json({ error: 'Distance and time required' });
@@ -118,9 +118,19 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
   const pacePerKm = distance_meters > 0 ? (moving_time_seconds / (distance_meters / 1000)) : 0;
 
   const result = db.prepare(`
-    INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type)
-    VALUES (?, ?, ?, ?, ?, ?, 'Run')
-  `).run(req.userId, distance_meters, moving_time_seconds, moving_time_seconds, pacePerKm, start_date || new Date().toISOString());
+    INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type, elevation_gain, splits, rpe)
+    VALUES (?, ?, ?, ?, ?, ?, 'Run', ?, ?, ?)
+  `).run(
+    req.userId,
+    distance_meters,
+    moving_time_seconds,
+    moving_time_seconds,
+    pacePerKm,
+    start_date || new Date().toISOString(),
+    elevation_gain || null,
+    splits || null,
+    rpe || null
+  );
 
   // Update streak
   const today = new Date().toISOString().split('T')[0];

@@ -50,6 +50,12 @@ function runMigrations() {
     db.exec("ALTER TABLE activities ADD COLUMN activity_type TEXT DEFAULT 'Run'");
   }
 
+  // Add RPE column if missing
+  const activityCols2 = db.prepare("PRAGMA table_info(activities)").all() as any[];
+  if (!activityCols2.find((c: any) => c.name === 'rpe')) {
+    db.exec("ALTER TABLE activities ADD COLUMN rpe INTEGER");
+  }
+
   const kudosCols = db.prepare("PRAGMA table_info(kudos)").all() as any[];
   if (!kudosCols.find((c: any) => c.name === 'reaction_type')) {
     db.exec("ALTER TABLE kudos ADD COLUMN reaction_type TEXT DEFAULT 'high_five'");
