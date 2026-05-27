@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
 import { toPng } from 'html-to-image';
@@ -7,19 +7,23 @@ import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
+import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 import { formatPace, formatDistance, formatDuration, formatDate } from '../lib/formatters';
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
 
-type TemplateName = 'dark_minimal' | 'gradient_pace' | 'achievement' | 'streak_fire' | 'race_recap';
+type TemplateName = 'dark_minimal' | 'gradient_pace' | 'achievement' | 'streak_fire' | 'race_recap' | 'neon_glow' | 'gold_elite' | 'midnight_run';
 
-const TEMPLATES: { key: TemplateName; label: string; icon: string }[] = [
+const TEMPLATES: { key: TemplateName; label: string; icon: string; premium?: boolean }[] = [
   { key: 'dark_minimal', label: 'Dark', icon: '🖤' },
   { key: 'gradient_pace', label: 'Gradient', icon: '🌈' },
   { key: 'achievement', label: 'Achievement', icon: '🏆' },
   { key: 'streak_fire', label: 'Streak', icon: '🔥' },
   { key: 'race_recap', label: 'Recap', icon: '📊' },
+  { key: 'neon_glow', label: 'Neon', icon: '💜', premium: true },
+  { key: 'gold_elite', label: 'Gold', icon: '👑', premium: true },
+  { key: 'midnight_run', label: 'Midnight', icon: '🌙', premium: true },
 ];
 
 function CardTemplate({ template, run, userName, streak, tier }: {
@@ -198,6 +202,121 @@ function CardTemplate({ template, run, userName, streak, tier }: {
     );
   }
 
+  if (template === 'neon_glow') {
+    return (
+      <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden flex flex-col p-6"
+        style={{ background: 'linear-gradient(135deg, #0D001A 0%, #1A0033 50%, #330066 100%)' }}>
+        <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at 30% 70%, #A855F7, transparent 60%)' }} />
+        <div className="relative z-10 flex-1 flex flex-col">
+          <div className="flex items-center gap-2 mb-auto">
+            <span className="font-heading font-bold text-sm text-purple-300/90 tracking-tight">Sprint Society</span>
+            <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold">PRO</span>
+          </div>
+          <div className="space-y-5">
+            <div className="text-center">
+              <p className="font-mono text-5xl font-black text-white" style={{ textShadow: '0 0 20px #A855F7, 0 0 40px #7C3AED' }}>{distance}</p>
+              <p className="text-purple-300/50 text-xs uppercase tracking-[0.3em] mt-2">kilometers</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 text-center">
+                <p className="font-mono text-xl font-bold text-white">{duration}</p>
+                <p className="text-purple-300/40 text-[9px] uppercase">time</p>
+              </div>
+              <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 text-center">
+                <p className="font-mono text-xl font-bold text-white">{pace}</p>
+                <p className="text-purple-300/40 text-[9px] uppercase">/km</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-auto pt-4 flex items-center justify-between">
+            <p className="text-purple-200/60 text-xs">{userName}</p>
+            <p className="text-purple-300/30 text-xs">{date}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (template === 'gold_elite') {
+    return (
+      <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden flex flex-col p-6"
+        style={{ background: 'linear-gradient(180deg, #1A1500 0%, #2D2200 50%, #1A1500 100%)' }}>
+        <div className="absolute inset-0 opacity-10" style={{ background: 'radial-gradient(ellipse at 50% 30%, #FFD700, transparent 60%)' }} />
+        <div className="relative z-10 flex-1 flex flex-col">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="text-2xl">👑</span>
+            <span className="font-heading font-bold text-base text-amber-200 tracking-tight">Elite Runner</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-6">
+              <div>
+                <p className="font-mono text-6xl font-black text-amber-100">{distance}</p>
+                <p className="text-amber-400/40 text-xs uppercase tracking-[0.2em] mt-1">km conquered</p>
+              </div>
+              <div className="flex gap-4 justify-center">
+                <div>
+                  <p className="font-mono text-lg font-bold text-amber-200">{pace}</p>
+                  <p className="text-amber-500/40 text-[9px]">PACE</p>
+                </div>
+                <div className="w-px bg-amber-500/20" />
+                <div>
+                  <p className="font-mono text-lg font-bold text-amber-200">{duration}</p>
+                  <p className="text-amber-500/40 text-[9px]">TIME</p>
+                </div>
+              </div>
+              {streak && streak > 0 && (
+                <p className="text-amber-400/60 text-xs">🔥 {streak}-day streak</p>
+              )}
+            </div>
+          </div>
+          <div className="mt-auto pt-4 border-t border-amber-500/10 text-center">
+            <p className="text-amber-200/60 text-xs font-semibold">{userName}</p>
+            <p className="text-amber-500/20 text-[9px] mt-0.5">{date} · Sprint Society</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (template === 'midnight_run') {
+    return (
+      <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden flex flex-col p-6"
+        style={{ background: 'linear-gradient(180deg, #020617 0%, #0F172A 40%, #1E293B 100%)' }}>
+        <div className="absolute top-0 left-0 right-0 h-1/3 opacity-30" style={{ background: 'radial-gradient(ellipse at 50% 0%, #3B82F6, transparent 70%)' }} />
+        <div className="relative z-10 flex-1 flex flex-col">
+          <div className="flex items-center gap-2 mb-auto">
+            <span className="text-lg">🌙</span>
+            <span className="font-heading font-bold text-sm text-blue-200/80 tracking-tight">Midnight Run</span>
+          </div>
+          <div className="space-y-5">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/5">
+              <p className="text-blue-100/40 text-[10px] uppercase tracking-wider">Distance</p>
+              <p className="font-mono text-4xl font-black text-white mt-1">{distance} <span className="text-lg text-blue-300/40">km</span></p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                <p className="font-mono text-sm font-bold text-white">{pace}</p>
+                <p className="text-blue-300/30 text-[8px]">PACE</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                <p className="font-mono text-sm font-bold text-white">{duration}</p>
+                <p className="text-blue-300/30 text-[8px]">TIME</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                <p className="font-mono text-sm font-bold text-white">{streak || 0}d</p>
+                <p className="text-blue-300/30 text-[8px]">STREAK</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-auto pt-4 flex items-center justify-between">
+            <p className="text-blue-200/50 text-xs">{userName}</p>
+            <p className="text-blue-300/20 text-xs">{date}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Default: dark_minimal (original RunCard style)
   return (
     <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden flex flex-col p-6"
@@ -250,9 +369,11 @@ function CardTemplate({ template, run, userName, streak, tier }: {
 
 export function SharePage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<TemplateName>('dark_minimal');
   const [downloading, setDownloading] = useState(false);
+  const [skinToBuy, setSkinToBuy] = useState<TemplateName | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const { data } = useQuery({
@@ -268,6 +389,26 @@ export function SharePage() {
   const { data: tier } = useQuery({
     queryKey: ['tier'],
     queryFn: () => api.get('/coaching/tier').then(r => r.data),
+  });
+
+  const { data: kenduBalance } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+  });
+
+  const { data: ownedSkins = [] } = useQuery({
+    queryKey: ['owned-skins'],
+    queryFn: () => api.get('/kendu/skins').then(r => r.data).catch(() => []),
+  });
+
+  const buySkinMutation = useMutation({
+    mutationFn: (skinId: string) => api.post('/kendu/spend/card-skin', { skinId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kendu-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['owned-skins'] });
+      if (skinToBuy) setActiveTemplate(skinToBuy);
+      setSkinToBuy(null);
+    },
   });
 
   const selectedRun = data?.find ? data.find((r: any) => r.id === selectedRunId) : data?.runs?.find((r: any) => r.id === selectedRunId);
@@ -359,20 +500,33 @@ export function SharePage() {
 
             {/* Template selector */}
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-              {TEMPLATES.map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setActiveTemplate(t.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
-                    activeTemplate === t.key
-                      ? 'bg-accent/10 text-accent border border-accent/20'
-                      : 'bg-bg-secondary text-zinc-500 border border-bg-tertiary hover:text-zinc-300'
-                  }`}
-                >
-                  <span>{t.icon}</span>
-                  {t.label}
-                </button>
-              ))}
+              {TEMPLATES.map(t => {
+                const isOwned = !t.premium || (ownedSkins as string[]).includes(t.key);
+                const isLocked = t.premium && !isOwned;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => {
+                      if (isLocked) {
+                        setSkinToBuy(t.key);
+                      } else {
+                        setActiveTemplate(t.key);
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+                      activeTemplate === t.key
+                        ? 'bg-accent/10 text-accent border border-accent/20'
+                        : isLocked
+                          ? 'bg-orange-500/5 text-orange-400/60 border border-orange-500/20'
+                          : 'bg-bg-secondary text-zinc-500 border border-bg-tertiary hover:text-zinc-300'
+                    }`}
+                  >
+                    <span>{t.icon}</span>
+                    {t.label}
+                    {isLocked && <span className="text-[8px] ml-0.5">🔒</span>}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Card preview */}
@@ -398,6 +552,17 @@ export function SharePage() {
           </motion.div>
         )}
       </motion.div>
+
+      <KenduSpendConfirmModal
+        isOpen={skinToBuy !== null}
+        onClose={() => setSkinToBuy(null)}
+        onConfirm={() => skinToBuy && buySkinMutation.mutate(skinToBuy)}
+        title="Unlock Premium Skin"
+        description={`Unlock the "${TEMPLATES.find(t => t.key === skinToBuy)?.label}" card template forever`}
+        cost={40}
+        currentBalance={kenduBalance?.spendable_balance ?? 0}
+        loading={buySkinMutation.isPending}
+      />
     </AppShell>
   );
 }

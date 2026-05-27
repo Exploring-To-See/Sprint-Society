@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications.routes';
+import { spendToCreateCommunity, createCommunitySubscription } from '../engine/kenduEngine';
 
 const router = Router();
 router.use(authenticate);
@@ -490,6 +491,82 @@ router.post('/request', (req: AuthRequest, res: Response) => {
   `).run(req.userId, name, purpose, category || 'custom', leader_name, contact);
 
   res.json({ success: true, message: 'Request submitted for review' });
+});
+
+// GET /communities/requests — Admin: list pending community requests
+router.get('/requests', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS community_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      category TEXT DEFAULT 'custom',
+      leader_name TEXT NOT NULL,
+      contact TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      reviewed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `).run();
+
+  const requests = db.prepare(`
+    SELECT cr.*, u.name as user_name, u.email as user_email,
+      (SELECT spendable_balance FROM kendu_balances WHERE user_id = cr.user_id) as user_balance
+    FROM community_requests cr
+    JOIN users u ON u.id = cr.user_id
+    WHERE cr.status = 'pending'
+    ORDER BY cr.created_at DESC
+  `).all();
+
+  res.json(requests);
+});
+
+// POST /communities/requests/:id/approve — Admin approves, charges Kendu, creates community
+router.post('/requests/:id/approve', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+
+  const requestId = parseInt(req.params.id);
+  const request = db.prepare('SELECT * FROM community_requests WHERE id = ? AND status = ?').get(requestId, 'pending') as any;
+  if (!request) return res.status(404).json({ error: 'Request not found or already processed' });
+
+  const spendResult = spendToCreateCommunity(request.user_id, request.name);
+  if (!spendResult.success) {
+    return res.status(402).json({ error: `User doesn't have enough Kendu (needs 1000). Balance: ${spendResult.newBalance}` });
+  }
+
+  const validCategories = ['run_club', 'training', 'nutrition', 'wellness', 'social', 'brand', 'custom'];
+  const cat = validCategories.includes(request.category) ? request.category : 'custom';
+
+  const result = db.prepare(`
+    INSERT INTO communities (owner_id, name, description, category, member_count)
+    VALUES (?, ?, ?, ?, 1)
+  `).run(request.user_id, request.name, request.purpose, cat);
+
+  const communityId = result.lastInsertRowid as number;
+  db.prepare('INSERT INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(communityId, request.user_id, 'owner');
+  createCommunitySubscription(request.user_id, communityId);
+
+  db.prepare("UPDATE community_requests SET status = 'approved', reviewed_at = datetime('now') WHERE id = ?").run(requestId);
+  res.json({ message: 'Approved', communityId, kenduCharged: 1000 });
+});
+
+// POST /communities/requests/:id/reject — Admin rejects (no charge)
+router.post('/requests/:id/reject', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+
+  const requestId = parseInt(req.params.id);
+  const request = db.prepare('SELECT * FROM community_requests WHERE id = ? AND status = ?').get(requestId, 'pending') as any;
+  if (!request) return res.status(404).json({ error: 'Request not found or already processed' });
+
+  db.prepare("UPDATE community_requests SET status = 'rejected', reviewed_at = datetime('now') WHERE id = ?").run(requestId);
+  res.json({ message: 'Rejected, no Kendu charged' });
 });
 
 // GET /communities/:id/chat — chat message history

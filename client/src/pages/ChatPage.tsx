@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
+import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 
 const FALLBACK_PROMPTS = [
   { label: 'How should I train today?', icon: '🏃' },
@@ -14,6 +15,7 @@ const FALLBACK_PROMPTS = [
 export function ChatPage() {
   const queryClient = useQueryClient();
   const [input, setInput] = useState('');
+  const [showDeepDive, setShowDeepDive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,11 +33,25 @@ export function ChatPage() {
     ? suggestionsData.suggestions
     : FALLBACK_PROMPTS;
 
+  const { data: kenduBalance } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+  });
+
   const sendMessage = useMutation({
     mutationFn: (message: string) => api.post('/chat/message', { message }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat-history'] });
       setInput('');
+    },
+  });
+
+  const deepDiveMutation = useMutation({
+    mutationFn: () => api.post('/kendu/spend/ai-deep-dive'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kendu-balance'] });
+      setShowDeepDive(false);
+      sendMessage.mutate('Give me a comprehensive deep dive analysis of my training: readiness score, injury risk assessment, pace zone compliance, weekly volume trend, recovery status, and a specific training recommendation for this week. Be detailed and data-driven.');
     },
   });
 
@@ -65,6 +81,12 @@ export function ChatPage() {
             <p className="text-[13px] font-semibold text-white">AI Coach</p>
             <p className="text-[10px] text-accent">Knows your data · Always available</p>
           </div>
+          <button
+            onClick={() => setShowDeepDive(true)}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-orange-400 bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 transition-colors"
+          >
+            Deep Dive
+          </button>
           <a href="/dashboard" className="px-2.5 py-1.5 rounded-lg text-[11px] text-zinc-500 hover:text-white hover:bg-bg-tertiary transition-colors">
             ←
           </a>
@@ -178,6 +200,17 @@ export function ChatPage() {
           </div>
         </div>
       </div>
+
+      <KenduSpendConfirmModal
+        isOpen={showDeepDive}
+        onClose={() => setShowDeepDive(false)}
+        onConfirm={() => deepDiveMutation.mutate()}
+        title="AI Deep Dive"
+        description="Get a comprehensive training analysis: readiness, injury risk, pace compliance, and personalized recommendations"
+        cost={30}
+        currentBalance={kenduBalance?.spendable_balance ?? 0}
+        loading={deepDiveMutation.isPending}
+      />
     </AppShell>
   );
 }

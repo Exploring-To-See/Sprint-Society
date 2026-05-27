@@ -33,6 +33,8 @@ const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage').then(m =>
 const AIProfilingPage = lazy(() => import('./pages/AIProfilingPage').then(m => ({ default: m.AIProfilingPage })));
 const AIProfilePage = lazy(() => import('./pages/AIProfilePage').then(m => ({ default: m.AIProfilePage })));
 const RunTrackerPage = lazy(() => import('./pages/RunTrackerPage').then(m => ({ default: m.RunTrackerPage })));
+const ChallengesPage = lazy(() => import('./pages/ChallengesPage'));
+const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.RewardsPage })));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
@@ -118,6 +120,8 @@ function AppRoutes() {
         <Route path="/communities/create" element={<ProtectedRoute><PageTransition><LazyLoad><CreateCommunityPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/communities/:id" element={<ProtectedRoute><PageTransition><LazyLoad><CommunityDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><PageTransition><LazyLoad><ChatPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/challenges" element={<ProtectedRoute><PageTransition><LazyLoad><ChallengesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/rewards" element={<ProtectedRoute><PageTransition><LazyLoad><RewardsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><PageTransition><LazyLoad><NotificationsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/subscription" element={<ProtectedRoute><PageTransition><LazyLoad><SubscriptionPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/profiling" element={<ProtectedRoute><PageTransition><LazyLoad><AIProfilingPage /></LazyLoad></PageTransition></ProtectedRoute>} />

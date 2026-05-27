@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 
 type View = 'feed' | 'chat' | 'leaderboard' | 'members' | 'info';
 
@@ -10,9 +12,11 @@ export function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [postText, setPostText] = useState('');
   const [activeView, setActiveView] = useState<View>('feed');
   const [showCompose, setShowCompose] = useState(false);
+  const [boostPostId, setBoostPostId] = useState<number | null>(null);
 
   const { data: community, isLoading } = useQuery({
     queryKey: ['community', id],
@@ -54,6 +58,20 @@ export function CommunityDetailPage() {
   const likeMutation = useMutation({
     mutationFn: (postId: number) => api.post(`/communities/${id}/posts/${postId}/like`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['community', id] }),
+  });
+
+  const { data: kenduBalance } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+  });
+
+  const boostMutation = useMutation({
+    mutationFn: (postId: number) => api.post('/kendu/spend/boost-post', { postId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community', id] });
+      queryClient.invalidateQueries({ queryKey: ['kendu-balance'] });
+      setBoostPostId(null);
+    },
   });
 
   if (isLoading) {
@@ -207,6 +225,14 @@ export function CommunityDetailPage() {
                         {emoji}
                       </button>
                     ))}
+                    {post.author_id === (currentUser as any)?.id && !post.pinned && (
+                      <button
+                        onClick={() => setBoostPostId(post.id)}
+                        className="ml-auto px-2.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[10px] text-orange-400 font-semibold active:scale-95 transition-all"
+                      >
+                        🚀 Boost
+                      </button>
+                    )}
                   </div>
 
                   {/* Divider */}
@@ -333,6 +359,17 @@ export function CommunityDetailPage() {
           </div>
         </div>
       )}
+
+      <KenduSpendConfirmModal
+        isOpen={boostPostId !== null}
+        onClose={() => setBoostPostId(null)}
+        onConfirm={() => boostPostId && boostMutation.mutate(boostPostId)}
+        title="Boost Post"
+        description="Pin your post to top of feed for 24 hours"
+        cost={10}
+        currentBalance={kenduBalance?.spendable_balance ?? 0}
+        loading={boostMutation.isPending}
+      />
     </div>
   );
 }
@@ -595,6 +632,9 @@ function CommunityChat({ communityId }: { communityId: string }) {
 }
 
 function CommunityLeaderboard({ communityId }: { communityId: string }) {
+  const queryClient = useQueryClient();
+  const [showSponsor, setShowSponsor] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['community-leaderboard', communityId],
     queryFn: () => api.get(`/communities/${communityId}/leaderboard`).then(r => r.data),
@@ -605,10 +645,44 @@ function CommunityLeaderboard({ communityId }: { communityId: string }) {
     queryFn: () => api.get(`/communities/${communityId}/digest`).then(r => r.data),
   });
 
+  const { data: kenduBal } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+  });
+
+  const sponsorMutation = useMutation({
+    mutationFn: () => api.post('/kendu/spend/sponsor', { communityId: parseInt(communityId) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kendu-balance'] });
+      setShowSponsor(false);
+    },
+  });
+
   if (isLoading) return <div className="py-10 text-center text-zinc-600 text-sm">Loading...</div>;
 
   return (
     <motion.div key="leaderboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+      {/* Sponsor button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowSponsor(true)}
+          className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-semibold text-amber-400 active:scale-95 transition-all"
+        >
+          🏆 Sponsor Board (500 K)
+        </button>
+      </div>
+
+      <KenduSpendConfirmModal
+        isOpen={showSponsor}
+        onClose={() => setShowSponsor(false)}
+        onConfirm={() => sponsorMutation.mutate()}
+        title="Sponsor Leaderboard"
+        description="Your name displayed on this community's leaderboard for 7 days"
+        cost={500}
+        currentBalance={kenduBal?.spendable_balance ?? 0}
+        loading={sponsorMutation.isPending}
+      />
+
       {/* Weekly digest summary */}
       {digest && (
         <div className="rounded-xl bg-accent/5 border border-accent/10 p-4">

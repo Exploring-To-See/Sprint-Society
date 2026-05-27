@@ -29,6 +29,7 @@ import profilingRoutes from './routes/profiling.routes';
 import inviteRoutes from './routes/invite.routes';
 import feedbackRoutes from './routes/feedback.routes';
 import aiRoutes from './routes/ai.routes';
+import kenduRoutes from './routes/kendu.routes';
 import adminAnalyticsRoutes from './routes/admin-analytics.routes';
 import adminFlagsRoutes from './routes/admin-flags.routes';
 import adminSegmentsRoutes from './routes/admin-segments.routes';
@@ -75,6 +76,7 @@ app.use('/api/profiling', profilingRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/kendu', kenduRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', name: 'Sprint Society API', version: '1.2.0', uptime: Math.floor(process.uptime()) });

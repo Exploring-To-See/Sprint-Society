@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
@@ -16,6 +17,7 @@ export function UserProfilePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const [showGift, setShowGift] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile', id],
@@ -101,19 +103,27 @@ export function UserProfilePage() {
           </div>
         </div>
 
-        {/* Follow button */}
+        {/* Follow + Gift buttons */}
         {!isOwnProfile && (
-          <button
-            onClick={() => followMutation.mutate(profile.is_following)}
-            disabled={followMutation.isPending}
-            className={`w-full py-2.5 rounded-xl font-semibold text-[13px] active:scale-[0.98] transition-all ${
-              profile.is_following
-                ? 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
-                : 'bg-accent text-white'
-            }`}
-          >
-            {profile.is_following ? 'Following' : 'Follow'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => followMutation.mutate(profile.is_following)}
+              disabled={followMutation.isPending}
+              className={`flex-1 py-2.5 rounded-xl font-semibold text-[13px] active:scale-[0.98] transition-all ${
+                profile.is_following
+                  ? 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
+                  : 'bg-accent text-white'
+              }`}
+            >
+              {profile.is_following ? 'Following' : 'Follow'}
+            </button>
+            <button
+              onClick={() => setShowGift(true)}
+              className="px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 font-semibold text-[13px] active:scale-[0.98] transition-all"
+            >
+              Gift Kendu
+            </button>
+          </div>
         )}
 
         {/* Stats row */}
@@ -174,6 +184,139 @@ export function UserProfilePage() {
           Member since {new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </p>
       </motion.div>
+
+      {!isOwnProfile && (
+        <GiftKenduModal
+          isOpen={showGift}
+          onClose={() => setShowGift(false)}
+          toUserId={profile.id}
+          toUserName={profile.name}
+        />
+      )}
     </AppShell>
+  );
+}
+
+function GiftKenduModal({ isOpen, onClose, toUserId, toUserName }: { isOpen: boolean; onClose: () => void; toUserId: number; toUserName: string }) {
+  const queryClient = useQueryClient();
+  const [amount, setAmount] = useState(5);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const { data: balance } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+    enabled: isOpen,
+  });
+
+  const giftMutation = useMutation({
+    mutationFn: () => api.post('/kendu/spend/gift', { toUserId, amount, message: message || undefined }),
+    onSuccess: () => {
+      setSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ['kendu-balance'] });
+      setTimeout(() => { onClose(); setSuccess(false); setAmount(5); setMessage(''); }, 1500);
+    },
+    onError: (err: any) => setError(err.response?.data?.error || 'Gift failed'),
+  });
+
+  const fee = Math.ceil(amount * 0.15);
+  const totalCost = amount + fee;
+  const canAfford = (balance?.spendable_balance ?? 0) >= totalCost;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-bg-secondary border border-orange-500/20 rounded-2xl p-5 w-full max-w-sm space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {success ? (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-3xl">🎁</p>
+                <p className="text-[14px] font-bold text-green-400">Sent {amount} Kendu to {toUserName}!</p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center space-y-1">
+                  <p className="text-[15px] font-bold text-zinc-100">Gift Kendu</p>
+                  <p className="text-[12px] text-zinc-400">Send Kendu to {toUserName}</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] text-zinc-400 block mb-1">Amount (min 3)</label>
+                    <input
+                      type="number"
+                      min={3}
+                      max={balance?.spendable_balance ?? 100}
+                      value={amount}
+                      onChange={e => { setAmount(Math.max(3, parseInt(e.target.value) || 3)); setError(''); }}
+                      className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[14px] text-zinc-200 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-zinc-400 block mb-1">Message (optional)</label>
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={e => setMessage(e.target.value)}
+                      placeholder="Keep running!"
+                      maxLength={100}
+                      className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[13px] text-zinc-200 placeholder:text-zinc-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-bg-tertiary/50 rounded-xl p-3 space-y-1.5">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-zinc-400">Gift amount</span>
+                    <span className="text-zinc-200">{amount} Kendu</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-zinc-400">Platform fee (15%)</span>
+                    <span className="text-red-400">+{fee} burned</span>
+                  </div>
+                  <div className="border-t border-zinc-700/50 pt-1.5 flex justify-between text-[12px]">
+                    <span className="text-zinc-400 font-semibold">You pay</span>
+                    <span className="text-orange-400 font-bold">{totalCost} Kendu</span>
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-zinc-500">Your balance</span>
+                    <span className={canAfford ? 'text-zinc-400' : 'text-red-400'}>{balance?.spendable_balance ?? 0}</span>
+                  </div>
+                </div>
+
+                {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
+
+                <div className="flex gap-3">
+                  <button onClick={onClose} className="flex-1 py-2.5 rounded-lg bg-bg-tertiary text-zinc-400 text-[13px] font-medium">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => giftMutation.mutate()}
+                    disabled={!canAfford || giftMutation.isPending}
+                    className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white text-[13px] font-semibold disabled:opacity-40"
+                  >
+                    {giftMutation.isPending ? 'Sending...' : `Send ${amount}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

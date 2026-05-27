@@ -422,10 +422,74 @@ function CommunitiesTab({ communities, queryClient }: { communities: any[]; quer
     queryFn: () => api.get('/admin/communities').then(r => r.data),
   });
 
+  const { data: requests = [] } = useQuery({
+    queryKey: ['admin-community-requests'],
+    queryFn: () => api.get('/communities/requests').then(r => r.data),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: number) => api.post(`/communities/requests/${id}/approve`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-community-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-communities'] });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: number) => api.post(`/communities/requests/${id}/reject`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-community-requests'] }),
+  });
+
   const displayCommunities = communities || allCommunities;
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
+      {/* Pending Requests */}
+      {requests.length > 0 && (
+        <motion.div variants={fadeUp} className="space-y-3">
+          <p className="text-orange-400 text-[12px] font-bold uppercase tracking-wider">Pending Requests ({requests.length})</p>
+          {requests.map((r: any) => (
+            <div key={r.id} className="card p-4 border-orange-500/20 bg-orange-500/5 space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[14px] font-semibold text-white">{r.name}</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">{r.purpose}</p>
+                </div>
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-bold">{r.category}</span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] text-zinc-500">
+                <span>By: {r.user_name} ({r.user_email})</span>
+                <span>Balance: <span className={(r.user_balance ?? 0) >= 1000 ? 'text-green-400' : 'text-red-400'}>{r.user_balance ?? 0} K</span></span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] text-zinc-500">
+                <span>Leader: {r.leader_name}</span>
+                <span>Contact: {r.contact}</span>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => approveMutation.mutate(r.id)}
+                  disabled={approveMutation.isPending}
+                  className="flex-1 py-2 rounded-lg bg-green-500/20 text-green-400 text-[11px] font-semibold hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                >
+                  Approve (charges 1000 K)
+                </button>
+                <button
+                  onClick={() => rejectMutation.mutate(r.id)}
+                  disabled={rejectMutation.isPending}
+                  className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-400 text-[11px] font-medium hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                >
+                  Reject
+                </button>
+              </div>
+              {approveMutation.isError && (
+                <p className="text-[10px] text-red-400">{(approveMutation.error as any)?.response?.data?.error || 'Failed'}</p>
+              )}
+            </div>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Existing communities */}
       <motion.div variants={fadeUp}>
         <p className="text-zinc-500 text-sm">{displayCommunities?.length || 0} communities</p>
       </motion.div>
