@@ -20,6 +20,7 @@ const registerSchema = z.object({
   fitness_level: z.enum(['sedentary', 'lightly_active', 'active', 'very_active']).optional(),
   running_experience: z.enum(['none', 'beginner', 'intermediate', 'advanced']).optional(),
   injury_history: z.array(z.string()).default([]),
+  profile_photo: z.string().optional(),
 });
 
 router.post('/register', async (req, res: Response) => {
@@ -59,6 +60,10 @@ router.post('/register', async (req, res: Response) => {
     );
 
     const userId = result.lastInsertRowid as number;
+
+    if (data.profile_photo && data.profile_photo.startsWith('data:image/')) {
+      db.prepare('UPDATE users SET profile_image_url = ? WHERE id = ?').run(data.profile_photo, userId);
+    }
 
     // Update invite code usage
     db.prepare('UPDATE invite_codes SET used_count = used_count + 1 WHERE id = ?').run(code.id);

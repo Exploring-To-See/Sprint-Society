@@ -110,7 +110,7 @@ export function RegistrationFlow() {
         phone: form.phone,
         password: form.password,
         invite_code: form.invite_code,
-        profile_photo: form.profile_photo,
+        profile_photo: form.profile_photo_preview || undefined,
       });
       navigate('/profiling');
     } catch (err: any) {

@@ -6,7 +6,6 @@ const NAV_ITEMS = [
   { path: '/events', label: 'Events', icon: EventsIcon },
   { path: '/communities', label: 'Society', icon: SocietyIcon },
   { path: '/train', label: 'Train', icon: TrainIcon },
-  { path: '/profile', label: 'Profile', icon: ProfileIcon },
 ];
 
 export function BottomNav() {

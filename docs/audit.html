@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Society — Full App Audit Document</title>
+<style>
+:root { --bg: #0a0a0b; --bg2: #131316; --bg3: #1e1e22; --accent: #f97316; --green: #10b981; --gold: #fbbf24; --text: #e4e4e7; --muted: #71717a; --border: #27272a; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+h1 { font-size: 2rem; color: white; margin-bottom: 0.5rem; }
+h2 { font-size: 1.4rem; color: var(--accent); margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+h3 { font-size: 1.1rem; color: var(--gold); margin: 1.5rem 0 0.5rem; }
+h4 { font-size: 0.95rem; color: var(--green); margin: 1rem 0 0.3rem; }
+p, li { font-size: 0.9rem; color: var(--text); margin-bottom: 0.4rem; }
+.subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--green); }
+pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 0.8rem 0; font-size: 0.8rem; line-height: 1.5; }
+pre code { background: none; padding: 0; color: var(--text); }
+table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.82rem; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+th { background: var(--bg3); color: var(--accent); font-weight: 600; }
+td { background: var(--bg2); }
+ul, ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+details { margin: 0.8rem 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+summary { background: var(--bg2); padding: 0.8rem 1rem; cursor: pointer; font-weight: 600; color: white; }
+summary:hover { background: var(--bg3); }
+details > div { padding: 1rem; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.badge-ok { background: #10b98120; color: var(--green); }
+.badge-warn { background: #f9731620; color: var(--accent); }
+.badge-err { background: #ef444420; color: #ef4444; }
+.issue { background: var(--bg2); border-left: 3px solid var(--accent); padding: 0.8rem 1rem; margin: 0.5rem 0; border-radius: 0 6px 6px 0; }
+.issue-title { font-weight: 600; color: white; margin-bottom: 0.3rem; }
+.section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+
+<h1>Sprint Society — Full App Audit</h1>
+<p class="subtitle">Generated: May 2026 | Version: 1.2.0 | For external AI code review & architecture audit</p>
+
+<h2>1. Architecture Overview</h2>
+
+<div class="section">
+<h3>Tech Stack</h3>
+<table>
+<tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+<tr><td>Frontend</td><td>React 18 + Vite + TypeScript</td><td>SPA, mobile-first (375px)</td></tr>
+<tr><td>Styling</td><td>TailwindCSS + Framer Motion</td><td>Utility CSS + animations</td></tr>
+<tr><td>State</td><td>TanStack React Query + Context</td><td>Server state + auth context</td></tr>
+<tr><td>Backend</td><td>Express.js + TypeScript</td><td>REST API server</td></tr>
+<tr><td>Database</td><td>better-sqlite3 (SQLite)</td><td>Single-file DB, synchronous</td></tr>
+<tr><td>Auth</td><td>JWT (jsonwebtoken + bcryptjs)</td><td>Stateless token auth</td></tr>
+<tr><td>AI</td><td>Anthropic Claude API</td><td>AI coaching, profiling, chat</td></tr>
+<tr><td>Charts</td><td>Recharts</td><td>Progress visualization</td></tr>
+<tr><td>Deploy</td><td>Railway.app</td><td>Auto-deploy from GitHub main</td></tr>
+</table>
+
+<h3>Folder Structure</h3>
+<pre><code>sprint-society/
+├── client/
+│   ├── src/
+│   │   ├── components/     # Reusable UI (by feature)
+│   │   │   ├── layout/     # AppShell, BottomNav
+│   │   │   ├── dashboard/  # Dashboard sub-components
+│   │   │   ├── kendu/      # Kendu economy widgets
+│   │   │   ├── registration/ # Multi-step reg flow
+│   │   │   ├── chat/       # ChatFAB, message components
+│   │   │   └── ui/         # ErrorBoundary, PageTransition
+│   │   ├── pages/          # Route-level page components
+│   │   ├── context/        # AuthContext
+│   │   ├── lib/            # api.ts (axios instance)
+│   │   └── main.tsx        # Entry point
+│   └── tailwind.config.ts
+├── server/
+│   ├── src/
+│   │   ├── routes/         # Express route handlers (20+ files)
+│   │   ├── engine/         # Business logic (kenduEngine, tier, pace)
+│   │   ├── database/       # db.ts, schema.sql
+│   │   ├── middleware/     # auth.ts, errorHandler.ts
+│   │   └── index.ts        # Express app setup
+│   └── data/               # SQLite DB file
+├── shared/
+│   └── types.ts            # Shared TypeScript interfaces
+└── docs/                   # PM-GUIDE, USER-GUIDE, audit</code></pre>
+</div>
+
+<h2>2. All API Endpoints</h2>
+
+<details><summary>Auth & User (7 endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/api/auth/register</td><td>Create account (name, email, phone, password, invite_code, bio data)</td></tr>
+<tr><td>POST</td><td>/api/auth/login</td><td>Login with email+password, returns JWT</td></tr>
+<tr><td>GET</td><td>/api/auth/me</td><td>Get current user profile (from token)</td></tr>
+<tr><td>PATCH</td><td>/api/auth/password</td><td>Change password (requires old password)</td></tr>
+<tr><td>POST</td><td>/api/auth/forgot-password</td><td>Request password reset (email)</td></tr>
+<tr><td>POST</td><td>/api/auth/reset-password</td><td>Reset with token + new password</td></tr>
+<tr><td>GET</td><td>/api/profile/:userId</td><td>Public user profile data</td></tr>
+</table>
+</div></details>
+
+<details><summary>Runs & Activities (6 endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/api/runs/log</td><td>Save a run (distance, time, pace, elevation, splits, rpe)</td></tr>
+<tr><td>GET</td><td>/api/runs</td><td>List user's runs (paginated, limit param)</td></tr>
+<tr><td>GET</td><td>/api/runs/stats</td><td>Aggregate stats (total runs, distance, avg pace)</td></tr>
+<tr><td>GET</td><td>/api/runs/chart-data</td><td>Weekly run data for charts</td></tr>
+<tr><td>GET</td><td>/api/runs/weekly-summary</td><td>This week vs last week comparison</td></tr>
+<tr><td>GET</td><td>/api/runs/trends</td><td>8-week trend data</td></tr>
+</table>
+</div></details>
+
+<details><summary>AI Coaching (8 endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/api/coaching/tier</td><td>Classify user tier (beginner/intermediate/advanced)</td></tr>
+<tr><td>GET</td><td>/api/coaching/ideal-pace</td><td>Calculate ideal pace zones</td></tr>
+<tr><td>GET</td><td>/api/coaching/transformation</td><td>Generate transformation plan</td></tr>
+<tr><td>GET</td><td>/api/coaching/challenges</td><td>Weekly challenges for user</td></tr>
+<tr><td>POST</td><td>/api/coaching/challenges/:id/complete</td><td>Mark challenge done</td></tr>
+<tr><td>POST</td><td>/api/chat</td><td>AI chat message (Claude-powered)</td></tr>
+<tr><td>GET</td><td>/api/chat/history</td><td>Chat conversation history</td></tr>
+<tr><td>POST</td><td>/api/profiling/analyze</td><td>AI profiling (8-step questionnaire)</td></tr>
+</table>
+</div></details>
+
+<details><summary>Kendu Economy (20+ endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/api/kendu/earn</td><td>Award Kendu after run (1/km + bonuses)</td></tr>
+<tr><td>POST</td><td>/api/kendu/earn-event</td><td>Award Kendu for event attendance</td></tr>
+<tr><td>GET</td><td>/api/kendu/balance</td><td>Current user's spendable balance + level</td></tr>
+<tr><td>GET</td><td>/api/kendu/balance/:userId</td><td>Public balance lookup</td></tr>
+<tr><td>GET</td><td>/api/kendu/history</td><td>Transaction history</td></tr>
+<tr><td>GET</td><td>/api/kendu/leaderboard</td><td>Top earners leaderboard</td></tr>
+<tr><td>GET</td><td>/api/kendu/offers</td><td>Available marketplace offers</td></tr>
+<tr><td>POST</td><td>/api/kendu/redeem</td><td>Redeem offer for coupon code</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/community</td><td>Spend to create community (1000 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/event</td><td>Spend to host event (75 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/challenge</td><td>Stake on 1v1 challenge (5-50 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/rsvp</td><td>Priority RSVP (15 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/gift</td><td>Gift Kendu (15% fee burned)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/card-skin</td><td>Buy premium share card (40 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/boost-post</td><td>Boost post in community (10 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/group-challenge</td><td>Create group challenge (50 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/ai-deep-dive</td><td>Extended AI session (30 K)</td></tr>
+<tr><td>POST</td><td>/api/kendu/spend/sponsor</td><td>Sponsor leaderboard (500 K)</td></tr>
+<tr><td>GET</td><td>/api/kendu/challenges</td><td>User's 1v1 challenges</td></tr>
+<tr><td>POST</td><td>/api/kendu/challenge/accept</td><td>Accept a challenge</td></tr>
+<tr><td>POST</td><td>/api/kendu/challenge/decline</td><td>Decline a challenge</td></tr>
+<tr><td>GET</td><td>/api/kendu/subscriptions</td><td>Active subscriptions (community upkeep)</td></tr>
+<tr><td>GET</td><td>/api/kendu/skins</td><td>User's owned premium skins</td></tr>
+</table>
+</div></details>
+
+<details><summary>Communities (15+ endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/api/communities</td><td>Browse all communities (with category filter)</td></tr>
+<tr><td>GET</td><td>/api/communities/:id</td><td>Community detail (info, members, posts)</td></tr>
+<tr><td>POST</td><td>/api/communities</td><td>Create community (admin only)</td></tr>
+<tr><td>POST</td><td>/api/communities/request</td><td>Submit community request (users)</td></tr>
+<tr><td>GET</td><td>/api/communities/requests</td><td>Admin: list pending requests</td></tr>
+<tr><td>POST</td><td>/api/communities/requests/:id/approve</td><td>Admin: approve + charge 1000 K</td></tr>
+<tr><td>POST</td><td>/api/communities/requests/:id/reject</td><td>Admin: reject (no charge)</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/join</td><td>Join community</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/leave</td><td>Leave community</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/posts</td><td>Create post in community</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/posts/:postId/like</td><td>Like/unlike post</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/polls</td><td>Create poll</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/polls/:pollId/vote</td><td>Vote on poll</td></tr>
+<tr><td>GET</td><td>/api/communities/:id/chat</td><td>Real-time chat history</td></tr>
+<tr><td>POST</td><td>/api/communities/:id/chat</td><td>Send chat message</td></tr>
+</table>
+</div></details>
+
+<details><summary>Events (8 endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/api/events</td><td>List upcoming events</td></tr>
+<tr><td>POST</td><td>/api/events</td><td>Create event</td></tr>
+<tr><td>GET</td><td>/api/events/:id</td><td>Event detail</td></tr>
+<tr><td>POST</td><td>/api/events/:id/rsvp</td><td>RSVP to event</td></tr>
+<tr><td>POST</td><td>/api/events/:id/check-in</td><td>Check in at event (with code)</td></tr>
+<tr><td>POST</td><td>/api/events/:id/comments</td><td>Comment on event</td></tr>
+<tr><td>PUT</td><td>/api/events/:id</td><td>Edit event (creator only)</td></tr>
+<tr><td>DELETE</td><td>/api/events/:id</td><td>Cancel event</td></tr>
+</table>
+</div></details>
+
+<details><summary>Social (6 endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/api/social/follow/:userId</td><td>Follow/unfollow user</td></tr>
+<tr><td>GET</td><td>/api/social/followers/:userId</td><td>List followers</td></tr>
+<tr><td>GET</td><td>/api/social/following/:userId</td><td>List following</td></tr>
+<tr><td>POST</td><td>/api/social/kudos/:activityId</td><td>Give kudos on run</td></tr>
+<tr><td>POST</td><td>/api/social/comment/:activityId</td><td>Comment on run</td></tr>
+<tr><td>GET</td><td>/api/social/feed</td><td>Activity feed (followers' runs)</td></tr>
+</table>
+</div></details>
+
+<details><summary>Gamification (4 endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/api/gamification/xp</td><td>User XP, level, streak data</td></tr>
+<tr><td>GET</td><td>/api/gamification/achievements</td><td>All achievements + user's earned</td></tr>
+<tr><td>GET</td><td>/api/gamification/leaderboard</td><td>XP leaderboard</td></tr>
+<tr><td>POST</td><td>/api/gamification/check-achievements</td><td>Trigger achievement check</td></tr>
+</table>
+</div></details>
+
+<details><summary>Admin (25+ endpoints)</summary><div>
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/api/admin/dashboard</td><td>Admin dashboard metrics</td></tr>
+<tr><td>GET</td><td>/api/admin/users</td><td>All users with stats</td></tr>
+<tr><td>GET</td><td>/api/admin/analytics/*</td><td>DAU, retention, funnel metrics</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/flags/*</td><td>Feature flag CRUD</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/segments/*</td><td>User segment management</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/push/*</td><td>Push notification campaigns</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/content/*</td><td>Content CMS (tips, articles)</td></tr>
+<tr><td>GET</td><td>/api/admin/audit/*</td><td>Admin action audit log</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/engineering/*</td><td>Sprint history, system health</td></tr>
+<tr><td>POST</td><td>/api/admin/moderation/*</td><td>Ban/warn users, moderate content</td></tr>
+<tr><td>GET</td><td>/api/kendu/admin/stats</td><td>Kendu economy metrics</td></tr>
+<tr><td>GET</td><td>/api/kendu/admin/economy</td><td>Economy health (flow ratio)</td></tr>
+<tr><td>POST</td><td>/api/kendu/admin/process-upkeep</td><td>Trigger subscription collection</td></tr>
+<tr><td>POST</td><td>/api/kendu/admin/offers</td><td>Create marketplace offer</td></tr>
+<tr><td>POST</td><td>/api/kendu/admin/resolve-challenges</td><td>Force resolve expired challenges</td></tr>
+</table>
+</div></details>
+
+<h2>3. Database Schema</h2>
+
+<details><summary>Core Tables (click to expand)</summary><div>
+<h4>users</h4>
+<pre><code>id, name, email, phone, password_hash, role (admin|runner), gender, age, height_cm, weight_kg,
+fitness_level, running_experience, injury_history (JSON), profile_image_url, invite_code_id, created_at</code></pre>
+
+<h4>activities (runs)</h4>
+<pre><code>id, user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km,
+elevation_gain, start_date, start_latlng, end_latlng, map_polyline, splits (JSON),
+average_heartrate, max_heartrate, calories, activity_type, rpe, created_at</code></pre>
+
+<h4>user_xp</h4>
+<pre><code>user_id (unique), total_xp, current_level, current_streak_days, longest_streak_days, last_activity_date</code></pre>
+
+<h4>runner_profiles (AI profiling data)</h4>
+<pre><code>user_id (unique), dream_race, running_why, run_feeling, bad_run_response, preferred_time,
+training_days_per_week, coach_style, estimated_vo2max, estimated_5k_time_sec,
+personality_tags (JSON), ai_coach_name, profiling_complete (0|1), created_at</code></pre>
+
+<h4>tier_history</h4>
+<pre><code>id, user_id, tier (beginner|intermediate|advanced), estimated_vo2max, age_graded_percent, score, calculated_at</code></pre>
+</div></details>
+
+<details><summary>Kendu Economy Tables</summary><div>
+<h4>kendu_balances</h4>
+<pre><code>user_id (unique), spendable_balance, lifetime_earned, current_streak_days, last_run_date</code></pre>
+
+<h4>kendu_transactions</h4>
+<pre><code>id, user_id, amount (+/-), type (earn|spend|gift_sent|gift_received|burn|upkeep),
+source, metadata (JSON), created_at</code></pre>
+
+<h4>kendu_offers (marketplace)</h4>
+<pre><code>id, brand_name, title, description, cost_kendu, quantity, redeemed_count, image_url, active, created_at</code></pre>
+
+<h4>kendu_redemptions</h4>
+<pre><code>id, user_id, offer_id, coupon_code, redeemed_at</code></pre>
+
+<h4>kendu_offer_codes</h4>
+<pre><code>id, offer_id, code, is_used, used_by_user_id</code></pre>
+
+<h4>kendu_subscriptions (community upkeep)</h4>
+<pre><code>id, user_id, entity_type ('community'), entity_id, cost_per_period (20),
+last_paid_at, next_due_at, is_active, created_at</code></pre>
+
+<h4>kendu_challenges (1v1)</h4>
+<pre><code>id, challenger_id, opponent_id, stake_amount, metric (distance|pace|streak|runs_count),
+target_value, deadline, status (pending|accepted|active|completed|expired|declined),
+winner_id, created_at</code></pre>
+
+<h4>user_skins</h4>
+<pre><code>id, user_id, skin_id (string), purchased_at</code></pre>
+</div></details>
+
+<details><summary>Social & Community Tables</summary><div>
+<h4>communities</h4>
+<pre><code>id, owner_id, name, description, category, avatar_url, cover_url, is_verified, member_count, created_at</code></pre>
+
+<h4>community_members</h4>
+<pre><code>community_id, user_id, role (owner|admin|member), joined_at</code></pre>
+
+<h4>community_posts</h4>
+<pre><code>id, community_id, author_id, body, image_url, pinned, created_at</code></pre>
+
+<h4>community_requests</h4>
+<pre><code>id, user_id, name, purpose, category, leader_name, contact, status (pending|approved|rejected), reviewed_at, created_at</code></pre>
+
+<h4>events</h4>
+<pre><code>id, creator_id, title, description, event_type, date, time, duration_minutes,
+location_name, latitude, longitude, max_attendees, visibility, status, check_in_code</code></pre>
+
+<h4>follows, kudos, comments</h4>
+<pre><code>Standard social graph tables with user references</code></pre>
+</div></details>
+
+<h2>4. AI & Scoring Logic</h2>
+
+<div class="section">
+<h3>Tier Classification Engine</h3>
+<p>Location: <code>server/src/engine/</code> (tierEngine, paceEngine)</p>
+<ul>
+<li><strong>Input:</strong> Last 30 runs (distance, pace, frequency)</li>
+<li><strong>Scoring weights:</strong> Performance 40%, Volume 15%, Consistency 15%, Recovery 15%, VO2max 10%, Compliance 5%</li>
+<li><strong>Output:</strong> beginner (0-39), intermediate (40-69), advanced (70-100)</li>
+<li><strong>VO2max estimation:</strong> Cooper formula from best 12-min effort or pace extrapolation</li>
+<li><strong>Age grading:</strong> Adjusts expectations based on age+gender</li>
+</ul>
+
+<h3>Kendu Economy (v2)</h3>
+<p>Location: <code>server/src/engine/kenduEngine.ts</code></p>
+<h4>Earning (1 Kendu = 1 km effort)</h4>
+<ul>
+<li>Base: 1 Kendu per km (floor)</li>
+<li>Coach multiplier: 1.5x (if pre-run AI check-in or club session attendance)</li>
+<li>Personal Best: +5 (pace PB within 90-day window OR distance PB all-time)</li>
+<li>Workout complete: +3</li>
+<li>Training plan complete: +20</li>
+<li>4+ runs/week: +5</li>
+<li>7-day streak milestone: +10</li>
+<li>Event attendance: +8</li>
+<li>Daily cap: 50 Kendu/day (IST timezone)</li>
+</ul>
+
+<h4>Spending</h4>
+<table>
+<tr><th>Action</th><th>Cost</th><th>Notes</th></tr>
+<tr><td>Create Community</td><td>1000</td><td>Requires admin approval. Charged on approval.</td></tr>
+<tr><td>Host Event</td><td>75</td><td></td></tr>
+<tr><td>1v1 Challenge</td><td>5-50</td><td>20% rake burned from winner's pot</td></tr>
+<tr><td>Priority RSVP</td><td>15</td><td></td></tr>
+<tr><td>Gift Kendu</td><td>3+</td><td>15% fee burned permanently</td></tr>
+<tr><td>Premium Card Skin</td><td>40</td><td>One-time purchase per skin</td></tr>
+<tr><td>Boost Post</td><td>10</td><td>Pins to top of community</td></tr>
+<tr><td>Group Challenge</td><td>50</td><td></td></tr>
+<tr><td>AI Deep Dive</td><td>30</td><td>Extended analysis session</td></tr>
+<tr><td>Sponsor Leaderboard</td><td>500</td><td>7-day name display</td></tr>
+<tr><td>Community Upkeep</td><td>20/month</td><td>Auto-deducted; dormant if unpaid</td></tr>
+</table>
+
+<h4>Leveling Formula</h4>
+<pre><code>Level N requires: 10 * 1.5^(N-1) lifetime Kendu earned
+Level 2: 10K | Level 5: 66K | Level 10: 513K | Level 15: 3,495K</code></pre>
+
+<h3>XP & Gamification</h3>
+<ul>
+<li>+25 XP per run logged</li>
+<li>+50 XP per challenge completed</li>
+<li>+100 XP per achievement earned</li>
+<li>Level formula: 100 * level^1.5 XP per level</li>
+<li>Streak tracking: consecutive days with a run (IST timezone)</li>
+</ul>
+
+<h3>AI Chat (Claude-powered)</h3>
+<ul>
+<li>Model: Claude (Anthropic API)</li>
+<li>Context: Last 20 messages + user profile + recent runs + tier + goals</li>
+<li>System prompt includes runner's bio, stats, tier, transformation plan</li>
+<li>Daily message limit (based on subscription tier)</li>
+<li>Token usage tracked in ai_usage table</li>
+</ul>
+</div>
+
+<h2>5. User Flows</h2>
+
+<div class="section">
+<h3>Registration → First Run</h3>
+<ol>
+<li>User enters: name, phone, email, password, invite code</li>
+<li>Optional: profile photo (currently broken — not stored)</li>
+<li>Redirect to /profiling (8-step AI questionnaire)</li>
+<li>AI analyzes responses → creates runner_profile + estimates VO2max</li>
+<li>Dashboard shows "Get Started" checklist (photo, profiling, first run, first event)</li>
+<li>User taps Run button → GPS tracker starts</li>
+<li>Run completes → saved to activities → Kendu earned → analysis shown</li>
+</ol>
+
+<h3>Run Recording Flow</h3>
+<ol>
+<li>Tap floating Run button (or navigate to /run/track)</li>
+<li>IDLE state: map centered on location, Start button</li>
+<li>RUNNING: GPS tracking (watchPosition), live distance/pace/time overlay</li>
+<li>PAUSED: Timer paused, resume/stop options</li>
+<li>FINISHED: RPE selection → Save → POST /runs/log</li>
+<li>Post-save: AI analysis card (score, tags, commentary)</li>
+<li>Then: Kendu earned breakdown modal</li>
+<li>Option: Share card to Instagram/WhatsApp</li>
+</ol>
+
+<h3>Community Creation (Admin-Gated)</h3>
+<ol>
+<li>User submits request (name, purpose, category, contact)</li>
+<li>Admin sees pending requests with user's Kendu balance</li>
+<li>Admin approves → 1000 Kendu charged → community created + subscription started</li>
+<li>Admin rejects → no charge, user notified</li>
+<li>Monthly upkeep: 20 Kendu auto-deducted. Unpaid = dormant.</li>
+</ol>
+</div>
+
+<h2>6. Known Issues & Integration Gaps</h2>
+
+<div class="issue">
+<div class="issue-title">1. Profile Photo Never Stored <span class="badge badge-err">BROKEN</span></div>
+<p>Frontend collects file in registration, converts to DataURL preview, but auth.routes.ts only accepts JSON body. The profile_image_url column stays null for all users. Photo upload endpoint doesn't exist.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">2. Kendu Not Earned After Run Save <span class="badge-err badge">CRITICAL</span></div>
+<p>POST /runs/log saves the run and awards XP (+25), but does NOT call calculateKenduForRun(). The /kendu/earn endpoint exists but is never triggered automatically. Frontend must call it separately (but currently doesn't after save).</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">3. PostRunKenduModal Has No Data <span class="badge badge-err">BROKEN</span></div>
+<p>The modal component exists and is imported in RunTrackerPage, but since Kendu earning isn't triggered, it never receives data to display.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">4. No Map in Run Tracker <span class="badge badge-warn">MISSING</span></div>
+<p>GPS coordinates are collected (lat, lon) during tracking but no visual map is rendered. Users can't see their route while running or after finishing.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">5. Challenge Auto-Resolution Only on Page Visit <span class="badge badge-warn">DESIGN</span></div>
+<p>resolveExpiredChallenges() is called when GET /challenges is hit. If nobody visits the page, expired challenges stay unresolved indefinitely. No scheduled task or cron exists.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">6. Community Upkeep Never Auto-Triggers <span class="badge badge-warn">DESIGN</span></div>
+<p>checkAllUpkeepDue() exists but is only called from admin panel button click. No automated schedule. Communities can avoid upkeep indefinitely if admin forgets.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">7. AI Profiling Completion Not Tracked in Dashboard <span class="badge badge-warn">BUG</span></div>
+<p>Dashboard checklist hardcodes profiling as `done: false`. It should query runner_profiles.profiling_complete to determine real status.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">8. Strava Tokens Table Still Exists <span class="badge badge-warn">CLEANUP</span></div>
+<p>Strava integration was removed and replaced with GPS tracker, but strava_tokens table and related schema remain. Dead code/schema.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">9. ChatFAB + Run FAB Position Conflict <span class="badge badge-warn">UX</span></div>
+<p>AppShell renders ChatFAB (floating AI chat button) at bottom-right. Adding a center Run FAB will conflict visually. Need position coordination.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">10. Share Card Has No Post-Run AI Data <span class="badge badge-warn">MISSING</span></div>
+<p>SharePage shows distance/pace/time but no AI rating, performance tags, or personalized commentary. The "shareable card" lacks the wow factor.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">11. Invite Code Required But No Self-Serve Flow <span class="badge badge-warn">UX</span></div>
+<p>Registration requires invite_code (hard block). No waitlist-to-invite pipeline. If code runs out, new users are completely blocked.</p>
+</div>
+
+<div class="issue">
+<div class="issue-title">12. No Rate Limiting on API <span class="badge badge-warn">SECURITY</span></div>
+<p>No express-rate-limit or similar middleware. Login, register, and AI chat endpoints are unprotected against brute force or abuse.</p>
+</div>
+
+<h2>7. Gamification Audit</h2>
+
+<div class="section">
+<h3>What Works</h3>
+<ul>
+<li>XP earning on run save (+25 per run)</li>
+<li>Streak tracking (consecutive days)</li>
+<li>Level progression formula</li>
+<li>Weekly challenges generation</li>
+<li>Achievement system (schema + check endpoint)</li>
+<li>Kendu economy (earn/spend/balance)</li>
+</ul>
+
+<h3>What's Disconnected</h3>
+<ul>
+<li><strong>Kendu not auto-earned</strong> — needs to be triggered in run save flow</li>
+<li><strong>Achievements not auto-checked</strong> — only triggered on explicit API call</li>
+<li><strong>No push notifications for milestones</strong> — streak milestones, level-ups don't notify</li>
+<li><strong>Challenge completion not tied to runs</strong> — challenges track "complete" boolean but don't auto-detect from run data</li>
+<li><strong>Event XP not auto-awarded</strong> — check-in exists but doesn't trigger XP/Kendu</li>
+</ul>
+
+<h3>Economy Health Concerns</h3>
+<ul>
+<li>Community creation (1000 K) takes 12+ months for casual runners — possibly too restrictive for growth</li>
+<li>No Kendu seeding mechanism for new users (0 balance, cold start)</li>
+<li>Upkeep deduction has no notification before it happens</li>
+<li>Gift fee (15%) may discourage social economy (high friction)</li>
+</ul>
+</div>
+
+<h2>8. Security Considerations</h2>
+
+<div class="section">
+<ul>
+<li><span class="badge badge-ok">OK</span> Passwords hashed with bcrypt (cost 10)</li>
+<li><span class="badge badge-ok">OK</span> JWT-based auth with middleware protection</li>
+<li><span class="badge badge-ok">OK</span> Input validation with Zod on critical endpoints</li>
+<li><span class="badge badge-ok">OK</span> Helmet.js for security headers</li>
+<li><span class="badge badge-ok">OK</span> CORS restricted to client URL</li>
+<li><span class="badge badge-warn">WARN</span> No rate limiting on any endpoint</li>
+<li><span class="badge badge-warn">WARN</span> No CSRF protection (JWT in header mitigates but not fully)</li>
+<li><span class="badge badge-warn">WARN</span> SQLite file not encrypted at rest</li>
+<li><span class="badge badge-warn">WARN</span> Profile images as base64 in DB could balloon DB size</li>
+<li><span class="badge badge-warn">WARN</span> No input sanitization on community posts/chat (potential XSS via stored content)</li>
+</ul>
+</div>
+
+<h2>9. Performance Considerations</h2>
+
+<div class="section">
+<ul>
+<li><span class="badge badge-ok">OK</span> SQLite is fast for < 10K users</li>
+<li><span class="badge badge-ok">OK</span> React Query caching reduces API calls</li>
+<li><span class="badge badge-ok">OK</span> Code splitting with lazy() on all pages</li>
+<li><span class="badge badge-warn">WARN</span> No pagination on community posts (loads all)</li>
+<li><span class="badge badge-warn">WARN</span> Kendu leaderboard queries all users (no LIMIT)</li>
+<li><span class="badge badge-warn">WARN</span> Chat history loads all messages (no virtualization)</li>
+<li><span class="badge badge-warn">WARN</span> GPS watchPosition with no throttle could drain battery</li>
+<li><span class="badge badge-warn">WARN</span> Base64 images in JWT /me response would be huge</li>
+</ul>
+</div>
+
+<h2>10. Recommendations for Auditor</h2>
+
+<div class="section">
+<h3>Priority Fixes</h3>
+<ol>
+<li>Wire Kendu earning into run save flow (most impactful — the whole economy is dead without it)</li>
+<li>Implement profile photo storage (base64 or file upload)</li>
+<li>Add rate limiting (at minimum on /auth/login, /auth/register, /chat)</li>
+<li>Auto-trigger achievement checks after runs</li>
+<li>Add scheduled upkeep processing (or at minimum, trigger on user login)</li>
+</ol>
+
+<h3>Architecture Questions</h3>
+<ul>
+<li>Should SQLite be replaced with PostgreSQL before scaling past 1K users?</li>
+<li>Is base64 image storage sustainable? Consider S3/Cloudinary for profile photos.</li>
+<li>Should the Kendu earning be moved server-side (in run save transaction) rather than relying on separate client call?</li>
+<li>Is the AI chat token limit sufficient? What happens when context window is exceeded?</li>
+<li>Should challenges and upkeep use a proper job queue (Bull, Agenda) instead of lazy evaluation?</li>
+</ul>
+
+<h3>Testing Gaps</h3>
+<ul>
+<li>No automated tests exist (unit, integration, or e2e)</li>
+<li>No CI/CD pipeline beyond Railway auto-deploy</li>
+<li>No error monitoring (Sentry, etc.)</li>
+<li>No performance monitoring (APM)</li>
+</ul>
+</div>
+
+</body>
+</html>

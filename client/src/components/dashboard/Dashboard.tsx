@@ -125,6 +125,11 @@ export function Dashboard() {
     queryFn: () => api.get('/subscription/status').then(r => r.data),
   });
 
+  const { data: profilingStatus } = useQuery({
+    queryKey: ['profiling-status'],
+    queryFn: () => api.get('/profiling/status').then(r => r.data).catch(() => ({ complete: false })),
+  });
+
   const { data: friendStreaks } = useQuery({
     queryKey: ['friend-streaks'],
     queryFn: () => api.get('/gamification/friend-streaks').then(r => r.data).catch(() => null),
@@ -138,18 +143,6 @@ export function Dashboard() {
   const completedChallenges = challenges?.filter((c: any) => c.completed)?.length || 0;
   const totalChallenges = challenges?.length || 0;
 
-  const greetingHour = new Date().getHours();
-  const timeGreeting = greetingHour < 6 ? 'Late night' : greetingHour < 12 ? 'Morning' : greetingHour < 17 ? 'Afternoon' : 'Evening';
-  const lastRun = recentRuns?.[0];
-  const greeting = lastRun
-    ? (() => {
-        const diffHours = (Date.now() - new Date(lastRun.start_date).getTime()) / 3600000;
-        const km = (lastRun.distance_meters / 1000).toFixed(1);
-        if (diffHours < 12) return `Back from your ${km}km? Nice`;
-        if (diffHours < 36) return `${km}km yesterday — solid`;
-        return timeGreeting;
-      })()
-    : timeGreeting;
 
   return (
     <>
@@ -158,12 +151,6 @@ export function Dashboard() {
       <CelebrationToast title={levelUpToast.title} message={levelUpToast.message} type="gold" visible={!!levelUpToast} onDismiss={() => setLevelUpToast(null)} />
     )}
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
-      {/* Smart Greeting */}
-      <motion.div variants={fadeUp} className="mb-4">
-        <p className="text-zinc-500 text-xs">{smartGreeting.icon} {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-        <h1 className="font-heading text-2xl font-bold text-white mt-1">{smartGreeting.text}</h1>
-      </motion.div>
-
       {/* Header */}
       <motion.div variants={fadeUp} className="pt-1">
         <div className="flex items-start justify-between">
@@ -172,7 +159,7 @@ export function Dashboard() {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </p>
             <h1 className="font-heading text-[22px] font-bold leading-tight">
-              {greeting}, {user?.name?.split(' ')[0]}
+              {smartGreeting.text}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -195,16 +182,6 @@ export function Dashboard() {
                 </div>
               )}
             </button>
-            <div
-              onClick={() => navigate('/profile')}
-              className="w-8 h-8 rounded-full bg-bg-secondary border border-bg-tertiary overflow-hidden flex items-center justify-center cursor-pointer"
-            >
-              {(user as any)?.profile_image_url ? (
-                <img src={(user as any).profile_image_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[11px] font-bold text-zinc-500">{user?.name?.[0]?.toUpperCase() || '?'}</span>
-              )}
-            </div>
           </div>
         </div>
 
@@ -250,8 +227,7 @@ export function Dashboard() {
               {[
                 { done: true, label: 'Create your account', icon: '✓' },
                 { done: !!(user as any)?.profile_image_url, label: 'Add a profile photo', icon: '📸', action: () => navigate('/profile') },
-                { done: false, label: 'Complete AI profiling', icon: '🧬', action: () => navigate('/profiling') },
-                { done: false, label: 'Track your first run', icon: '📍', action: () => navigate('/run/track') },
+                { done: !!profilingStatus?.complete, label: 'Complete AI profiling', icon: '🧬', action: () => navigate('/profiling') },
                 { done: false, label: 'RSVP to your first event', icon: '📅', action: () => navigate('/events') },
               ].map((step, i) => (
                 <button
@@ -280,6 +256,7 @@ export function Dashboard() {
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-zinc-600 mt-3 text-center">Ready to run? Tap the orange button below anytime.</p>
           </div>
         </motion.div>
       )}

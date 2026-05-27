@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { AppShell } from '../components/layout/AppShell';
 
 const BIOMES = {
   base: { gradient: 'from-emerald-500/20 to-green-800/10', label: 'Base Building', icon: '🌿', color: 'text-emerald-400' },
@@ -124,7 +124,6 @@ function generateSamplePath(daysPerWeek: number): WorkoutNode[] {
 }
 
 export function TrainPage() {
-  const navigate = useNavigate();
   const [selectedNode, setSelectedNode] = useState<WorkoutNode | null>(null);
 
   const { data: profile } = useQuery({
@@ -153,9 +152,9 @@ export function TrainPage() {
   const currentBiome = nodes[currentNodeIdx]?.biome || 'base';
 
   return (
-    <div className="min-h-screen bg-bg-primary pb-24">
+    <AppShell>
       {/* Header */}
-      <div className="px-5 pt-5 pb-4">
+      <div className="pb-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-1">Your Training Path</p>
@@ -192,7 +191,7 @@ export function TrainPage() {
       </div>
 
       {/* Progress Bar */}
-      <div className="px-5 mb-4">
+      <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] text-zinc-600">Progress</span>
           <span className="text-[10px] font-mono text-zinc-500">{completedCount}/{nodes.length} workouts</span>
@@ -300,7 +299,7 @@ export function TrainPage() {
       </div>
 
       {/* What If Projection */}
-      <div className="px-5 mt-6">
+      <div className="mt-6">
         <div className="rounded-xl bg-gradient-to-br from-accent/8 via-bg-secondary to-bg-secondary border border-accent/15 p-4 space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">What If You Stay Consistent</p>
           <div className="grid grid-cols-3 gap-2">
@@ -401,6 +400,6 @@ export function TrainPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </AppShell>
   );
 }

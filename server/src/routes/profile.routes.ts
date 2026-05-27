@@ -71,4 +71,17 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
   });
 });
 
+// PATCH /profile/photo — update profile photo
+router.patch('/photo', (req: AuthRequest, res: Response) => {
+  const { photo } = req.body;
+  if (!photo || !photo.startsWith('data:image/')) {
+    return res.status(400).json({ error: 'Valid base64 image required' });
+  }
+  if (photo.length > 2_000_000) {
+    return res.status(413).json({ error: 'Image too large (max ~1.5MB)' });
+  }
+  db.prepare('UPDATE users SET profile_image_url = ? WHERE id = ?').run(photo, req.userId);
+  res.json({ success: true });
+});
+
 export default router;

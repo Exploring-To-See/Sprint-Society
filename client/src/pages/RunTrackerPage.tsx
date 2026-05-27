@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
+import { LatLngExpression } from 'leaflet';
+import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
 
-type TrackingState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FINISHED';
+type TrackingState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FINISHED' | 'ANALYSIS';
 
 interface Position {
   lat: number;
@@ -17,8 +20,17 @@ interface Split {
   time_seconds: number;
 }
 
+interface RunAnalysis {
+  score: number;
+  tags: string[];
+  commentary: string;
+  fastest_km: number | null;
+  slowest_km: number | null;
+  vs_last_run_percent: number | null;
+}
+
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // meters
+  const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -28,8 +40,10 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
+  if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
@@ -40,23 +54,40 @@ function formatPace(paceSeconds: number): string {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
+function MapFollower({ position }: { position: LatLngExpression | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.setView(position, map.getZoom(), { animate: true });
+  }, [position, map]);
+  return null;
+}
+
+function FitBounds({ positions }: { positions: LatLngExpression[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (positions.length > 1) {
+      map.fitBounds(positions as [number, number][], { padding: [40, 40] });
+    }
+  }, [positions, map]);
+  return null;
+}
 
 export function RunTrackerPage() {
   const { token } = useAuth() as { token: string | null };
+  const navigate = useNavigate();
   const [state, setState] = useState<TrackingState>('IDLE');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [totalDistance, setTotalDistance] = useState(0); // meters
-  const [currentPace, setCurrentPace] = useState(0); // seconds per km
+  const [totalDistance, setTotalDistance] = useState(0);
+  const [currentPace, setCurrentPace] = useState(0);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [elevationGain, setElevationGain] = useState(0);
   const [splits, setSplits] = useState<Split[]>([]);
   const [rpe, setRpe] = useState<number | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+  const [analysis, setAnalysis] = useState<RunAnalysis | null>(null);
+  const [kenduEarned, setKenduEarned] = useState<number | null>(null);
 
   const positionsRef = useRef<Position[]>([]);
   const watchIdRef = useRef<number | null>(null);
@@ -67,21 +98,22 @@ export function RunTrackerPage() {
   const lastSplitKmRef = useRef(0);
   const splitStartTimeRef = useRef(0);
 
-  // Timer logic
+  // Get initial location
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+      () => setUserLocation([28.6139, 77.2090]) // Delhi fallback
+    );
+  }, []);
+
+  // Timer
   useEffect(() => {
     if (state === 'RUNNING') {
-      timerRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setElapsedSeconds(prev => prev + 1), 1000);
     } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [state]);
 
   // Pace calculation every 5 seconds
@@ -90,34 +122,21 @@ export function RunTrackerPage() {
       paceCalcRef.current = setInterval(() => {
         const positions = positionsRef.current;
         if (positions.length < 2) return;
-
-        // Calculate pace from last ~100m of movement
         let distAccum = 0;
         let timeSpan = 0;
         for (let i = positions.length - 1; i > 0 && distAccum < 100; i--) {
-          const d = haversineDistance(
-            positions[i - 1].lat, positions[i - 1].lon,
-            positions[i].lat, positions[i].lon
-          );
+          const d = haversineDistance(positions[i - 1].lat, positions[i - 1].lon, positions[i].lat, positions[i].lon);
           distAccum += d;
           timeSpan = (positions[i].timestamp - positions[i - 1].timestamp) / 1000;
         }
-
         if (distAccum > 10 && timeSpan > 0) {
-          // pace = seconds per km
-          const pace = (timeSpan / distAccum) * 1000;
-          setCurrentPace(pace);
+          setCurrentPace((timeSpan / distAccum) * 1000);
         }
       }, 5000);
     } else {
-      if (paceCalcRef.current) {
-        clearInterval(paceCalcRef.current);
-        paceCalcRef.current = null;
-      }
+      if (paceCalcRef.current) { clearInterval(paceCalcRef.current); paceCalcRef.current = null; }
     }
-    return () => {
-      if (paceCalcRef.current) clearInterval(paceCalcRef.current);
-    };
+    return () => { if (paceCalcRef.current) clearInterval(paceCalcRef.current); };
   }, [state]);
 
   const handlePositionUpdate = useCallback((position: GeolocationPosition) => {
@@ -128,41 +147,30 @@ export function RunTrackerPage() {
       altitude: position.coords.altitude,
     };
 
-    // Elevation gain tracking
+    // Elevation
     if (newPos.altitude !== null) {
       if (prevAltitudeRef.current !== null) {
         const altDiff = newPos.altitude - prevAltitudeRef.current;
-        // Only count positive changes > 2m (noise filter)
-        if (altDiff > 2) {
-          setElevationGain(prev => prev + altDiff);
-          prevAltitudeRef.current = newPos.altitude;
-        } else if (altDiff < -2) {
-          // Update ref on descent too so next climb starts from correct base
-          prevAltitudeRef.current = newPos.altitude;
-        }
-      } else {
-        prevAltitudeRef.current = newPos.altitude;
-      }
+        if (altDiff > 2) { setElevationGain(prev => prev + altDiff); prevAltitudeRef.current = newPos.altitude; }
+        else if (altDiff < -2) { prevAltitudeRef.current = newPos.altitude; }
+      } else { prevAltitudeRef.current = newPos.altitude; }
     }
 
+    setUserLocation([newPos.lat, newPos.lon]);
     const positions = positionsRef.current;
+
     if (positions.length > 0) {
       const lastPos = positions[positions.length - 1];
       const dist = haversineDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
-      // Filter out GPS jitter (ignore movements < 2m or > 100m in single update)
       if (dist >= 2 && dist < 100) {
         positionsRef.current = [...positions, newPos];
+        setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
         setTotalDistance(prev => {
           const newTotal = prev + dist;
-          // Splits tracking: check if we crossed a km boundary
           const currentKm = Math.floor(newTotal / 1000);
           if (currentKm > lastSplitKmRef.current) {
-            // Record split for each km crossed
             for (let km = lastSplitKmRef.current + 1; km <= currentKm; km++) {
-              setSplits(prevSplits => [...prevSplits, {
-                km,
-                time_seconds: Math.round((position.timestamp - splitStartTimeRef.current) / 1000),
-              }]);
+              setSplits(prevSplits => [...prevSplits, { km, time_seconds: Math.round((position.timestamp - splitStartTimeRef.current) / 1000) }]);
               splitStartTimeRef.current = position.timestamp;
             }
             lastSplitKmRef.current = currentKm;
@@ -172,25 +180,25 @@ export function RunTrackerPage() {
       }
     } else {
       positionsRef.current = [newPos];
+      setRouteCoords([[newPos.lat, newPos.lon]]);
       splitStartTimeRef.current = position.timestamp;
     }
   }, []);
 
   const startTracking = useCallback(() => {
-    if (!navigator.geolocation) {
-      setGpsError('GPS not supported on this device');
-      return;
-    }
-
+    if (!navigator.geolocation) { setGpsError('GPS not supported'); return; }
     setGpsError(null);
     startTimeRef.current = new Date().toISOString();
     positionsRef.current = [];
+    setRouteCoords([]);
     setTotalDistance(0);
     setElapsedSeconds(0);
     setCurrentPace(0);
     setElevationGain(0);
     setSplits([]);
     setRpe(null);
+    setAnalysis(null);
+    setKenduEarned(null);
     prevAltitudeRef.current = null;
     lastSplitKmRef.current = 0;
     splitStartTimeRef.current = 0;
@@ -199,19 +207,9 @@ export function RunTrackerPage() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       handlePositionUpdate,
       (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setGpsError('GPS permission denied. Please allow location access.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setGpsError('GPS signal unavailable. Try moving to an open area.');
-            break;
-          case error.TIMEOUT:
-            setGpsError('GPS timed out. Retrying...');
-            break;
-          default:
-            setGpsError('GPS error occurred.');
-        }
+        if (error.code === error.PERMISSION_DENIED) setGpsError('Location access denied');
+        else if (error.code === error.POSITION_UNAVAILABLE) setGpsError('GPS signal unavailable');
+        else setGpsError('GPS timeout — retrying...');
       },
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     );
@@ -219,59 +217,101 @@ export function RunTrackerPage() {
 
   const pauseTracking = useCallback(() => {
     setState('PAUSED');
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
   }, []);
 
   const resumeTracking = useCallback(() => {
     setState('RUNNING');
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      handlePositionUpdate,
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
-    );
+    watchIdRef.current = navigator.geolocation.watchPosition(handlePositionUpdate, () => {}, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
   }, [handlePositionUpdate]);
 
   const stopTracking = useCallback(() => {
     setState('FINISHED');
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
   }, []);
 
   const saveRun = async () => {
     setSaving(true);
-    setSaveMessage(null);
     try {
       const res = await fetch('/api/runs/log', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           distance_meters: Math.round(totalDistance),
           moving_time_seconds: elapsedSeconds,
           start_date: startTimeRef.current,
           elevation_gain: Math.round(elevationGain),
           splits: JSON.stringify(splits),
-          rpe: rpe,
+          rpe,
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setSaveMessage(data.message || 'Run saved!');
-      } else {
-        setSaveMessage(data.error || 'Failed to save run');
+        // Trigger Kendu earning
+        try {
+          const kenduRes = await fetch('/api/kendu/earn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ km: totalDistance / 1000, wasCoachAssigned: false, isPersonalBest: false }),
+          });
+          const kenduData = await kenduRes.json();
+          if (kenduRes.ok) setKenduEarned(kenduData.pointsEarned || 0);
+        } catch {}
+
+        // Generate analysis
+        generateAnalysis();
+        setState('ANALYSIS');
       }
-    } catch {
-      setSaveMessage('Network error. Try again.');
-    } finally {
-      setSaving(false);
+    } catch {} finally { setSaving(false); }
+  };
+
+  const generateAnalysis = () => {
+    const avgPace = totalDistance > 0 ? elapsedSeconds / (totalDistance / 1000) : 0;
+    const km = totalDistance / 1000;
+
+    // Score (simplified client-side)
+    let score = 50;
+    if (km >= 3) score += 10;
+    if (km >= 5) score += 10;
+    if (km >= 10) score += 10;
+    if (splits.length >= 2) {
+      const variance = splits.reduce((sum, s) => sum + Math.abs(s.time_seconds - avgPace), 0) / splits.length;
+      if (variance < avgPace * 0.1) score += 10; // consistent
     }
+    if (splits.length >= 2 && splits[splits.length - 1].time_seconds < splits[0].time_seconds) score += 10; // negative split
+    if (elevationGain > 30) score += 5;
+    score = Math.min(99, Math.max(30, score));
+
+    // Tags
+    const tags: string[] = [];
+    if (splits.length >= 2 && splits[splits.length - 1].time_seconds < splits[0].time_seconds) tags.push('Strong Finish');
+    if (splits.length >= 2) {
+      const v = splits.reduce((sum, s) => sum + Math.abs(s.time_seconds - avgPace), 0) / splits.length;
+      if (v < avgPace * 0.1) tags.push('Steady Pacer');
+    }
+    if (km >= 8) tags.push('Endurance Builder');
+    if (elevationGain > 50) tags.push('Hill Crusher');
+    if (avgPace > 0 && avgPace < 330) tags.push('Speed Demon');
+    if (tags.length === 0) tags.push('Consistent Runner');
+    if (tags.length === 1) tags.push('Keep Improving');
+
+    // Commentary
+    let commentary = `Solid ${km.toFixed(1)}km effort at ${formatPace(avgPace)}/km. `;
+    if (splits.length >= 2 && splits[splits.length - 1].time_seconds < splits[0].time_seconds) {
+      const improvement = Math.round((1 - splits[splits.length - 1].time_seconds / splits[0].time_seconds) * 100);
+      commentary += `Great negative split — last km was ${improvement}% faster than your first. `;
+    }
+    if (elevationGain > 30) commentary += `Good hill work with ${Math.round(elevationGain)}m elevation gain.`;
+    else commentary += 'Stay consistent and the pace will come.';
+
+    // Fastest/slowest km
+    let fastest: number | null = null, slowest: number | null = null;
+    if (splits.length > 0) {
+      fastest = splits.reduce((min, s) => s.time_seconds < min.time_seconds ? s : min, splits[0]).km;
+      slowest = splits.reduce((max, s) => s.time_seconds > max.time_seconds ? s : max, splits[0]).km;
+    }
+
+    setAnalysis({ score, tags: tags.slice(0, 2), commentary, fastest_km: fastest, slowest_km: slowest, vs_last_run_percent: null });
   };
 
   const discardRun = () => {
@@ -282,262 +322,279 @@ export function RunTrackerPage() {
     setElevationGain(0);
     setSplits([]);
     setRpe(null);
+    setRouteCoords([]);
+    setAnalysis(null);
+    setKenduEarned(null);
     prevAltitudeRef.current = null;
     lastSplitKmRef.current = 0;
     splitStartTimeRef.current = 0;
     positionsRef.current = [];
     startTimeRef.current = null;
-    setSaveMessage(null);
   };
 
   const averagePace = totalDistance > 0 ? (elapsedSeconds / (totalDistance / 1000)) : 0;
+  const mapCenter = useMemo(() => userLocation || [28.6139, 77.2090] as [number, number], [userLocation]);
+
+  // ANALYSIS STATE — Post-run AI card
+  if (state === 'ANALYSIS' && analysis) {
+    return (
+      <AppShell hideNav>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="min-h-[90vh] flex flex-col items-center justify-center space-y-6 py-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent font-bold">Run Analysis</p>
+
+          {/* Score ring */}
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="44" stroke="#1e1e22" strokeWidth="6" fill="none" />
+              <motion.circle
+                cx="50" cy="50" r="44" strokeWidth="6" fill="none"
+                stroke="#f97316"
+                strokeDasharray={`${analysis.score * 2.76} 276`}
+                strokeLinecap="round"
+                transform="rotate(-90 50 50)"
+                initial={{ strokeDasharray: '0 276' }}
+                animate={{ strokeDasharray: `${analysis.score * 2.76} 276` }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+              />
+            </svg>
+            <div className="text-center">
+              <motion.p className="font-mono text-[36px] font-bold text-white" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+                {analysis.score}
+              </motion.p>
+              <p className="text-[10px] text-zinc-500">/100</p>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="flex gap-2">
+            {analysis.tags.map(tag => (
+              <span key={tag} className="px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] font-semibold text-accent">{tag}</span>
+            ))}
+          </div>
+
+          {/* AI Commentary */}
+          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 max-w-[320px]">
+            <p className="text-[12px] text-zinc-300 leading-relaxed">{analysis.commentary}</p>
+          </div>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-3 gap-4 w-full max-w-[320px]">
+            <div className="text-center">
+              <p className="font-mono text-[20px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
+              <p className="text-[9px] text-zinc-500 uppercase">km</p>
+            </div>
+            <div className="text-center">
+              <p className="font-mono text-[20px] font-bold text-white">{formatPace(averagePace)}</p>
+              <p className="text-[9px] text-zinc-500 uppercase">pace</p>
+            </div>
+            <div className="text-center">
+              <p className="font-mono text-[20px] font-bold text-white">{formatTime(elapsedSeconds)}</p>
+              <p className="text-[9px] text-zinc-500 uppercase">time</p>
+            </div>
+          </div>
+
+          {/* Fastest/Slowest */}
+          {analysis.fastest_km && analysis.slowest_km && splits.length > 1 && (
+            <div className="flex gap-4 text-[11px]">
+              <span className="text-accent-green">Fastest: Km {analysis.fastest_km} ({formatPace(splits.find(s => s.km === analysis.fastest_km)?.time_seconds || 0)})</span>
+              <span className="text-red-400">Slowest: Km {analysis.slowest_km} ({formatPace(splits.find(s => s.km === analysis.slowest_km)?.time_seconds || 0)})</span>
+            </div>
+          )}
+
+          {/* Kendu earned */}
+          {kenduEarned !== null && kenduEarned > 0 && (
+            <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 px-4 py-2 flex items-center gap-2">
+              <span className="text-[16px]">🔥</span>
+              <span className="text-[13px] font-bold text-orange-400">+{kenduEarned} Kendu earned</span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 w-full max-w-[320px] pt-2">
+            <button
+              onClick={() => navigate('/share')}
+              className="flex-1 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-[13px] font-semibold text-white active:scale-95 transition-all"
+            >
+              Share Card
+            </button>
+            <button
+              onClick={discardRun}
+              className="flex-1 py-3 rounded-xl bg-accent text-[13px] font-semibold text-white active:scale-95 transition-all"
+            >
+              Done
+            </button>
+          </div>
+        </motion.div>
+      </AppShell>
+    );
+  }
 
   return (
-    <AppShell>
-      <div className="min-h-[70vh] flex flex-col items-center justify-center">
-        <AnimatePresence mode="wait">
-          {/* IDLE STATE */}
-          {state === 'IDLE' && (
-            <motion.div
-              key="idle"
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center text-center space-y-8"
+    <AppShell hideNav={state === 'RUNNING' || state === 'PAUSED'}>
+      <div className="relative min-h-[80vh] flex flex-col">
+        {/* Map */}
+        {(state !== 'IDLE' || userLocation) && (
+          <div className={`rounded-2xl overflow-hidden border border-bg-tertiary ${state === 'IDLE' ? 'h-[200px]' : state === 'FINISHED' ? 'h-[180px]' : 'flex-1 min-h-[50vh]'}`}>
+            <MapContainer
+              center={mapCenter}
+              zoom={15}
+              style={{ width: '100%', height: '100%' }}
+              zoomControl={false}
+              attributionControl={false}
             >
-              <div className="space-y-3">
-                <h1 className="font-heading text-[28px] font-bold text-white">Track Your Run</h1>
-                <p className="text-[13px] text-zinc-500 max-w-[260px]">
-                  We'll use GPS to track your distance and pace
-                </p>
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+              {routeCoords.length > 1 && (
+                <Polyline positions={routeCoords} pathOptions={{ color: '#f97316', weight: 4, opacity: 0.9 }} />
+              )}
+              {(state === 'RUNNING' || state === 'PAUSED') && userLocation && <MapFollower position={userLocation} />}
+              {state === 'FINISHED' && routeCoords.length > 1 && <FitBounds positions={routeCoords} />}
+            </MapContainer>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {/* IDLE */}
+          {state === 'IDLE' && (
+            <motion.div key="idle" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col items-center text-center space-y-6 pt-8">
+              <div className="space-y-2">
+                <h1 className="font-heading text-[24px] font-bold text-white">Ready to Run</h1>
+                <p className="text-[12px] text-zinc-500">GPS will track your route, pace & distance</p>
               </div>
 
               {gpsError && (
-                <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 max-w-[300px]">
-                  <p className="text-[12px] text-red-400">{gpsError}</p>
+                <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2">
+                  <p className="text-[11px] text-red-400">{gpsError}</p>
                 </div>
               )}
 
               <button
                 onClick={startTracking}
-                className="w-[180px] h-[180px] rounded-full bg-accent hover:bg-accent/90 active:scale-95 transition-all flex items-center justify-center shadow-[0_0_60px_rgba(249,115,22,0.3)]"
+                className="w-40 h-40 rounded-full bg-accent active:scale-95 transition-all flex items-center justify-center shadow-[0_0_50px_rgba(249,115,22,0.3)]"
               >
-                <span className="text-[20px] font-bold text-white tracking-wide">START RUN</span>
+                <span className="text-[18px] font-bold text-white">START</span>
               </button>
             </motion.div>
           )}
 
-          {/* RUNNING / PAUSED STATE */}
+          {/* RUNNING / PAUSED — Overlay on map */}
           {(state === 'RUNNING' || state === 'PAUSED') && (
-            <motion.div
-              key="running"
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center text-center space-y-8 w-full"
-            >
-              {/* GPS indicator */}
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={state === 'RUNNING' ? { scale: [1, 1.4, 1], opacity: [1, 0.6, 1] } : {}}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className={`w-2.5 h-2.5 rounded-full ${state === 'RUNNING' ? 'bg-accent-green' : 'bg-yellow-500'}`}
-                />
-                <span className="text-[11px] text-zinc-500 uppercase tracking-wider font-medium">
-                  {state === 'RUNNING' ? 'GPS Active' : 'Paused'}
-                </span>
-              </div>
-
-              {/* Timer */}
-              <div className="space-y-1">
-                <p className="font-mono text-[64px] font-bold text-white leading-none tracking-tight">
-                  {formatTime(elapsedSeconds)}
-                </p>
-                <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Elapsed Time</p>
-              </div>
-
-              {/* Stats row */}
-              <div className="flex items-center gap-8">
-                <div className="text-center">
-                  <p className="text-[28px] font-bold text-white">
-                    {(totalDistance / 1000).toFixed(2)}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider">km</p>
+            <motion.div key="running" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex flex-col pointer-events-none">
+              {/* Top stats overlay */}
+              <div className="pointer-events-auto m-3 rounded-xl bg-bg-primary/80 backdrop-blur-md border border-bg-tertiary/50 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      animate={state === 'RUNNING' ? { scale: [1, 1.3, 1] } : {}}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className={`w-2 h-2 rounded-full ${state === 'RUNNING' ? 'bg-accent-green' : 'bg-yellow-500'}`}
+                    />
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider">{state === 'RUNNING' ? 'Tracking' : 'Paused'}</span>
+                  </div>
+                  <span className="font-mono text-[11px] text-zinc-400">{formatTime(elapsedSeconds)}</span>
                 </div>
-                <div className="w-px h-10 bg-bg-tertiary" />
-                <div className="text-center">
-                  <p className="text-[28px] font-bold text-white">
-                    {formatPace(currentPace)}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider">min/km</p>
+                <div className="flex items-baseline justify-center gap-6 mt-2">
+                  <div className="text-center">
+                    <p className="font-mono text-[28px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
+                    <p className="text-[9px] text-zinc-500">km</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-mono text-[28px] font-bold text-white">{formatPace(currentPace)}</p>
+                    <p className="text-[9px] text-zinc-500">min/km</p>
+                  </div>
                 </div>
               </div>
 
-              {gpsError && (
-                <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-2">
-                  <p className="text-[11px] text-yellow-400">{gpsError}</p>
-                </div>
-              )}
+              <div className="flex-1" />
 
-              {/* Controls */}
-              <div className="flex items-center gap-4 pt-4">
+              {/* Bottom controls */}
+              <div className="pointer-events-auto flex items-center justify-center gap-4 p-4 pb-6">
                 {state === 'RUNNING' ? (
-                  <button
-                    onClick={pauseTracking}
-                    className="w-16 h-16 rounded-full bg-bg-secondary border border-bg-tertiary flex items-center justify-center active:scale-90 transition-all"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="white">
-                      <rect x="5" y="3" width="3.5" height="14" rx="1" />
-                      <rect x="11.5" y="3" width="3.5" height="14" rx="1" />
-                    </svg>
+                  <button onClick={pauseTracking} className="w-16 h-16 rounded-full bg-bg-primary/90 backdrop-blur border border-bg-tertiary flex items-center justify-center active:scale-90 transition-all">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="white"><rect x="5" y="3" width="3.5" height="14" rx="1"/><rect x="11.5" y="3" width="3.5" height="14" rx="1"/></svg>
                   </button>
                 ) : (
-                  <button
-                    onClick={resumeTracking}
-                    className="w-16 h-16 rounded-full bg-accent-green/20 border border-accent-green/30 flex items-center justify-center active:scale-90 transition-all"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="#22c55e">
-                      <polygon points="5,3 17,10 5,17" />
-                    </svg>
+                  <button onClick={resumeTracking} className="w-16 h-16 rounded-full bg-accent-green/20 border border-accent-green/30 flex items-center justify-center active:scale-90 transition-all">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="#22c55e"><polygon points="5,3 17,10 5,17"/></svg>
                   </button>
                 )}
-                <button
-                  onClick={stopTracking}
-                  className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center active:scale-90 transition-all"
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="#ef4444">
-                    <rect x="3" y="3" width="12" height="12" rx="2" />
-                  </svg>
+                <button onClick={stopTracking} className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center active:scale-90 transition-all">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="#ef4444"><rect x="3" y="3" width="12" height="12" rx="2"/></svg>
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* FINISHED STATE */}
+          {/* FINISHED */}
           {state === 'FINISHED' && (
-            <motion.div
-              key="finished"
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full space-y-6"
-            >
-              <div className="text-center space-y-1">
-                <h2 className="font-heading text-[24px] font-bold text-white">Run Complete</h2>
-                <p className="text-[12px] text-zinc-500">Great effort! Here's your summary.</p>
+            <motion.div key="finished" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pt-4">
+              <div className="text-center">
+                <h2 className="font-heading text-[20px] font-bold text-white">Run Complete</h2>
               </div>
 
-              {/* Summary card */}
-              <div className="rounded-2xl bg-bg-secondary border border-bg-tertiary p-6 space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-[24px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">km</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[24px] font-bold text-white">{formatTime(elapsedSeconds)}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Time</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[24px] font-bold text-white">{formatPace(averagePace)}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Avg Pace</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[24px] font-bold text-white">{Math.round(elevationGain)}m</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Elevation</p>
-                  </div>
+              {/* Stats */}
+              <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div><p className="font-mono text-[18px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p><p className="text-[9px] text-zinc-500">km</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{formatTime(elapsedSeconds)}</p><p className="text-[9px] text-zinc-500">time</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{formatPace(averagePace)}</p><p className="text-[9px] text-zinc-500">pace</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{Math.round(elevationGain)}m</p><p className="text-[9px] text-zinc-500">elev</p></div>
                 </div>
+              </div>
 
-                {/* Splits */}
-                {splits.length > 0 && (
-                  <div className="border-t border-bg-tertiary pt-4 space-y-2">
-                    <p className="text-[11px] text-zinc-500 uppercase tracking-wider font-medium">Splits</p>
-                    <div className="space-y-1">
-                      {splits.map((split) => (
-                        <div key={split.km} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-bg-primary/50">
-                          <span className="text-[12px] text-zinc-400">Km {split.km}</span>
-                          <span className="text-[12px] font-mono text-white">{formatPace(split.time_seconds)} /km</span>
-                        </div>
-                      ))}
+              {/* Splits */}
+              {splits.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Splits</p>
+                  {splits.map((split) => (
+                    <div key={split.km} className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg-secondary/50 border border-bg-tertiary/50">
+                      <span className="text-[11px] text-zinc-400">Km {split.km}</span>
+                      <span className="text-[11px] font-mono text-white">{formatPace(split.time_seconds)}</span>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              )}
+
+              {/* RPE */}
+              <div className="space-y-2">
+                <p className="text-[12px] font-semibold text-white text-center">How hard was that?</p>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  {([
+                    { value: 1, label: 'Easy', emoji: '😊' },
+                    { value: 2, label: 'Moderate', emoji: '💪' },
+                    { value: 3, label: 'Hard', emoji: '😤' },
+                    { value: 4, label: 'V. Hard', emoji: '🥵' },
+                    { value: 5, label: 'All Out', emoji: '💀' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setRpe(option.value)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95 ${
+                        rpe === option.value ? 'bg-accent text-black border border-accent' : 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
+                      }`}
+                    >
+                      {option.emoji} {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              {/* RPE Selector */}
-              {!saveMessage?.includes('saved') && (
-                <div className="space-y-3">
-                  <p className="text-[13px] font-semibold text-white text-center">How hard was that?</p>
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    {([
-                      { value: 1, label: 'Easy', emoji: '\u{1F60A}' },
-                      { value: 2, label: 'Moderate', emoji: '\u{1F4AA}' },
-                      { value: 3, label: 'Hard', emoji: '\u{1F624}' },
-                      { value: 4, label: 'Very Hard', emoji: '\u{1F975}' },
-                      { value: 5, label: 'All Out', emoji: '\u{1F480}' },
-                    ] as const).map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setRpe(option.value)}
-                        className={`px-3 py-2 rounded-xl text-[12px] font-medium transition-all active:scale-95 ${
-                          rpe === option.value
-                            ? 'bg-accent text-black border border-accent'
-                            : 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
-                        }`}
-                      >
-                        <span className="mr-1">{option.emoji}</span>{option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {saveMessage && (
-                <div className={`rounded-xl px-4 py-3 text-center ${
-                  saveMessage.includes('saved') ? 'bg-accent-green/10 border border-accent-green/20' : 'bg-red-500/10 border border-red-500/20'
-                }`}>
-                  <p className={`text-[12px] font-medium ${saveMessage.includes('saved') ? 'text-accent-green' : 'text-red-400'}`}>
-                    {saveMessage}
-                  </p>
-                </div>
-              )}
 
               {/* Actions */}
-              {!saveMessage?.includes('saved') && (
-                <div className="flex gap-3">
-                  <button
-                    onClick={discardRun}
-                    className="flex-1 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-[13px] font-semibold text-zinc-400 active:scale-95 transition-all"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    onClick={saveRun}
-                    disabled={saving || totalDistance < 10}
-                    className="flex-1 py-3.5 rounded-xl bg-accent text-[13px] font-semibold text-white active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving ? 'Saving...' : 'Save Run'}
-                  </button>
-                </div>
-              )}
-
-              {saveMessage?.includes('saved') && (
-                <button
-                  onClick={discardRun}
-                  className="w-full py-3.5 rounded-xl bg-accent text-[13px] font-semibold text-white active:scale-95 transition-all"
-                >
-                  Track Another Run
+              <div className="flex gap-3">
+                <button onClick={discardRun} className="flex-1 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-[13px] font-semibold text-zinc-400 active:scale-95 transition-all">Discard</button>
+                <button onClick={saveRun} disabled={saving || totalDistance < 10} className="flex-1 py-3 rounded-xl bg-accent text-[13px] font-semibold text-white active:scale-95 transition-all disabled:opacity-40">
+                  {saving ? 'Saving...' : 'Save Run'}
                 </button>
-              )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {gpsError && (state === 'RUNNING' || state === 'PAUSED') && (
+          <div className="absolute top-20 left-3 right-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 z-20">
+            <p className="text-[10px] text-yellow-400 text-center">{gpsError}</p>
+          </div>
+        )}
       </div>
     </AppShell>
   );
 }
-
-export default RunTrackerPage;
