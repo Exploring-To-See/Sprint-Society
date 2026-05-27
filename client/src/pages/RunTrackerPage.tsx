@@ -88,6 +88,7 @@ export function RunTrackerPage() {
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const [analysis, setAnalysis] = useState<RunAnalysis | null>(null);
   const [kenduEarned, setKenduEarned] = useState<number | null>(null);
+  const [cascadeData, setCascadeData] = useState<any>(null);
 
   const positionsRef = useRef<Position[]>([]);
   const watchIdRef = useRef<number | null>(null);
@@ -247,18 +248,10 @@ export function RunTrackerPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        // Trigger Kendu earning
-        try {
-          const kenduRes = await fetch('/api/kendu/earn', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ km: totalDistance / 1000, wasCoachAssigned: false, isPersonalBest: false }),
-          });
-          const kenduData = await kenduRes.json();
-          if (kenduRes.ok) setKenduEarned(kenduData.pointsEarned || 0);
-        } catch {}
-
-        // Generate analysis
+        if (data.cascade) {
+          setCascadeData(data.cascade);
+          setKenduEarned(data.cascade.kendu?.awarded || 0);
+        }
         generateAnalysis();
         setState('ANALYSIS');
       }
@@ -401,12 +394,67 @@ export function RunTrackerPage() {
             </div>
           )}
 
-          {/* Kendu earned */}
-          {kenduEarned !== null && kenduEarned > 0 && (
-            <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 px-4 py-2 flex items-center gap-2">
-              <span className="text-[16px]">🔥</span>
-              <span className="text-[13px] font-bold text-orange-400">+{kenduEarned} Kendu earned</span>
-            </div>
+          {/* Cascade Rewards */}
+          {cascadeData && (
+            <motion.div className="w-full max-w-[320px] space-y-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+              {/* XP + Kendu row */}
+              <div className="flex gap-2">
+                <div className="flex-1 rounded-xl bg-purple-500/10 border border-purple-500/20 px-3 py-2 flex items-center gap-2">
+                  <span className="text-[14px]">⚡</span>
+                  <span className="text-[12px] font-bold text-purple-400">+{cascadeData.xp?.awarded || 25} XP</span>
+                </div>
+                {kenduEarned !== null && kenduEarned > 0 && (
+                  <div className="flex-1 rounded-xl bg-orange-500/10 border border-orange-500/20 px-3 py-2 flex items-center gap-2">
+                    <span className="text-[14px]">🔥</span>
+                    <span className="text-[12px] font-bold text-orange-400">+{kenduEarned} Kendu</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Streak */}
+              {cascadeData.streak?.current > 1 && (
+                <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 flex items-center gap-2">
+                  <span className="text-[14px]">🔥</span>
+                  <span className="text-[12px] font-bold text-amber-400">{cascadeData.streak.current}-day streak!</span>
+                </div>
+              )}
+
+              {/* Personal Best */}
+              {cascadeData.personalBest?.isPB && (
+                <motion.div className="rounded-xl bg-green-500/10 border border-green-500/20 px-3 py-2 flex items-center gap-2"
+                  initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>
+                  <span className="text-[14px]">🏆</span>
+                  <span className="text-[12px] font-bold text-green-400">
+                    New Personal Best! ({cascadeData.personalBest.type === 'pace' ? 'Fastest pace' : 'Longest run'})
+                  </span>
+                </motion.div>
+              )}
+
+              {/* Level Up */}
+              {cascadeData.xp?.leveledUp && (
+                <motion.div className="rounded-xl bg-gradient-to-r from-accent/20 to-purple-500/20 border border-accent/30 px-3 py-3 text-center"
+                  initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 1, type: 'spring' }}>
+                  <p className="text-[14px] font-bold text-white">🎉 Level {cascadeData.xp.level}!</p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Keep pushing to unlock more</p>
+                </motion.div>
+              )}
+
+              {/* Achievements Unlocked */}
+              {cascadeData.achievements?.unlocked?.length > 0 && (
+                <div className="space-y-1.5">
+                  {cascadeData.achievements.unlocked.map((a: any) => (
+                    <motion.div key={a.id} className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 flex items-center gap-2"
+                      initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring' }}>
+                      <span className="text-[16px]">{a.icon}</span>
+                      <div>
+                        <p className="text-[12px] font-bold text-yellow-400">{a.name}</p>
+                        <p className="text-[10px] text-zinc-500">+{a.xpReward} XP</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           )}
 
           {/* Actions */}

@@ -1,9 +1,7 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { BottomNav } from './BottomNav';
-import { FeedbackButton } from '../FeedbackButton';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -17,48 +15,38 @@ export function AppShell({ children, hideNav }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = (user as any)?.role === 'admin';
-  const isRunPage = location.pathname === '/run/track';
 
-  const { data: balance } = useQuery({
-    queryKey: ['kendu-balance'],
-    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+  const { data: unread } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () => api.get('/notifications/unread-count').then(r => r.data),
     enabled: !!user && !isAdmin,
-    staleTime: 60_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
-  const profileImage = (user as any)?.profile_image_url;
-  const userName = (user as any)?.name || '';
-  const initial = userName.charAt(0).toUpperCase();
+  const unreadCount = unread?.count || 0;
 
   return (
     <div className={`min-h-screen bg-bg-primary ${hideNav ? '' : 'pb-20'}`}>
-      {/* Top header bar */}
+      {/* Minimal header */}
       {user && !isAdmin && (
         <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,8px)+8px)] pb-2 bg-bg-primary/90 backdrop-blur-md">
-          {/* Profile avatar (left) */}
+          <span className="text-[13px] font-bold text-white tracking-tight">Sprint Society</span>
+
           <button
-            onClick={() => navigate('/profile')}
-            className="w-8 h-8 rounded-full overflow-hidden border border-bg-tertiary active:scale-95 transition-transform flex-shrink-0"
+            onClick={() => navigate('/notifications')}
+            className="relative w-8 h-8 flex items-center justify-center rounded-full active:scale-95 transition-transform"
           >
-            {profileImage ? (
-              <img src={profileImage} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-bg-tertiary flex items-center justify-center text-[11px] font-bold text-zinc-400">
-                {initial}
-              </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent text-[9px] font-bold text-white flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
             )}
           </button>
-
-          {/* Kendu balance (right) */}
-          {balance && balance.spendable_balance > 0 && (
-            <button
-              onClick={() => navigate('/rewards')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 active:scale-95 transition-all"
-            >
-              <span className="text-[11px] font-bold text-orange-400">{balance.spendable_balance}</span>
-              <span className="text-[9px] text-zinc-500">K</span>
-            </button>
-          )}
         </div>
       )}
 
@@ -66,27 +54,7 @@ export function AppShell({ children, hideNav }: AppShellProps) {
         {children}
       </main>
 
-      {!hideNav && (
-        <>
-          <FeedbackButton />
-
-          {/* Floating Run FAB */}
-          {!isRunPage && user && !isAdmin && (
-            <motion.button
-              onClick={() => navigate('/run/track')}
-              className="fixed bottom-[72px] left-1/2 -translate-x-1/2 z-50 w-14 h-14 rounded-full bg-accent flex items-center justify-center shadow-[0_0_24px_rgba(249,115,22,0.4)] active:scale-90 transition-transform"
-              animate={{ boxShadow: ['0 0 16px rgba(249,115,22,0.3)', '0 0 28px rgba(249,115,22,0.5)', '0 0 16px rgba(249,115,22,0.3)'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-            </motion.button>
-          )}
-
-          <BottomNav />
-        </>
-      )}
+      {!hideNav && <BottomNav />}
     </div>
   );
 }

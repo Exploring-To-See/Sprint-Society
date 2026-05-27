@@ -89,6 +89,11 @@ export function Dashboard() {
     queryFn: () => api.get('/coaching/tier').then(r => r.data),
   });
 
+  const { data: kenduBalance } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data),
+  });
+
   const { data: challenges } = useQuery({
     queryKey: ['challenges'],
     queryFn: () => api.get('/coaching/challenges').then(r => r.data),
@@ -114,11 +119,6 @@ export function Dashboard() {
     queryFn: () => api.get('/runs?limit=5').then(r => r.data).catch(() => []),
   });
 
-  const { data: unreadNotifs } = useQuery({
-    queryKey: ['unread-notifications'],
-    queryFn: () => api.get('/notifications/unread-count').then(r => r.data),
-    refetchInterval: 30000,
-  });
 
   const { data: subscription } = useQuery({
     queryKey: ['subscription-status'],
@@ -162,27 +162,12 @@ export function Dashboard() {
               {smartGreeting.text}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
-            {streak > 0 && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent/8 border border-accent/15">
-                <span className="text-[11px]">🔥</span>
-                <span className="text-[11px] font-bold text-accent tabular-nums">{streak}</span>
-              </div>
-            )}
-            <button
-              onClick={() => navigate('/notifications')}
-              className="relative w-8 h-8 rounded-full bg-bg-secondary border border-bg-tertiary flex items-center justify-center active:scale-95 transition-all"
-            >
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" className="text-zinc-500">
-                <path d="M8 1.5a4 4 0 014 4v2.5l1.5 2.5H2.5L4 8V5.5a4 4 0 014-4zM6 12.5a2 2 0 004 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {(unreadNotifs?.count || 0) > 0 && (
-                <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-white">{unreadNotifs.count > 9 ? '9+' : unreadNotifs.count}</span>
-                </div>
-              )}
-            </button>
-          </div>
+          {streak > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent/8 border border-accent/15">
+              <span className="text-[11px]">🔥</span>
+              <span className="text-[11px] font-bold text-accent tabular-nums">{streak}</span>
+            </div>
+          )}
         </div>
 
         {/* Level + Tier + Progress */}
@@ -217,6 +202,24 @@ export function Dashboard() {
           <p className="text-[10px] text-zinc-600 mt-1">{xpToNext} XP to Level {level + 1}</p>
         )}
       </motion.div>
+
+      {/* Kendu Balance Card */}
+      {kenduBalance && kenduBalance.spendable_balance > 0 && (
+        <motion.div variants={fadeUp}>
+          <button onClick={() => navigate('/rewards')} className="w-full rounded-xl bg-gradient-to-r from-orange-500/8 to-amber-500/8 border border-orange-500/15 p-4 flex items-center justify-between active:scale-[0.98] transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center">
+                <span className="text-[16px]">🔥</span>
+              </div>
+              <div className="text-left">
+                <p className="text-[13px] font-bold text-white">{kenduBalance.spendable_balance} <span className="text-orange-400">Kendu</span></p>
+                <p className="text-[10px] text-zinc-500">{kenduBalance.current_streak_days || 0}-day streak</p>
+              </div>
+            </div>
+            <span className="text-[10px] text-zinc-500">Rewards →</span>
+          </button>
+        </motion.div>
+      )}
 
       {/* Onboarding Checklist (for new users) */}
       {stats?.total_runs === 0 && (
@@ -258,6 +261,13 @@ export function Dashboard() {
             </div>
             <p className="text-[10px] text-zinc-600 mt-3 text-center">Ready to run? Tap the orange button below anytime.</p>
           </div>
+        </motion.div>
+      )}
+
+      {/* Smart Guidance — proactive insight */}
+      {stats?.total_runs > 0 && (
+        <motion.div variants={fadeUp}>
+          <SmartGuidance streak={streak} totalRuns={stats.total_runs} recentRuns={recentRuns?.runs} challenges={challenges} />
         </motion.div>
       )}
 
@@ -520,6 +530,58 @@ export function Dashboard() {
       </motion.div>
     </motion.div>
     </>
+  );
+}
+
+function SmartGuidance({ streak, totalRuns, recentRuns, challenges }: { streak: number; totalRuns: number; recentRuns: any; challenges: any }) {
+  const navigate = useNavigate();
+
+  const lastRunDate = recentRuns?.[0]?.start_date ? new Date(recentRuns[0].start_date) : null;
+  const daysSinceLastRun = lastRunDate ? Math.floor((Date.now() - lastRunDate.getTime()) / 86400000) : 999;
+  const incompleteChallenges = challenges?.filter((c: any) => !c.completed)?.length || 0;
+
+  let message = '';
+  let icon = '';
+  let action: (() => void) | null = null;
+  let actionLabel = '';
+
+  if (daysSinceLastRun >= 3 && streak > 2) {
+    message = `Your ${streak}-day streak is at risk! Get a run in today to keep it alive.`;
+    icon = '⚠️';
+    action = () => navigate('/run/track');
+    actionLabel = 'Start Run';
+  } else if (daysSinceLastRun >= 2) {
+    message = `${daysSinceLastRun} days since your last run. A short easy run will keep momentum going.`;
+    icon = '👟';
+    action = () => navigate('/run/track');
+    actionLabel = 'Quick Run';
+  } else if (totalRuns < 5) {
+    message = `${5 - totalRuns} more runs to unlock the "Getting Started" achievement!`;
+    icon = '🎯';
+    action = () => navigate('/run/track');
+    actionLabel = 'Let\'s Go';
+  } else if (incompleteChallenges > 0) {
+    message = `${incompleteChallenges} challenge${incompleteChallenges > 1 ? 's' : ''} still open this week. You've got this.`;
+    icon = '✅';
+  } else if (streak >= 7) {
+    message = `${streak}-day streak! You're in the zone. Consistency beats intensity.`;
+    icon = '🔥';
+  } else {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 flex items-start gap-3">
+      <span className="text-[18px] mt-0.5">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[12px] text-zinc-300 leading-relaxed">{message}</p>
+        {action && (
+          <button onClick={action} className="mt-2 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-[11px] font-semibold text-accent active:scale-95 transition-all">
+            {actionLabel}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -15,7 +15,7 @@ const CoachingPage = lazy(() => import('./pages/CoachingPage').then(m => ({ defa
 const RunHistoryPage = lazy(() => import('./pages/RunHistoryPage').then(m => ({ default: m.RunHistoryPage })));
 const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.SharePage })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
-const TrainingPage = lazy(() => import('./pages/TrainingPage').then(m => ({ default: m.TrainingPage })));
+const TrainingPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m.TrainPage })));
 const TrainPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m.TrainPage })));
 const ProgressPage = lazy(() => import('./pages/ProgressPage').then(m => ({ default: m.ProgressPage })));
 const HRZonesPage = lazy(() => import('./pages/HRZonesPage').then(m => ({ default: m.HRZonesPage })));

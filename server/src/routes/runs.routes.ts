@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { executeRunCascade } from '../engine/runCascade';
 
 const router = Router();
 
@@ -107,7 +108,7 @@ router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
   res.json(weeks);
 });
 
-// POST /runs/log — Manual run logging (GPS tracker or manual entry)
+// POST /runs/log — Run completion with full cascade (XP + Kendu + achievements + notifications)
 router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
   const { distance_meters, moving_time_seconds, start_date, elevation_gain, splits, rpe } = req.body;
 
@@ -132,25 +133,21 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
     rpe || null
   );
 
-  // Update streak
-  const today = new Date().toISOString().split('T')[0];
-  const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(req.userId) as any;
-  if (xp) {
-    const lastDate = xp.last_activity_date;
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const cascade = executeRunCascade({
+    userId: req.userId!,
+    activityId: result.lastInsertRowid as number,
+    distanceMeters: distance_meters,
+    movingTimeSeconds: moving_time_seconds,
+    pacePerKm,
+    elevationGain: elevation_gain || null,
+    rpe: rpe || null,
+  });
 
-    if (lastDate === yesterday) {
-      db.prepare('UPDATE user_xp SET current_streak_days = current_streak_days + 1, last_activity_date = ?, longest_streak_days = MAX(longest_streak_days, current_streak_days + 1) WHERE user_id = ?').run(today, req.userId);
-    } else if (lastDate !== today) {
-      db.prepare('UPDATE user_xp SET current_streak_days = 1, last_activity_date = ? WHERE user_id = ?').run(today, req.userId);
-    }
-  }
-
-  // Award XP for completing a run
-  db.prepare('UPDATE user_xp SET total_xp = total_xp + 25 WHERE user_id = ?').run(req.userId);
-  db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, 25, ?, ?)').run(req.userId, 'run_completed', `Logged a ${(distance_meters / 1000).toFixed(1)}km run`);
-
-  res.status(201).json({ id: result.lastInsertRowid, message: 'Run saved!' });
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    message: 'Run saved!',
+    cascade,
+  });
 });
 
 router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {

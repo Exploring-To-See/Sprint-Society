@@ -60,6 +60,24 @@ function runMigrations() {
   if (!kudosCols.find((c: any) => c.name === 'reaction_type')) {
     db.exec("ALTER TABLE kudos ADD COLUMN reaction_type TEXT DEFAULT 'high_five'");
   }
+
+  // Ensure user_notifications table exists (cascade system)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      actor_id INTEGER,
+      target_type TEXT,
+      target_id INTEGER,
+      read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, read, created_at DESC)');
 }
 
 function seedAdmin() {

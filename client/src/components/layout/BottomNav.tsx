@@ -1,47 +1,70 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Home', icon: HomeIcon },
-  { path: '/events', label: 'Events', icon: EventsIcon },
-  { path: '/communities', label: 'Society', icon: SocietyIcon },
-  { path: '/train', label: 'Train', icon: TrainIcon },
-];
-
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/');
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/95 backdrop-blur-lg border-t border-bg-tertiary/50">
       <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-1.5 pb-[calc(env(safe-area-inset-bottom,6px)+4px)]">
-        {NAV_ITEMS.map((item) => {
-          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className="relative flex flex-col items-center gap-[3px] px-4 py-1.5 transition-colors active:scale-95"
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="nav-indicator"
-                  className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-[2px] rounded-full bg-accent"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <Icon active={isActive} />
-              <span className={`text-[9px] font-semibold tracking-wide ${
-                isActive ? 'text-white' : 'text-zinc-600'
-              }`}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+        {/* Home */}
+        <NavButton active={isActive('/dashboard')} onClick={() => navigate('/dashboard')} label="Home">
+          <HomeIcon active={isActive('/dashboard')} />
+        </NavButton>
+
+        {/* Events */}
+        <NavButton active={isActive('/events')} onClick={() => navigate('/events')} label="Events">
+          <EventsIcon active={isActive('/events')} />
+        </NavButton>
+
+        {/* RUN — Center primary action */}
+        <button
+          onClick={() => navigate('/run/track')}
+          className="relative -mt-5 flex flex-col items-center gap-[2px] active:scale-90 transition-transform"
+        >
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${
+            isActive('/run') ? 'bg-accent shadow-accent/40' : 'bg-accent/90 shadow-accent/30'
+          }`}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+          <span className="text-[9px] font-bold text-accent">Run</span>
+        </button>
+
+        {/* Society */}
+        <NavButton active={isActive('/communities')} onClick={() => navigate('/communities')} label="Society">
+          <SocietyIcon active={isActive('/communities')} />
+        </NavButton>
+
+        {/* Profile */}
+        <NavButton active={isActive('/profile')} onClick={() => navigate('/profile')} label="Profile">
+          <ProfileIcon active={isActive('/profile')} />
+        </NavButton>
       </div>
     </nav>
+  );
+}
+
+function NavButton({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className="relative flex flex-col items-center gap-[3px] px-3 py-1.5 transition-colors active:scale-95">
+      {active && (
+        <motion.div
+          layoutId="nav-indicator"
+          className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-[2px] rounded-full bg-accent"
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        />
+      )}
+      {children}
+      <span className={`text-[9px] font-semibold tracking-wide ${active ? 'text-white' : 'text-zinc-600'}`}>
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -53,20 +76,6 @@ function HomeIcon({ active }: { active: boolean }) {
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
       />
       <path d="M8 17V11H12V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function TrainIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
-      />
-      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M7 4V2M13 4V2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <circle cx="7" cy="12" r="1" fill="currentColor"/>
-      <circle cx="10" cy="12" r="1" fill="currentColor"/>
     </svg>
   );
 }

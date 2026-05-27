@@ -1,13 +1,37 @@
 # Sprint Society — Task Backlog
 
 > Managed by `/kendu-ishu`. Priority order (top = next).
-> Last updated: 2026-05-24
+> Last updated: 2026-05-28
 
 ---
 
 ## In Progress
 
-(none — run `/kendu-ishu` to start next sprint)
+- [x] SS-060: Audit Fix Phase 1 — Event Cascade Engine (backend harmony)
+  - [x] Event bus + typed cascade system
+  - [x] Achievement auto-check engine (21 achievements auto-triggered)
+  - [x] Run cascade handler (XP + Kendu + achievements + notifications + streak + PB)
+  - [x] Unified streak (user_xp is source of truth)
+  - [x] Auto-notifications on run events
+  - [x] Frontend shows full cascade rewards on run completion
+  - [x] Removed duplicate /kendu/earn call from frontend
+
+- [x] SS-061: Audit Fix Phase 2 — Navigation Simplification
+  - [x] Removed floating Run FAB (was redundant)
+  - [x] Removed FeedbackButton from AppShell
+  - [x] New bottom nav: Home | Events | RUN (center, primary) | Society | Profile
+  - [x] Header simplified: Sprint Society logo + notification bell
+  - [x] Kendu balance moved to dashboard card (was hidden in header)
+  - [x] /training merged into /train (no duplicate routes)
+  - [x] Removed duplicate notification bell from dashboard
+
+- [x] SS-062: Audit Fix Phase 3 — Smart Guidance
+  - [x] SmartGuidance component: contextual advice based on streak, recency, achievements
+  - [x] Streak-at-risk warnings
+  - [x] Achievement proximity nudges
+  - [x] Challenge reminders
+
+- [ ] Deploy & test all phases live
 
 ---
 
