@@ -9,7 +9,7 @@ export function BottomNav() {
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/95 backdrop-blur-lg border-t border-bg-tertiary/50">
+    <nav aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/95 backdrop-blur-lg border-t border-bg-tertiary/50">
       <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-1.5 pb-[calc(env(safe-area-inset-bottom,6px)+4px)]">
         <NavButton active={isActive('/dashboard')} onClick={() => navigate('/dashboard')} label="Home">
           <HomeIcon active={isActive('/dashboard')} />
@@ -21,6 +21,7 @@ export function BottomNav() {
 
         {/* RUN — Center primary action */}
         <button
+          aria-label="Start a run"
           onClick={() => navigate('/run/track')}
           className="relative -mt-5 flex flex-col items-center gap-[2px] active:scale-90 transition-transform"
         >
@@ -48,7 +49,7 @@ export function BottomNav() {
 
 function NavButton({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="relative flex flex-col items-center gap-[3px] px-3 py-1.5 transition-colors active:scale-95">
+    <button aria-label={label} onClick={onClick} className="relative flex flex-col items-center gap-[3px] px-3 py-1.5 transition-colors active:scale-95">
       {active && (
         <motion.div
           layoutId="nav-indicator"

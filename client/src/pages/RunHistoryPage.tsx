@@ -56,9 +56,13 @@ export function RunHistoryPage() {
           </motion.div>
         )}
 
-        {/* Loading */}
+        {/* Loading skeleton */}
         {isLoading && (
-          <div className="text-center py-16 text-zinc-600 text-sm">Loading runs...</div>
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-[72px] rounded-xl bg-bg-tertiary/50" />
+            ))}
+          </div>
         )}
 
         {/* Empty state */}

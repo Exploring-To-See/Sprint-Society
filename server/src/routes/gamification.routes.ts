@@ -104,12 +104,16 @@ router.get('/badge-collection', authenticate, (req: AuthRequest, res: Response) 
 
   const totalUsers = (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'runner'").get() as any).count || 1;
 
+  // Batch query: get earned counts for ALL achievements in one query (fixes N+1)
+  const rarityCounts = db.prepare('SELECT achievement_id, COUNT(*) as count FROM user_achievements GROUP BY achievement_id').all() as any[];
+  const rarityMap = new Map(rarityCounts.map((r: any) => [r.achievement_id, r.count]));
+
   const categories: Record<string, any[]> = {};
   achievements.forEach(a => {
     const cat = a.category || 'other';
     if (!categories[cat]) categories[cat] = [];
 
-    const earnedCount = (db.prepare('SELECT COUNT(*) as count FROM user_achievements WHERE achievement_id = ?').get(a.id) as any).count;
+    const earnedCount = rarityMap.get(a.id) || 0;
     const rarityPercent = Math.round((earnedCount / totalUsers) * 100);
 
     categories[cat].push({

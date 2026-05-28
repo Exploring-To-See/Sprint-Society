@@ -6,6 +6,7 @@ import api from '../lib/api';
 import { OfferCard } from '../components/kendu/OfferCard';
 import { RedeemModal } from '../components/kendu/RedeemModal';
 import { KenduHistory } from '../components/kendu/KenduHistory';
+import { AppShell } from '../components/layout/AppShell';
 
 type Tab = 'marketplace' | 'actions' | 'history';
 
@@ -51,6 +52,7 @@ export function RewardsPage() {
   };
 
   return (
+    <AppShell>
     <div className="min-h-screen bg-bg-primary pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm border-b border-bg-tertiary px-4 py-3">
@@ -175,5 +177,6 @@ export function RewardsPage() {
         onConfirm={handleRedeem}
       />
     </div>
+    </AppShell>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 
@@ -10,13 +10,12 @@ interface FormData {
   phone: string;
   password: string;
   confirmPassword: string;
-  invite_code: string;
   profile_photo: File | null;
   profile_photo_preview: string;
 }
 
 const INITIAL: FormData = {
-  name: '', email: '', phone: '', password: '', confirmPassword: '', invite_code: '',
+  name: '', email: '', phone: '', password: '', confirmPassword: '',
   profile_photo: null, profile_photo_preview: '',
 };
 
@@ -51,12 +50,8 @@ const fadeUp = {
 export function RegistrationFlow() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormData>(() => ({
-    ...INITIAL,
-    invite_code: searchParams.get('code')?.toUpperCase() || '',
-  }));
+  const [form, setForm] = useState<FormData>(INITIAL);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -89,7 +84,7 @@ export function RegistrationFlow() {
 
   const canProceed = () => {
     switch (step) {
-      case 0: return form.name.trim().length >= 2 && isValidEmail(form.email) && form.phone.length >= 10 && form.password.length >= 6 && form.password === form.confirmPassword && form.invite_code.length >= 3;
+      case 0: return form.name.trim().length >= 2 && isValidEmail(form.email) && form.phone.length >= 10 && form.password.length >= 6 && form.password === form.confirmPassword;
       case 1: return true;
       default: return false;
     }
@@ -109,7 +104,6 @@ export function RegistrationFlow() {
         email: form.email,
         phone: form.phone,
         password: form.password,
-        invite_code: form.invite_code,
         profile_photo: form.profile_photo_preview || undefined,
       });
       navigate('/profiling');
@@ -300,21 +294,6 @@ export function RegistrationFlow() {
                     )}
                   </div>
 
-                  <div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Invite code"
-                        value={form.invite_code}
-                        onChange={(e) => update('invite_code', e.target.value.toUpperCase())}
-                        className="w-full px-4 py-3.5 pr-10 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors font-mono tracking-wider"
-                      />
-                      {form.invite_code.length >= 3 && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-accent">🎟️</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-zinc-700 mt-1 ml-1">Got a code from Sprint Society? Enter it here</p>
-                  </div>
                 </motion.div>
               </>
             )}

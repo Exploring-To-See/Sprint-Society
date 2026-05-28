@@ -36,7 +36,7 @@ const PERKS = [
   { icon: '★', title: 'Founder Badge', desc: 'Your name permanently in the app as a Founding Member' },
 ];
 
-const WHATSAPP_LINK = 'https://chat.whatsapp.com/YOUR_GROUP_LINK';
+const WHATSAPP_LINK = '/register';
 
 export function LandingPage() {
   const [spotsRemaining] = useState(TOTAL_SPOTS);
@@ -279,19 +279,16 @@ export function LandingPage() {
                 <div className="text-5xl mb-4">🎉</div>
                 <h2 className="font-heading text-xl font-bold mb-2">You're In!</h2>
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
-                  Welcome to Sprint Society, {form.name.split(' ')[0]}! You're now a Founding Member. Join the WhatsApp group for event details and location.
+                  Welcome to Sprint Society, {form.name.split(' ')[0]}! You're now a Founding Member. Create your account to get started.
                 </p>
                 <a
-                  href={WHATSAPP_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#25D366] text-white font-semibold text-sm hover:bg-[#20BD5A] active:scale-[0.97] transition-all"
+                  href="/register"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent/90 active:scale-[0.97] transition-all"
                 >
-                  <WhatsAppIcon />
-                  Join WhatsApp Group
+                  Create Account →
                 </a>
                 <p className="text-zinc-600 text-xs mt-4">
-                  Location will be shared in the group
+                  Event details shared in-app after signup
                 </p>
               </div>
             </motion.section>

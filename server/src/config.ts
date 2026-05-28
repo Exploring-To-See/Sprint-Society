@@ -5,16 +5,21 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
+const isStaging = nodeEnv === 'staging';
 
-if (isProduction) {
+if (isProduction || isStaging) {
   const required = ['JWT_SECRET', 'CLIENT_URL'];
   const missing = required.filter(key => !process.env[key]);
   if (missing.length > 0) {
-    throw new Error(`Missing required env vars for production: ${missing.join(', ')}`);
+    throw new Error(`Missing required env vars for ${nodeEnv}: ${missing.join(', ')}`);
   }
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
-    throw new Error('JWT_SECRET must be at least 32 characters in production');
+    throw new Error('JWT_SECRET must be at least 32 characters in production/staging');
   }
+}
+
+if (!isProduction && !isStaging && !process.env.JWT_SECRET) {
+  console.warn('[SECURITY] Using dev JWT secret. Set JWT_SECRET env var for production.');
 }
 
 export const config = {

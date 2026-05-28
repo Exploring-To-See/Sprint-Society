@@ -170,70 +170,68 @@ router.post('/events/:id/go-live', (req: AuthRequest, res: Response) => {
 // Complete event + generate smart awards
 router.post('/events/:id/complete', (req: AuthRequest, res: Response) => {
   const eventId = parseInt(req.params.id);
-  db.prepare("UPDATE events SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(eventId);
 
-  const checkins = db.prepare('SELECT user_id FROM event_checkins WHERE event_id = ?').all(eventId) as any[];
+  const completeEvent = db.transaction(() => {
+    db.prepare("UPDATE events SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(eventId);
 
-  for (const c of checkins) {
-    awardXP(c.user_id, 100, 'event_completed', 'Completed an event');
-  }
+    const checkins = db.prepare('SELECT user_id FROM event_checkins WHERE event_id = ?').all(eventId) as any[];
 
-  // Generate smart awards based on run data during event window
-  const event = db.prepare('SELECT * FROM events WHERE id = ?').get(eventId) as any;
-  if (event && checkins.length > 0) {
-    const userIds = checkins.map((c: any) => c.user_id);
-    const eventDate = event.date;
+    for (const c of checkins) {
+      awardXP(c.user_id, 100, 'event_completed', 'Completed an event');
+    }
 
-    // Find activities from checked-in users on event day
-    const activities = db.prepare(`
-      SELECT a.*, u.name as runner_name FROM activities a
-      JOIN users u ON a.user_id = u.id
-      WHERE a.user_id IN (${userIds.map(() => '?').join(',')})
-      AND date(a.start_date) = ?
-      ORDER BY a.average_pace_per_km ASC
-    `).all(...userIds, eventDate) as any[];
+    const event = db.prepare('SELECT * FROM events WHERE id = ?').get(eventId) as any;
+    if (event && checkins.length > 0) {
+      const userIds = checkins.map((c: any) => c.user_id);
+      const eventDate = event.date;
 
-    if (activities.length > 0) {
-      // Award: Top 3 fastest
-      activities.slice(0, 3).forEach((a: any, i: number) => {
-        const icons = ['🥇', '🥈', '🥉'];
-        const titles = ['Gold — Fastest Runner', 'Silver — Second Fastest', 'Bronze — Third Fastest'];
-        db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, rank_position, stat_value) VALUES (?, ?, ?, ?, ?, ?, ?)')
-          .run(eventId, a.user_id, 'podium', titles[i], icons[i], i + 1, `${Math.floor(a.average_pace_per_km / 60)}:${String(Math.round(a.average_pace_per_km % 60)).padStart(2, '0')}/km`);
-      });
+      const activities = db.prepare(`
+        SELECT a.*, u.name as runner_name FROM activities a
+        JOIN users u ON a.user_id = u.id
+        WHERE a.user_id IN (${userIds.map(() => '?').join(',')})
+        AND date(a.start_date) = ?
+        ORDER BY a.average_pace_per_km ASC
+      `).all(...userIds, eventDate) as any[];
 
-      // Award: Longest distance
-      const longest = [...activities].sort((a, b) => b.distance_meters - a.distance_meters)[0];
-      if (longest) {
-        db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, stat_value) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(eventId, longest.user_id, 'special', 'Distance King', '👑', `${(longest.distance_meters / 1000).toFixed(1)}km`);
-      }
+      if (activities.length > 0) {
+        activities.slice(0, 3).forEach((a: any, i: number) => {
+          const icons = ['🥇', '🥈', '🥉'];
+          const titles = ['Gold — Fastest Runner', 'Silver — Second Fastest', 'Bronze — Third Fastest'];
+          db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, rank_position, stat_value) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .run(eventId, a.user_id, 'podium', titles[i], icons[i], i + 1, `${Math.floor(a.average_pace_per_km / 60)}:${String(Math.round(a.average_pace_per_km % 60)).padStart(2, '0')}/km`);
+        });
 
-      // Award: Most consistent pace (smallest pace variance via splits)
-      // Give to everyone who checked in: Participant badge
-      for (const uid of userIds) {
-        const hasActivity = activities.find((a: any) => a.user_id === uid);
-        if (!hasActivity) {
+        const longest = [...activities].sort((a, b) => b.distance_meters - a.distance_meters)[0];
+        if (longest) {
           db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, stat_value) VALUES (?, ?, ?, ?, ?, ?)')
-            .run(eventId, uid, 'participant', 'Showed Up', '🏃', 'Checked in');
+            .run(eventId, longest.user_id, 'special', 'Distance King', '👑', `${(longest.distance_meters / 1000).toFixed(1)}km`);
+        }
+
+        for (const uid of userIds) {
+          const hasActivity = activities.find((a: any) => a.user_id === uid);
+          if (!hasActivity) {
+            db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, stat_value) VALUES (?, ?, ?, ?, ?, ?)')
+              .run(eventId, uid, 'participant', 'Showed Up', '🏃', 'Checked in');
+          }
+        }
+      } else {
+        for (const uid of userIds) {
+          db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, stat_value) VALUES (?, ?, ?, ?, ?, ?)')
+            .run(eventId, uid, 'participant', 'Beta Runner', '⚡', 'Founding event');
         }
       }
-    } else {
-      // No activities tracked — give participation awards
+
       for (const uid of userIds) {
-        db.prepare('INSERT INTO event_awards (event_id, user_id, award_type, award_title, award_icon, stat_value) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(eventId, uid, 'participant', 'Beta Runner', '⚡', 'Founding event');
+        db.prepare("INSERT INTO user_notifications (user_id, type, title, body, target_type, target_id) VALUES (?, 'achievement', ?, ?, 'event', ?)")
+          .run(uid, `${event.title} — Complete!`, 'Check your awards and share your results', eventId);
       }
     }
 
-    // Notify all checked-in users
-    for (const uid of userIds) {
-      db.prepare("INSERT INTO user_notifications (user_id, type, title, body, target_type, target_id) VALUES (?, 'achievement', ?, ?, 'event', ?)")
-        .run(uid, `${event.title} — Complete!`, 'Check your awards and share your results', eventId);
-    }
-  }
+    return checkins.length;
+  });
 
-  res.json({ success: true, message: `Event completed. ${checkins.length} runners awarded 100 XP + smart awards generated.` });
+  const count = completeEvent();
+  res.json({ success: true, message: `Event completed. ${count} runners awarded 100 XP + smart awards generated.` });
 });
 
 router.post('/events/:id/hosts', (req: AuthRequest, res: Response) => {
@@ -603,9 +601,13 @@ router.get('/analytics', (req: AuthRequest, res: Response) => {
   });
 });
 
-// ===== DOWNLOAD DATABASE =====
+// ===== DOWNLOAD DATABASE (disabled in production) =====
 
 router.get('/download-db', (req: AuthRequest, res: Response) => {
+  if (process.env.ENABLE_DB_DOWNLOAD !== 'true') {
+    return res.status(403).json({ error: 'Database download is disabled in this environment' });
+  }
+
   const dbPath = require('path').resolve(__dirname, '../../../data/sprint-society.db');
   const fs = require('fs');
 

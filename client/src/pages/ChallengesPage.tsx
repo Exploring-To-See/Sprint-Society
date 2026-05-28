@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import api from '../lib/api';
+import { AppShell } from '../components/layout/AppShell';
 
 type ChallengeStatus = 'pending' | 'accepted' | 'active' | 'completed' | 'expired' | 'declined';
 
@@ -62,6 +63,7 @@ export default function ChallengesPage() {
   };
 
   return (
+    <AppShell>
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6 pb-24">
       <div className="flex items-center justify-between">
         <div>
@@ -158,6 +160,7 @@ export default function ChallengesPage() {
 
       {showCreate && <CreateChallengeModal onClose={() => setShowCreate(false)} />}
     </div>
+    </AppShell>
   );
 }
 

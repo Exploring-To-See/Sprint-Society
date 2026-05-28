@@ -92,7 +92,7 @@ function createRateLimiter(config: RateLimitConfig) {
  */
 export const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5,
+  maxRequests: 3,
   keyGenerator: (req) => `auth:${req.ip}`,
   message: 'Too many attempts. Please wait 15 minutes before trying again.',
 });

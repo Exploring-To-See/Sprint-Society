@@ -11,17 +11,13 @@ import { ProfilePage } from './pages/ProfilePage';
 import { LandingPage } from './pages/LandingPage';
 
 // Lazy-loaded pages (code splitting)
-const CoachingPage = lazy(() => import('./pages/CoachingPage').then(m => ({ default: m.CoachingPage })));
 const RunHistoryPage = lazy(() => import('./pages/RunHistoryPage').then(m => ({ default: m.RunHistoryPage })));
 const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.SharePage })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
-const TrainingPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m.TrainPage })));
 const TrainPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m.TrainPage })));
 const ProgressPage = lazy(() => import('./pages/ProgressPage').then(m => ({ default: m.ProgressPage })));
 const HRZonesPage = lazy(() => import('./pages/HRZonesPage').then(m => ({ default: m.HRZonesPage })));
 const RecordsPage = lazy(() => import('./pages/RecordsPage').then(m => ({ default: m.RecordsPage })));
-const FeedPage = lazy(() => import('./pages/FeedPage').then(m => ({ default: m.FeedPage })));
-const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
 const CoachPage = lazy(() => import('./pages/CoachPage').then(m => ({ default: m.CoachPage })));
 const SocialPage = lazy(() => import('./pages/SocialPage').then(m => ({ default: m.SocialPage })));
 const EventsPage = lazy(() => import('./pages/EventsPage').then(m => ({ default: m.EventsPage })));
@@ -42,7 +38,16 @@ const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-bg-primary flex items-center justify-center"><div className="animate-pulse text-4xl">⚡</div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-bg-primary">
+        <div className="max-w-lg mx-auto px-4 pt-16 space-y-4 animate-pulse">
+          <div className="h-5 w-32 bg-bg-tertiary rounded" />
+          <div className="h-[120px] w-full bg-bg-tertiary/50 rounded-xl" />
+          <div className="h-[80px] w-full bg-bg-tertiary/50 rounded-xl" />
+          <div className="h-[80px] w-full bg-bg-tertiary/50 rounded-xl" />
+        </div>
+      </div>
+    }>
       {children}
     </Suspense>
   );
@@ -72,7 +77,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!user) return <Navigate to="/" replace />;
-  if ((user as any).role !== 'admin') return <Navigate to="/dashboard" replace />;
+  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -86,7 +91,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (user) {
-    if ((user as any).role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return <>{children}</>;

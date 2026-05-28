@@ -31,8 +31,23 @@ import {
 const router = Router();
 router.use(authenticate);
 
-// POST /kendu/earn — Award Kendu after a run
+// Ensure user_skins table exists (run once at module load, not per-request)
+db.prepare(`CREATE TABLE IF NOT EXISTS user_skins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  skin_id TEXT NOT NULL,
+  purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, skin_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)`).run();
+
+// POST /kendu/earn — Award Kendu after a run (admin only — normal earning happens via runCascade)
 router.post('/earn', (req: AuthRequest, res: Response) => {
+  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Kendu earning is handled automatically. This endpoint is admin-only.' });
+  }
+
   const { km, wasCoachAssigned, isPersonalBest } = req.body;
 
   if (!km || km <= 0) {
@@ -489,9 +504,8 @@ router.post('/challenge/decline', (req: AuthRequest, res: Response) => {
   res.json({ message: 'Challenge declined, challenger refunded' });
 });
 
-// GET /kendu/challenges — My active/pending challenges (auto-resolves expired on access)
+// GET /kendu/challenges — My active/pending challenges
 router.get('/challenges', (req: AuthRequest, res: Response) => {
-  resolveExpiredChallenges();
 
   const challenges = db.prepare(`
     SELECT kc.*,
@@ -531,15 +545,6 @@ router.post('/spend/gift', (req: AuthRequest, res: Response) => {
 
 // GET /kendu/skins — Get user's owned premium skins
 router.get('/skins', (req: AuthRequest, res: Response) => {
-  db.prepare(`CREATE TABLE IF NOT EXISTS user_skins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    skin_id TEXT NOT NULL,
-    purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, skin_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`).run();
-
   const skins = db.prepare('SELECT skin_id FROM user_skins WHERE user_id = ?').all(req.userId) as { skin_id: string }[];
   res.json(skins.map(s => s.skin_id));
 });
@@ -548,15 +553,6 @@ router.get('/skins', (req: AuthRequest, res: Response) => {
 router.post('/spend/card-skin', (req: AuthRequest, res: Response) => {
   const { skinId } = req.body;
   if (!skinId) return res.status(400).json({ error: 'skinId required' });
-
-  db.prepare(`CREATE TABLE IF NOT EXISTS user_skins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    skin_id TEXT NOT NULL,
-    purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, skin_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`).run();
 
   const existing = db.prepare('SELECT id FROM user_skins WHERE user_id = ? AND skin_id = ?').get(req.userId, skinId);
   if (existing) return res.status(400).json({ error: 'Skin already owned' });
@@ -633,5 +629,11 @@ router.post('/upkeep/reactivate', (req: AuthRequest, res: Response) => {
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
+
+// Resolve expired challenges every 5 minutes (instead of on every GET request)
+setInterval(() => {
+  try { resolveExpiredChallenges(); } catch {}
+}, 5 * 60 * 1000);
+resolveExpiredChallenges();
 
 export default router;

@@ -86,14 +86,24 @@ router.get('/nearby', (req: AuthRequest, res: Response) => {
 
   if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
 
+  // Bounding-box pre-filter (~0.5 degree per 55km) to avoid scanning all events
+  const degreeBuffer = radiusKm / 111;
+  const minLat = lat - degreeBuffer;
+  const maxLat = lat + degreeBuffer;
+  const minLng = lng - degreeBuffer;
+  const maxLng = lng + degreeBuffer;
+
   const events = db.prepare(`
     SELECT e.*, u.name as creator_name,
       (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count
     FROM events e
     JOIN users u ON e.creator_id = u.id
-    WHERE e.status IN ('upcoming', 'live') AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
+    WHERE e.status IN ('upcoming', 'live')
+      AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
+      AND CAST(e.latitude AS REAL) BETWEEN ? AND ?
+      AND CAST(e.longitude AS REAL) BETWEEN ? AND ?
     ORDER BY e.date ASC
-  `).all() as any[];
+  `).all(minLat, maxLat, minLng, maxLng) as any[];
 
   const nearby = events.filter(e => {
     const dLat = (parseFloat(e.latitude) - lat) * Math.PI / 180;

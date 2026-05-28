@@ -18,21 +18,40 @@ function formatPace(seconds: number): string {
 export function ProgressPage() {
   const [view, setView] = useState<'stats' | 'journey'>('stats');
 
-  const { data: improvement } = useQuery({
+  const { data: improvement, isLoading: loadingImprovement } = useQuery({
     queryKey: ['progress-improvement'],
     queryFn: () => api.get('/progress/improvement').then(r => r.data),
   });
 
-  const { data: weekly } = useQuery({
+  const { data: weekly, isLoading: loadingWeekly } = useQuery({
     queryKey: ['progress-weekly'],
     queryFn: () => api.get('/progress/weekly').then(r => r.data),
   });
+
+  const isLoading = loadingImprovement || loadingWeekly;
 
   const { data: journey } = useQuery({
     queryKey: ['progress-journey'],
     queryFn: () => api.get('/progress/journey').then(r => r.data).catch(() => null),
     enabled: view === 'journey',
   });
+
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div className="space-y-5 animate-pulse">
+          <div>
+            <div className="h-3 w-20 bg-bg-tertiary rounded" />
+            <div className="h-6 w-32 bg-bg-tertiary rounded mt-2" />
+          </div>
+          <div className="h-10 w-full bg-bg-tertiary rounded-lg" />
+          <div className="h-[120px] w-full bg-bg-tertiary rounded-xl" />
+          <div className="h-[120px] w-full bg-bg-tertiary rounded-xl" />
+          <div className="h-[180px] w-full bg-bg-tertiary rounded-xl" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

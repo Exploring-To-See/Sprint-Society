@@ -47,7 +47,7 @@ const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.clientUrl, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(sanitizeInput);
 app.use('/api', generalLimiter);
 
@@ -110,7 +110,13 @@ if (config.nodeEnv === 'production') {
 
 app.use(errorHandler);
 
-initializeDatabase();
+try {
+  initializeDatabase();
+  console.log('  Database initialized');
+} catch (err) {
+  console.error('  FATAL: Database initialization failed:', err);
+  process.exit(1);
+}
 
 const server = createServer(app);
 
@@ -125,7 +131,19 @@ try {
 server.listen(config.port, '0.0.0.0', () => {
   console.log(`\n  Sprint Society API running on http://localhost:${config.port}`);
   console.log(`  Environment: ${config.nodeEnv}\n`);
-  startScheduler();
+  try {
+    startScheduler();
+  } catch (err) {
+    console.error('  Scheduler failed to start:', err);
+  }
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION:', err);
 });
 
 export default app;

@@ -7,6 +7,23 @@ import { spendToCreateCommunity, createCommunitySubscription } from '../engine/k
 const router = Router();
 router.use(authenticate);
 
+// Ensure community_requests table exists (run once at module load)
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS community_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    category TEXT DEFAULT 'custom',
+    leader_name TEXT NOT NULL,
+    contact TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    reviewed_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`).run();
+
 const MIN_LEVEL_TO_CREATE = 5;
 const MIN_XP_TO_CREATE = 500;
 
@@ -470,22 +487,6 @@ router.post('/request', (req: AuthRequest, res: Response) => {
   }
 
   db.prepare(`
-    CREATE TABLE IF NOT EXISTS community_requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      purpose TEXT NOT NULL,
-      category TEXT DEFAULT 'custom',
-      leader_name TEXT NOT NULL,
-      contact TEXT NOT NULL,
-      status TEXT DEFAULT 'pending',
-      reviewed_at TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `).run();
-
-  db.prepare(`
     INSERT INTO community_requests (user_id, name, purpose, category, leader_name, contact)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(req.userId, name, purpose, category || 'custom', leader_name, contact);
@@ -497,22 +498,6 @@ router.post('/request', (req: AuthRequest, res: Response) => {
 router.get('/requests', (req: AuthRequest, res: Response) => {
   const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS community_requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      purpose TEXT NOT NULL,
-      category TEXT DEFAULT 'custom',
-      leader_name TEXT NOT NULL,
-      contact TEXT NOT NULL,
-      status TEXT DEFAULT 'pending',
-      reviewed_at TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `).run();
 
   const requests = db.prepare(`
     SELECT cr.*, u.name as user_name, u.email as user_email,

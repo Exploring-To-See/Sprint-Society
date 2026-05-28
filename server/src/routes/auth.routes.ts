@@ -13,8 +13,8 @@ const registerSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email(),
   phone: z.string().min(10).max(15),
-  password: z.string().min(6),
-  invite_code: z.string().min(1),
+  password: z.string().min(6).max(72),
+  invite_code: z.string().optional(),
   gender: z.enum(['male', 'female', 'non-binary']).optional(),
   age: z.number().int().min(13).max(100).optional(),
   height_cm: z.number().min(100).max(250).optional(),
@@ -29,19 +29,20 @@ router.post('/register', async (req, res: Response) => {
   try {
     const data = registerSchema.parse(req.body);
 
-    // Validate invite code
-    const code = db.prepare(`
-      SELECT * FROM invite_codes WHERE code = ? AND active = 1
-    `).get(data.invite_code.toUpperCase().trim()) as any;
+    // Validate invite code (optional — used for referral tracking)
+    let code: any = null;
+    if (data.invite_code) {
+      code = db.prepare(`
+        SELECT * FROM invite_codes WHERE code = ? AND active = 1
+      `).get(data.invite_code.toUpperCase().trim()) as any;
 
-    if (!code) {
-      return res.status(403).json({ error: 'Invalid invite code' });
-    }
-    if (code.expires_at && new Date(code.expires_at) < new Date()) {
-      return res.status(403).json({ error: 'Invite code has expired' });
-    }
-    if (code.max_uses && code.used_count >= code.max_uses) {
-      return res.status(403).json({ error: 'Invite code has reached its limit' });
+      if (code) {
+        if (code.expires_at && new Date(code.expires_at) < new Date()) {
+          code = null;
+        } else if (code.max_uses && code.used_count >= code.max_uses) {
+          code = null;
+        }
+      }
     }
 
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
@@ -58,7 +59,7 @@ router.post('/register', async (req, res: Response) => {
       data.gender || 'male', data.age || 25,
       data.height_cm || 170, data.weight_kg || 70,
       data.fitness_level || 'active', data.running_experience || 'beginner',
-      JSON.stringify(data.injury_history), code.id
+      JSON.stringify(data.injury_history), code?.id || null
     );
 
     const userId = result.lastInsertRowid as number;
@@ -67,9 +68,10 @@ router.post('/register', async (req, res: Response) => {
       db.prepare('UPDATE users SET profile_image_url = ? WHERE id = ?').run(data.profile_photo, userId);
     }
 
-    // Update invite code usage
-    db.prepare('UPDATE invite_codes SET used_count = used_count + 1 WHERE id = ?').run(code.id);
-    db.prepare('INSERT INTO invite_code_usage (code_id, user_id) VALUES (?, ?)').run(code.id, userId);
+    if (code) {
+      db.prepare('UPDATE invite_codes SET used_count = used_count + 1 WHERE id = ?').run(code.id);
+      db.prepare('INSERT INTO invite_code_usage (code_id, user_id) VALUES (?, ?)').run(code.id, userId);
+    }
 
     db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
 
@@ -98,6 +100,13 @@ router.post('/login', async (req, res: Response) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email/phone and password required' });
+  }
+
+  if (typeof email !== 'string' || email.length > 255) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+  if (typeof password !== 'string' || password.length > 72) {
+    return res.status(400).json({ error: 'Password too long (max 72 characters)' });
   }
 
   const identifier = email.trim();

@@ -12,6 +12,7 @@ interface User {
   weight_kg?: number;
   fitness_level?: string;
   running_experience?: string;
+  profile_image_url?: string;
 }
 
 interface AuthContextType {

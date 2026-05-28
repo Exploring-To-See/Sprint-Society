@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BottomNav } from './BottomNav';
 import api from '../../lib/api';
@@ -13,8 +13,7 @@ interface AppShellProps {
 export function AppShell({ children, hideNav }: AppShellProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isAdmin = (user as any)?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   const { data: unread } = useQuery({
     queryKey: ['notifications-unread'],
@@ -25,8 +24,8 @@ export function AppShell({ children, hideNav }: AppShellProps) {
   });
 
   const unreadCount = unread?.count || 0;
-  const profileImage = (user as any)?.profile_image_url;
-  const userName = (user as any)?.name || 'Runner';
+  const profileImage = user?.profile_image_url;
+  const userName = user?.name || 'Runner';
   const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
@@ -35,6 +34,7 @@ export function AppShell({ children, hideNav }: AppShellProps) {
         <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,8px)+8px)] pb-2 bg-bg-primary/90 backdrop-blur-md">
           {/* Left: Avatar → Profile */}
           <button
+            aria-label="Go to profile"
             onClick={() => navigate('/profile')}
             className="flex items-center gap-2.5 active:scale-95 transition-transform"
           >
@@ -52,6 +52,7 @@ export function AppShell({ children, hideNav }: AppShellProps) {
 
           {/* Right: Notifications */}
           <button
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
             onClick={() => navigate('/notifications')}
             className="relative w-8 h-8 flex items-center justify-center rounded-full active:scale-95 transition-transform"
           >
@@ -68,7 +69,7 @@ export function AppShell({ children, hideNav }: AppShellProps) {
         </div>
       )}
 
-      <main className={`max-w-lg mx-auto px-4 pb-4 ${user && !isAdmin ? 'pt-14' : 'pt-5'}`}>
+      <main className={`max-w-lg mx-auto px-4 pb-4 ${user && !isAdmin ? 'pt-[calc(env(safe-area-inset-top,8px)+56px)]' : 'pt-5'}`}>
         {children}
       </main>
 

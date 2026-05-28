@@ -258,7 +258,13 @@ export function RunTrackerPage() {
         generateAnalysis();
         setState('ANALYSIS');
       }
-    } catch {} finally { setSaving(false); }
+    } catch (err) {
+      console.error('Failed to save run:', err);
+      setSaving(false);
+      setState('FINISHED');
+      alert('Failed to save your run. Please try again.');
+      return;
+    } finally { setSaving(false); }
   };
 
   const generateAnalysis = () => {

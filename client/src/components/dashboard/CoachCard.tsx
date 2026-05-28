@@ -6,6 +6,16 @@ import api from '../../lib/api';
 export function CoachCard() {
   const navigate = useNavigate();
 
+  const { data: aiStatus } = useQuery({
+    queryKey: ['ai-status'],
+    queryFn: () => api.get('/ai/status').then(r => r.data).catch(() => ({ available: false })),
+  });
+
+  const { data: dailyInsight } = useQuery({
+    queryKey: ['daily-insight'],
+    queryFn: () => api.get('/ai/daily-insight').then(r => r.data).catch(() => null),
+  });
+
   const { data: week } = useQuery({
     queryKey: ['training-week'],
     queryFn: () => api.get('/training/week').then(r => r.data).catch(() => null),
@@ -33,6 +43,40 @@ export function CoachCard() {
 
   const hasGoal = !!plan && (plan.race_name || plan.goal_name);
 
+  // AI not available — show daily insight with "coming soon" state
+  if (aiStatus && !aiStatus.available) {
+    return (
+      <motion.div className="w-full rounded-2xl bg-gradient-to-br from-accent/[0.06] to-purple-500/[0.03] border border-accent/20 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-500/12 flex items-center justify-center text-[18px]">🧠</div>
+          <div>
+            <p className="text-[12px] font-bold text-white">AI Coach</p>
+            <p className="text-[10px] text-purple-400">Coming soon</p>
+          </div>
+        </div>
+
+        {dailyInsight ? (
+          <div className="mb-3">
+            <p className="text-[13px] text-zinc-200 leading-relaxed">{dailyInsight.insight}</p>
+            {dailyInsight.runs_this_week > 0 && (
+              <p className="text-[10px] text-zinc-500 mt-2">
+                This week: {dailyInsight.runs_this_week} runs, {dailyInsight.km_this_week}km
+                {dailyInsight.streak > 0 && ` | ${dailyInsight.streak}d streak`}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-[12px] text-zinc-400 mb-3">Personalized AI coaching is being set up. You'll get custom training advice, race strategies, and recovery guidance.</p>
+        )}
+
+        <div className="flex items-center gap-2 text-[10px] text-zinc-500 bg-bg-tertiary/50 rounded-lg px-3 py-2">
+          <span>✨</span>
+          <span>Full AI coach with personalized plans launching soon</span>
+        </div>
+      </motion.div>
+    );
+  }
+
   if (!hasGoal) {
     return (
       <motion.button
@@ -46,6 +90,11 @@ export function CoachCard() {
             <p className="text-[10px] text-zinc-500">Your AI Coach</p>
           </div>
         </div>
+
+        {dailyInsight && (
+          <p className="text-[12px] text-zinc-300 mb-2 italic">"{dailyInsight.insight}"</p>
+        )}
+
         <p className="text-[14px] font-bold text-white mb-1">Set your running goal</p>
         <p className="text-[11px] text-zinc-400 leading-relaxed">What are you training for? Tell me and I'll build a plan around your life.</p>
         <span className="inline-block mt-3 px-4 py-2 rounded-lg bg-accent text-white text-[11px] font-bold">Set Goal →</span>
@@ -69,18 +118,15 @@ export function CoachCard() {
         <span className="text-[9px] text-zinc-600">Day {currentDay}/{totalDays}</span>
       </div>
 
+      {dailyInsight && (
+        <p className="text-[11px] text-zinc-400 mb-2 italic">"{dailyInsight.insight}"</p>
+      )}
+
       {todaySession && todaySession.type !== 'rest' && (
         <p className="text-[12px] text-zinc-300 mb-1">
           {todaySession.target_pace || todaySession.description || `${todaySession.distance_km || ''}km ${todaySession.type}`}
         </p>
       )}
-
-      <p className="text-[10px] text-accent/80 italic">
-        {coachStyle === 'Warrior' ? '"Recovery is strategy. Trust the process."' :
-         coachStyle === 'Analyst' ? '"Data shows you\'re on track. Stay disciplined."' :
-         coachStyle === 'Zen' ? '"Listen to your body. It knows the way."' :
-         '"Push through. Champions are built in the grind."'}
-      </p>
 
       {todaySession && todaySession.type !== 'rest' && (
         <span
