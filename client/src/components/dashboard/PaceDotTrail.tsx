@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 
 export function PaceDotTrail() {
@@ -48,8 +48,8 @@ export function PaceDotTrail() {
   return (
     <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Pace → Target</span>
-        <span className="text-[9px] font-bold text-accent-green">
+        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Pace → Target</span>
+        <span className="text-[11px] font-bold text-accent-green">
           {secToGoal > 0 ? `${Math.round(secToGoal)}s to goal` : '🎯 At target!'}
         </span>
       </div>
@@ -93,8 +93,8 @@ export function PaceDotTrail() {
       </svg>
 
       <div className="flex justify-between mt-1">
-        <span className="text-[8px] text-zinc-600">{formatPace(oldestPace)}/km</span>
-        <span className="text-[8px] text-zinc-600">{formatPace(latestPace)}/km (latest)</span>
+        <span className="text-[11px] text-zinc-600">{formatPace(oldestPace)}/km</span>
+        <span className="text-[11px] text-zinc-600">{formatPace(latestPace)}/km (latest)</span>
       </div>
     </div>
   );

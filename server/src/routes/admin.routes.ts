@@ -18,20 +18,44 @@ function awardXP(userId: number, amount: number, source: string, description: st
 // ===== ALL RUNNERS =====
 
 router.get('/runners', (req: AuthRequest, res: Response) => {
-  const runners = db.prepare(`
-    SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
-      ux.total_xp, ux.current_level, ux.current_streak_days,
-      (SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1) as current_tier,
-      (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs,
-      (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance,
-      (SELECT COALESCE(AVG(average_pace_per_km), 0) FROM activities WHERE user_id = u.id) as avg_pace
-    FROM users u
-    LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE u.role = 'runner'
-    ORDER BY ux.total_xp DESC
-  `).all();
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const offset = (page - 1) * limit;
+  const search = (req.query.search as string || '').trim();
 
-  res.json(runners);
+  let totalCount: number;
+  let runners: any[];
+
+  if (search) {
+    const like = `%${search}%`;
+    totalCount = (db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'runner' AND (name LIKE ? OR email LIKE ?)").get(like, like) as any).c;
+    runners = db.prepare(`
+      SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
+        ux.total_xp, ux.current_level, ux.current_streak_days,
+        (SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1) as current_tier,
+        (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs,
+        (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance,
+        (SELECT COALESCE(AVG(average_pace_per_km), 0) FROM activities WHERE user_id = u.id) as avg_pace
+      FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id
+      WHERE u.role = 'runner' AND (u.name LIKE ? OR u.email LIKE ?)
+      ORDER BY ux.total_xp DESC LIMIT ? OFFSET ?
+    `).all(like, like, limit, offset);
+  } else {
+    totalCount = (db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'runner'").get() as any).c;
+    runners = db.prepare(`
+      SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
+        ux.total_xp, ux.current_level, ux.current_streak_days,
+        (SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1) as current_tier,
+        (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs,
+        (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance,
+        (SELECT COALESCE(AVG(average_pace_per_km), 0) FROM activities WHERE user_id = u.id) as avg_pace
+      FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id
+      WHERE u.role = 'runner'
+      ORDER BY ux.total_xp DESC LIMIT ? OFFSET ?
+    `).all(limit, offset);
+  }
+
+  res.json({ runners, total: totalCount, page, limit, pages: Math.ceil(totalCount / limit) });
 });
 
 router.get('/runners/:id', (req: AuthRequest, res: Response) => {
@@ -112,12 +136,18 @@ router.get('/invite-codes/:id/usage', (req: AuthRequest, res: Response) => {
 // ===== EVENTS (Admin-only creation) =====
 
 router.get('/events', (req: AuthRequest, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const offset = (page - 1) * limit;
+
+  const totalCount = (db.prepare('SELECT COUNT(*) as c FROM events').get() as any).c;
   const events = db.prepare(`
     SELECT e.*,
       (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count
     FROM events e ORDER BY e.date DESC
-  `).all();
-  res.json(events);
+    LIMIT ? OFFSET ?
+  `).all(limit, offset);
+  res.json({ events, total: totalCount, page, limit, pages: Math.ceil(totalCount / limit) });
 });
 
 router.post('/events', (req: AuthRequest, res: Response) => {
@@ -406,13 +436,19 @@ router.delete('/runners/:id', (req: AuthRequest, res: Response) => {
 // ===== COMMUNITIES =====
 
 router.get('/communities', (req: AuthRequest, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const offset = (page - 1) * limit;
+
+  const totalCount = (db.prepare('SELECT COUNT(*) as c FROM communities').get() as any).c;
   const communities = db.prepare(`
     SELECT c.*, u.name as owner_name
     FROM communities c
     JOIN users u ON c.owner_id = u.id
     ORDER BY c.member_count DESC
-  `).all();
-  res.json(communities);
+    LIMIT ? OFFSET ?
+  `).all(limit, offset);
+  res.json({ communities, total: totalCount, page, limit, pages: Math.ceil(totalCount / limit) });
 });
 
 router.put('/communities/:id', (req: AuthRequest, res: Response) => {

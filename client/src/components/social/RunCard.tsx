@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { formatPace, formatDistance, formatDuration, formatDate } from '../../lib/formatters';
@@ -132,7 +132,7 @@ export function RunCard({ run, userName, streak, tier, improvement }: RunCardPro
           <p className="text-white/30 text-xs">{formatDate(run.start_date)}</p>
         </div>
 
-        <p className="text-center text-white/15 text-[9px] mt-3">Kendu Entertainment</p>
+        <p className="text-center text-white/15 text-[11px] mt-3">Kendu Entertainment</p>
       </div>
 
       {/* Action buttons */}

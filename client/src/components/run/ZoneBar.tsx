@@ -1,4 +1,4 @@
-interface ZoneBarProps {
+﻿interface ZoneBarProps {
   currentPace: number;
   targetPaceMin: number;
   targetPaceMax: number;
@@ -35,7 +35,7 @@ export function ZoneBar({ currentPace, targetPaceMin, targetPaceMax }: ZoneBarPr
       </div>
 
       {/* Labels */}
-      <div className="flex justify-between mt-1.5 text-[8px]">
+      <div className="flex justify-between mt-1.5 text-[11px]">
         <span className="text-red-400">Slow</span>
         <span className="text-green-400 font-semibold">{formatPace(targetPaceMin)}–{formatPace(targetPaceMax)}</span>
         <span className="text-red-400">Fast</span>

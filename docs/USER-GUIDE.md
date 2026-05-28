@@ -231,10 +231,10 @@ Perfect for Instagram stories:
 ## FAQ
 
 **Q: Do I need a Strava account?**
-A: Yes — Sprint Society syncs your run data from Strava. Create a free Strava account at strava.com if you don't have one.
+A: No — you can track runs directly using the built-in GPS Run Tracker. Strava sync is optional and auto-imports your runs if connected.
 
 **Q: Can I add runs manually?**
-A: Currently no. All runs come from Strava. Record your run on any GPS watch or phone app connected to Strava, and it'll appear here.
+A: Use the GPS Run Tracker (tap the orange Run button in the bottom nav) to record runs with live pace, distance, splits, and elevation. Runs can also be auto-synced from Strava.
 
 **Q: How often does my tier update?**
 A: Every time you visit the Coaching tab. It recalculates from your latest data.
@@ -258,7 +258,7 @@ A: Your existing synced runs stay in the app, but no new runs will import until 
 A: From your recent running pace, distance, and age — using standard exercise physiology formulas.
 
 **Q: Can I use this without a running watch?**
-A: Yes — just record runs on the Strava phone app. GPS on your phone is enough.
+A: Yes — use the built-in GPS Run Tracker on your phone. No external device needed.
 
 ---
 

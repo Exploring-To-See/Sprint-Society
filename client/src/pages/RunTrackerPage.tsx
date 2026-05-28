@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
@@ -102,11 +102,14 @@ export function RunTrackerPage() {
   const lastSplitKmRef = useRef(0);
   const splitStartTimeRef = useRef(0);
 
+  const [locating, setLocating] = useState(true);
+
   // Get initial location
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-      () => setUserLocation([28.6139, 77.2090]) // Delhi fallback
+    if (!navigator.geolocation) { setLocating(false); setGpsError('GPS not supported'); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserLocation([pos.coords.latitude, pos.coords.longitude]); setLocating(false); },
+      () => { setLocating(false); setGpsError('Could not determine location'); }
     );
   }, []);
 
@@ -335,7 +338,7 @@ export function RunTrackerPage() {
   };
 
   const averagePace = totalDistance > 0 ? (elapsedSeconds / (totalDistance / 1000)) : 0;
-  const mapCenter = useMemo(() => userLocation || [28.6139, 77.2090] as [number, number], [userLocation]);
+  const mapCenter = useMemo(() => userLocation || [0, 0] as [number, number], [userLocation]);
 
   // ANALYSIS STATE — Post-run AI card
   if (state === 'ANALYSIS' && analysis) {
@@ -383,15 +386,15 @@ export function RunTrackerPage() {
           <div className="grid grid-cols-3 gap-4 w-full max-w-[320px]">
             <div className="text-center">
               <p className="font-mono text-[20px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
-              <p className="text-[9px] text-zinc-500 uppercase">km</p>
+              <p className="text-[11px] text-zinc-500 uppercase">km</p>
             </div>
             <div className="text-center">
               <p className="font-mono text-[20px] font-bold text-white">{formatPace(averagePace)}</p>
-              <p className="text-[9px] text-zinc-500 uppercase">pace</p>
+              <p className="text-[11px] text-zinc-500 uppercase">pace</p>
             </div>
             <div className="text-center">
               <p className="font-mono text-[20px] font-bold text-white">{formatTime(elapsedSeconds)}</p>
-              <p className="text-[9px] text-zinc-500 uppercase">time</p>
+              <p className="text-[11px] text-zinc-500 uppercase">time</p>
             </div>
           </div>
 
@@ -496,8 +499,18 @@ export function RunTrackerPage() {
   return (
     <AppShell hideNav={state === 'RUNNING' || state === 'PAUSED'}>
       <div className="relative min-h-[80vh] flex flex-col">
+        {/* Locating indicator */}
+        {locating && state === 'IDLE' && (
+          <div className="h-[200px] rounded-2xl border border-bg-tertiary flex items-center justify-center bg-bg-secondary">
+            <div className="text-center space-y-2">
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-zinc-400">Locating you...</p>
+            </div>
+          </div>
+        )}
+
         {/* Map */}
-        {(state !== 'IDLE' || userLocation) && (
+        {!locating && (state !== 'IDLE' || userLocation) && (
           <div className={`rounded-2xl overflow-hidden border border-bg-tertiary ${state === 'IDLE' ? 'h-[200px]' : state === 'FINISHED' ? 'h-[180px]' : 'flex-1 min-h-[50vh]'}`}>
             <MapContainer
               center={mapCenter}
@@ -552,7 +565,7 @@ export function RunTrackerPage() {
                       transition={{ repeat: Infinity, duration: 1.5 }}
                       className={`w-2 h-2 rounded-full ${state === 'RUNNING' ? 'bg-accent-green' : 'bg-yellow-500'}`}
                     />
-                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider">{state === 'RUNNING' ? 'Tracking' : 'Paused'}</span>
+                    <span className="text-[11px] text-zinc-500 uppercase tracking-wider">{state === 'RUNNING' ? 'Tracking' : 'Paused'}</span>
                   </div>
                   <span className="font-mono text-[11px] text-zinc-400">{formatTime(elapsedSeconds)}</span>
                 </div>
@@ -579,15 +592,15 @@ export function RunTrackerPage() {
                 <div className="flex justify-around mt-3 pt-3 border-t border-bg-tertiary/50">
                   <div className="text-center">
                     <p className="font-mono text-[16px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
-                    <p className="text-[8px] text-zinc-500 uppercase">km</p>
+                    <p className="text-[11px] text-zinc-500 uppercase">km</p>
                   </div>
                   <div className="text-center">
                     <p className="font-mono text-[16px] font-bold text-white">{Math.round(elapsedSeconds * 0.07)}</p>
-                    <p className="text-[8px] text-zinc-500 uppercase">cal</p>
+                    <p className="text-[11px] text-zinc-500 uppercase">cal</p>
                   </div>
                   <div className="text-center">
                     <p className="font-mono text-[16px] font-bold text-white">+{Math.round(elevationGain)}m</p>
-                    <p className="text-[8px] text-zinc-500 uppercase">elev</p>
+                    <p className="text-[11px] text-zinc-500 uppercase">elev</p>
                   </div>
                 </div>
               </div>
@@ -622,10 +635,10 @@ export function RunTrackerPage() {
               {/* Stats */}
               <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
                 <div className="grid grid-cols-4 gap-2 text-center">
-                  <div><p className="font-mono text-[18px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p><p className="text-[9px] text-zinc-500">km</p></div>
-                  <div><p className="font-mono text-[18px] font-bold text-white">{formatTime(elapsedSeconds)}</p><p className="text-[9px] text-zinc-500">time</p></div>
-                  <div><p className="font-mono text-[18px] font-bold text-white">{formatPace(averagePace)}</p><p className="text-[9px] text-zinc-500">pace</p></div>
-                  <div><p className="font-mono text-[18px] font-bold text-white">{Math.round(elevationGain)}m</p><p className="text-[9px] text-zinc-500">elev</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p><p className="text-[11px] text-zinc-500">km</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{formatTime(elapsedSeconds)}</p><p className="text-[11px] text-zinc-500">time</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{formatPace(averagePace)}</p><p className="text-[11px] text-zinc-500">pace</p></div>
+                  <div><p className="font-mono text-[18px] font-bold text-white">{Math.round(elevationGain)}m</p><p className="text-[11px] text-zinc-500">elev</p></div>
                 </div>
               </div>
 

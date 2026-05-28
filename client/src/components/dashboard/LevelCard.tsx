@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
@@ -46,7 +46,7 @@ export function LevelCard() {
         </div>
         <div className="flex items-center gap-1.5">
           {data.status && (
-            <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
               data.status === 'calibrating' ? 'text-cyan-400 bg-cyan-500/10' :
               data.status === 'validated' ? 'text-emerald-400 bg-emerald-500/10' :
               'text-zinc-400 bg-zinc-500/10'
@@ -56,7 +56,7 @@ export function LevelCard() {
             </span>
           )}
           {data.safetyRails && !data.safetyRails.canAdvance && (
-            <span className="text-[9px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
               On Hold
             </span>
           )}
@@ -79,8 +79,8 @@ export function LevelCard() {
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[9px] text-zinc-600">{data.subLevel}/10</span>
-          <span className="text-[9px] text-zinc-600">
+          <span className="text-[11px] text-zinc-600">{data.subLevel}/10</span>
+          <span className="text-[11px] text-zinc-600">
             {data.stats?.avgWeeklyKm > 0 ? `${data.stats.avgWeeklyKm} km/week` : ''}
           </span>
         </div>

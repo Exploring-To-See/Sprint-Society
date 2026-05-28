@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
@@ -63,7 +63,7 @@ export function KenduLeaderboard({ eventId, limit = 10 }: Props) {
             </div>
             <div>
               <p className="text-[12px] text-zinc-300 font-medium">{entry.name}</p>
-              <p className="text-[9px] text-zinc-600">Level {entry.level} &middot; 🔥{entry.current_streak_days}d</p>
+              <p className="text-[11px] text-zinc-600">Level {entry.level} &middot; 🔥{entry.current_streak_days}d</p>
             </div>
           </div>
           <span className="text-[12px] font-bold text-orange-400">{entry.total_earned.toLocaleString()}</span>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -30,19 +30,19 @@ export function AdminPage() {
 
   const { data: runners } = useQuery({
     queryKey: ['admin-runners'],
-    queryFn: () => api.get('/admin/runners').then(r => r.data),
+    queryFn: () => api.get('/admin/runners?limit=100').then(r => r.data.runners),
     enabled: tab === 'runners' || tab === 'overview',
   });
 
   const { data: events } = useQuery({
     queryKey: ['admin-events'],
-    queryFn: () => api.get('/admin/events').then(r => r.data),
+    queryFn: () => api.get('/admin/events?limit=100').then(r => r.data.events),
     enabled: tab === 'events',
   });
 
   const { data: communities } = useQuery({
     queryKey: ['admin-communities'],
-    queryFn: () => api.get('/admin/communities').then(r => r.data),
+    queryFn: () => api.get('/admin/communities?limit=100').then(r => r.data.communities),
     enabled: tab === 'communities',
   });
 
@@ -160,15 +160,15 @@ function OverviewTab({ stats, runners }: { stats: any; runners: any[] }) {
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center p-2 rounded-lg bg-accent-green/5 border border-accent-green/10">
               <p className="font-mono text-lg font-bold text-accent-green">{streakData.active_streaks}</p>
-              <p className="text-[9px] text-zinc-500 uppercase">Active</p>
+              <p className="text-[11px] text-zinc-500 uppercase">Active</p>
             </div>
             <div className="text-center p-2 rounded-lg bg-amber-400/5 border border-amber-400/10">
               <p className="font-mono text-lg font-bold text-amber-400">{streakData.at_risk}</p>
-              <p className="text-[9px] text-zinc-500 uppercase">At Risk</p>
+              <p className="text-[11px] text-zinc-500 uppercase">At Risk</p>
             </div>
             <div className="text-center p-2 rounded-lg bg-red-400/5 border border-red-400/10">
               <p className="font-mono text-lg font-bold text-red-400">{streakData.lost_today}</p>
-              <p className="text-[9px] text-zinc-500 uppercase">Lost Today</p>
+              <p className="text-[11px] text-zinc-500 uppercase">Lost Today</p>
             </div>
           </div>
           {streakData.at_risk_runners?.length > 0 && (
@@ -246,19 +246,19 @@ function RunnersTab({ runners }: { runners: any[] }) {
           <div className="grid grid-cols-4 gap-2 text-center">
             <div>
               <p className="font-mono text-sm font-bold">{runner.total_runs}</p>
-              <p className="text-[9px] text-zinc-600">runs</p>
+              <p className="text-[11px] text-zinc-600">runs</p>
             </div>
             <div>
               <p className="font-mono text-sm font-bold">{runner.total_distance ? (runner.total_distance / 1000).toFixed(1) : '0'}</p>
-              <p className="text-[9px] text-zinc-600">km</p>
+              <p className="text-[11px] text-zinc-600">km</p>
             </div>
             <div>
               <p className="font-mono text-sm font-bold">{runner.avg_pace > 0 ? formatPace(runner.avg_pace) : '--'}</p>
-              <p className="text-[9px] text-zinc-600">pace</p>
+              <p className="text-[11px] text-zinc-600">pace</p>
             </div>
             <div>
               <p className="font-mono text-sm font-bold">{runner.current_level || 1}</p>
-              <p className="text-[9px] text-zinc-600">level</p>
+              <p className="text-[11px] text-zinc-600">level</p>
             </div>
           </div>
         </motion.div>
@@ -358,7 +358,7 @@ function EventsTab({ events, queryClient }: { events: any[]; queryClient: any })
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[14px] font-medium">{e.title}</p>
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${
+                <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
                   e.status === 'upcoming' ? 'bg-accent/10 text-accent' :
                   e.status === 'live' ? 'bg-green-500/10 text-green-400' :
                   e.status === 'completed' ? 'bg-zinc-500/10 text-zinc-400' :
@@ -419,7 +419,7 @@ function EventsTab({ events, queryClient }: { events: any[]; queryClient: any })
 function CommunitiesTab({ communities, queryClient }: { communities: any[]; queryClient: any }) {
   const { data: allCommunities, isLoading } = useQuery({
     queryKey: ['admin-all-communities'],
-    queryFn: () => api.get('/admin/communities').then(r => r.data),
+    queryFn: () => api.get('/admin/communities?limit=100').then(r => r.data.communities),
   });
 
   const { data: requests = [] } = useQuery({
@@ -455,7 +455,7 @@ function CommunitiesTab({ communities, queryClient }: { communities: any[]; quer
                   <p className="text-[14px] font-semibold text-white">{r.name}</p>
                   <p className="text-[11px] text-zinc-400 mt-0.5">{r.purpose}</p>
                 </div>
-                <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-bold">{r.category}</span>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-bold">{r.category}</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-zinc-500">
                 <span>By: {r.user_name} ({r.user_email})</span>
@@ -742,19 +742,19 @@ function EngagementMetrics() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="card p-3 text-center">
           <p className="font-mono text-lg font-bold text-accent-gold">{data.badges.total_earned}</p>
-          <p className="text-[9px] text-zinc-500 uppercase">Badges Earned</p>
+          <p className="text-[11px] text-zinc-500 uppercase">Badges Earned</p>
         </div>
         <div className="card p-3 text-center">
           <p className="font-mono text-lg font-bold text-accent">{data.reactions.total}</p>
-          <p className="text-[9px] text-zinc-500 uppercase">Reactions</p>
+          <p className="text-[11px] text-zinc-500 uppercase">Reactions</p>
         </div>
         <div className="card p-3 text-center">
           <p className="font-mono text-lg font-bold text-accent-green">{data.streaks.top?.[0]?.streak || 0}d</p>
-          <p className="text-[9px] text-zinc-500 uppercase">Top Streak</p>
+          <p className="text-[11px] text-zinc-500 uppercase">Top Streak</p>
         </div>
         <div className="card p-3 text-center">
           <p className="font-mono text-lg font-bold text-white">{data.communities.active_this_week}</p>
-          <p className="text-[9px] text-zinc-500 uppercase">Active Clubs</p>
+          <p className="text-[11px] text-zinc-500 uppercase">Active Clubs</p>
         </div>
       </div>
 
@@ -997,7 +997,7 @@ function NotificationsTab() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[14px] font-medium">{n.title}</p>
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${statusColor(n.status)}`}>
+                <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${statusColor(n.status)}`}>
                   {n.status}
                 </span>
               </div>
@@ -1090,7 +1090,7 @@ function ContentTab() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[14px] font-medium">{item.title}</p>
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${typeColor(item.type)}`}>
+                <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${typeColor(item.type)}`}>
                   {item.type}
                 </span>
               </div>
@@ -1183,7 +1183,7 @@ function EngineeringTab() {
             <p className="text-[14px] font-medium">
               {sprint.date ? new Date(sprint.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sprint'}
             </p>
-            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${statusColor(sprint.status)}`}>
+            <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${statusColor(sprint.status)}`}>
               {sprint.status}
             </span>
           </div>
@@ -1239,7 +1239,7 @@ function ModerationTab() {
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${
+                <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
                   item.type === 'comment' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
                 }`}>
                   {item.type}

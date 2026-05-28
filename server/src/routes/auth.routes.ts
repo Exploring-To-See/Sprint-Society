@@ -147,13 +147,38 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
 router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
   const updates = req.body;
   const allowed = ['name', 'age', 'height_cm', 'weight_kg', 'fitness_level', 'running_experience', 'injury_history'];
+  const numericFields: Record<string, { min: number; max: number }> = {
+    age: { min: 13, max: 100 },
+    height_cm: { min: 100, max: 250 },
+    weight_kg: { min: 30, max: 250 },
+  };
   const fields: string[] = [];
   const values: any[] = [];
 
   for (const key of allowed) {
     if (updates[key] !== undefined) {
-      fields.push(`${key} = ?`);
-      values.push(key === 'injury_history' ? JSON.stringify(updates[key]) : updates[key]);
+      if (key in numericFields) {
+        const num = Number(updates[key]);
+        const { min, max } = numericFields[key];
+        if (isNaN(num) || num < min || num > max) {
+          return res.status(400).json({ error: `${key} must be a number between ${min} and ${max}` });
+        }
+        fields.push(`${key} = ?`);
+        values.push(Math.round(key === 'weight_kg' ? num * 10 : num) / (key === 'weight_kg' ? 10 : 1));
+      } else if (key === 'injury_history') {
+        fields.push(`${key} = ?`);
+        values.push(JSON.stringify(updates[key]));
+      } else if (key === 'name') {
+        const name = String(updates[key]).trim();
+        if (name.length < 2 || name.length > 100) {
+          return res.status(400).json({ error: 'Name must be 2-100 characters' });
+        }
+        fields.push(`${key} = ?`);
+        values.push(name);
+      } else {
+        fields.push(`${key} = ?`);
+        values.push(String(updates[key]).slice(0, 100));
+      }
     }
   }
 

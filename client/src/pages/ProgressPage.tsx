@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -90,7 +90,7 @@ export function ProgressPage() {
                     <div className="flex-1 ml-2">
                       <p className="text-[12px] font-semibold text-white">{m.title}</p>
                       <p className="text-[10px] text-zinc-600">{m.detail}</p>
-                      <p className="text-[9px] text-zinc-700 mt-0.5">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-[11px] text-zinc-700 mt-0.5">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                   </div>
                 ))}
@@ -223,7 +223,7 @@ export function ProgressPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-mono text-[15px] font-bold text-white">{pr.formatted}</p>
-                        {pr.is_new && <span className="text-[9px] font-medium text-accent-gold">NEW PR!</span>}
+                        {pr.is_new && <span className="text-[11px] font-medium text-accent-gold">NEW PR!</span>}
                       </div>
                     </div>
                   ))}

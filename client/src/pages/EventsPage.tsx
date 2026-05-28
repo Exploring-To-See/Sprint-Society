@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -78,7 +78,7 @@ export function EventsPage() {
             >
               {f.label}
               {!f.active && (
-                <span className="ml-1 text-[8px] text-zinc-700 uppercase">Soon</span>
+                <span className="ml-1 text-[11px] text-zinc-700 uppercase">Soon</span>
               )}
             </button>
           ))}
@@ -133,7 +133,7 @@ export function EventsPage() {
               className="w-full text-left rounded-2xl overflow-hidden border border-accent/20 bg-gradient-to-br from-accent/15 via-bg-secondary to-bg-primary p-5 space-y-3 active:scale-[0.98] transition-all"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-accent">Featured Event</span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">Featured Event</span>
                 <CountdownBadge date={data.events[0].date} time={data.events[0].time} />
               </div>
               <h2 className="font-heading text-[18px] font-bold text-white leading-snug">{data.events[0].title}</h2>
@@ -188,7 +188,7 @@ function AttendeeAvatars({ attendees, count }: { attendees?: any[]; count?: numb
             {a.profile_image_url ? (
               <img src={a.profile_image_url} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+              <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-zinc-500">
                 {a.name?.[0] || '?'}
               </div>
             )}
@@ -196,7 +196,7 @@ function AttendeeAvatars({ attendees, count }: { attendees?: any[]; count?: numb
         ))}
         {remaining > 0 && (
           <div className="w-6 h-6 rounded-full border-2 border-bg-primary bg-bg-tertiary flex items-center justify-center">
-            <span className="text-[8px] font-bold text-zinc-400">+{remaining}</span>
+            <span className="text-[11px] font-bold text-zinc-400">+{remaining}</span>
           </div>
         )}
       </div>

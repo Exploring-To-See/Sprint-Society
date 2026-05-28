@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 
 interface SplitChartProps {
   splits: Array<{ km: number; time_seconds: number }>;
@@ -105,7 +105,7 @@ export function SplitChart({ splits, averagePace }: SplitChartProps) {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: index * 0.08 + 0.3, type: 'spring' }}
-                  className="text-[8px] font-bold text-accent-green bg-accent-green/10 px-1.5 py-0.5 rounded flex-shrink-0"
+                  className="text-[11px] font-bold text-accent-green bg-accent-green/10 px-1.5 py-0.5 rounded flex-shrink-0"
                 >
                   FAST
                 </motion.span>
@@ -115,7 +115,7 @@ export function SplitChart({ splits, averagePace }: SplitChartProps) {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: index * 0.08 + 0.3, type: 'spring' }}
-                  className="text-[8px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded flex-shrink-0"
+                  className="text-[11px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded flex-shrink-0"
                 >
                   SLOW
                 </motion.span>
@@ -129,11 +129,11 @@ export function SplitChart({ splits, averagePace }: SplitChartProps) {
       <div className="flex items-center gap-4 pt-1">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-sm bg-accent-green/30" />
-          <span className="text-[9px] text-zinc-600">Faster than avg</span>
+          <span className="text-[11px] text-zinc-600">Faster than avg</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/30" />
-          <span className="text-[9px] text-zinc-600">Slower than avg</span>
+          <span className="text-[11px] text-zinc-600">Slower than avg</span>
         </div>
       </div>
     </div>

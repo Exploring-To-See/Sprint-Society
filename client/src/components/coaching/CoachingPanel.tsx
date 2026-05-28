@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -86,13 +86,13 @@ export function CoachingPanel() {
                       {(user as any)?.profile_image_url ? (
                         <img src={(user as any).profile_image_url} className="w-full h-full object-cover" alt="" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-accent">
+                        <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-accent">
                           {user?.name?.[0]}
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full border border-bg-tertiary flex items-center justify-center text-[9px] text-zinc-600">
+                    <div className="w-5 h-5 rounded-full border border-bg-tertiary flex items-center justify-center text-[11px] text-zinc-600">
                       {milestone.week}
                     </div>
                   )}

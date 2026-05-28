@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -160,7 +160,7 @@ export function RewardsPage() {
                     <p className={`text-[12px] font-bold ${canAfford ? 'text-orange-400' : 'text-zinc-600'}`}>
                       {action.cost}
                     </p>
-                    <p className="text-[9px] text-zinc-600">Kendu</p>
+                    <p className="text-[11px] text-zinc-600">Kendu</p>
                   </div>
                 </motion.button>
               );

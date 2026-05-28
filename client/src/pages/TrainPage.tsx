@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
@@ -265,7 +265,7 @@ export function TrainPage() {
                           <span className="font-mono text-zinc-600">{node.day}</span>
                         )}
                       </div>
-                      <span className={`text-[9px] font-semibold ${biome.color}`}>{biome.icon}</span>
+                      <span className={`text-[11px] font-semibold ${biome.color}`}>{biome.icon}</span>
                     </div>
 
                     {/* Content */}
@@ -277,7 +277,7 @@ export function TrainPage() {
                         <span className={`text-[10px] font-mono ${isCurrent ? 'text-accent' : 'text-zinc-600'}`}>{node.distance_km}km</span>
                       )}
                       {node.pace_zone && (
-                        <span className="text-[8px] text-zinc-700 uppercase">{node.pace_zone}</span>
+                        <span className="text-[11px] text-zinc-700 uppercase">{node.pace_zone}</span>
                       )}
                     </div>
                   </div>
@@ -304,19 +304,19 @@ export function TrainPage() {
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">What If You Stay Consistent</p>
           <div className="grid grid-cols-3 gap-2">
             <div className="text-center px-2 py-3 rounded-lg bg-bg-primary/50 border border-bg-tertiary">
-              <p className="text-[9px] text-zinc-600 mb-1">4 weeks</p>
+              <p className="text-[11px] text-zinc-600 mb-1">4 weeks</p>
               <p className="font-mono font-bold text-[14px] text-white">-30s</p>
-              <p className="text-[8px] text-zinc-600">5K time</p>
+              <p className="text-[11px] text-zinc-600">5K time</p>
             </div>
             <div className="text-center px-2 py-3 rounded-lg bg-bg-primary/50 border border-bg-tertiary">
-              <p className="text-[9px] text-zinc-600 mb-1">8 weeks</p>
+              <p className="text-[11px] text-zinc-600 mb-1">8 weeks</p>
               <p className="font-mono font-bold text-[14px] text-accent">+2</p>
-              <p className="text-[8px] text-zinc-600">VO2max</p>
+              <p className="text-[11px] text-zinc-600">VO2max</p>
             </div>
             <div className="text-center px-2 py-3 rounded-lg bg-bg-primary/50 border border-bg-tertiary">
-              <p className="text-[9px] text-zinc-600 mb-1">12 weeks</p>
+              <p className="text-[11px] text-zinc-600 mb-1">12 weeks</p>
               <p className="font-mono font-bold text-[14px] text-accent-gold">↑ Tier</p>
-              <p className="text-[8px] text-zinc-600">promotion</p>
+              <p className="text-[11px] text-zinc-600">promotion</p>
             </div>
           </div>
           <p className="text-[10px] text-zinc-600 text-center">Based on your current {trainingDays}x/week at {profile?.running_experience || 'your'} level</p>
@@ -353,12 +353,12 @@ export function TrainPage() {
                 {selectedNode.distance_km && (
                   <div className="flex gap-3">
                     <div className="flex-1 rounded-xl bg-bg-secondary border border-bg-tertiary p-3 text-center">
-                      <p className="text-[9px] text-zinc-600 uppercase">Distance</p>
+                      <p className="text-[11px] text-zinc-600 uppercase">Distance</p>
                       <p className="font-mono font-bold text-[18px] text-white">{selectedNode.distance_km}<span className="text-[10px] text-zinc-600">km</span></p>
                     </div>
                     {selectedNode.pace_zone && (
                       <div className="flex-1 rounded-xl bg-bg-secondary border border-bg-tertiary p-3 text-center">
-                        <p className="text-[9px] text-zinc-600 uppercase">Zone</p>
+                        <p className="text-[11px] text-zinc-600 uppercase">Zone</p>
                         <p className="font-mono font-bold text-[18px] text-accent">{selectedNode.pace_zone}</p>
                       </div>
                     )}

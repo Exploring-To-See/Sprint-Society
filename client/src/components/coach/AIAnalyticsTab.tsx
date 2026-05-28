@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
@@ -77,7 +77,7 @@ export function AIAnalyticsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-[9px] font-bold text-accent uppercase tracking-[0.2em]">⚡ AI Analytics</p>
+      <p className="text-[11px] font-bold text-accent uppercase tracking-[0.2em]">⚡ AI Analytics</p>
 
       {/* Tier 1: Core Metrics */}
       <div className="grid grid-cols-2 gap-2">
@@ -106,11 +106,11 @@ export function AIAnalyticsTab() {
 
       {/* Tier 2: Training Intelligence */}
       <div>
-        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Training Intelligence</p>
+        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Training Intelligence</p>
 
         {/* Race Predictions */}
         <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3 mb-2">
-          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Race Predictions</p>
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Race Predictions</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {(['5K', '10K', 'Half', 'Marathon'] as const).map(dist => (
               <div key={dist} className="flex justify-between">
@@ -126,8 +126,8 @@ export function AIAnalyticsTab() {
         {/* Pace Trajectory */}
         <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3 mb-2">
           <div className="flex justify-between mb-2">
-            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Pace Trajectory (30d)</span>
-            <span className="text-[9px] font-bold text-accent-green">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Pace Trajectory (30d)</span>
+            <span className="text-[11px] font-bold text-accent-green">
               {summary?.pace_trend === 'improving' ? '↗ Improving' : summary?.pace_trend === 'declining' ? '↘ Declining' : '→ Stable'}
             </span>
           </div>
@@ -137,7 +137,7 @@ export function AIAnalyticsTab() {
             <circle cx="300" cy="10" r="3" fill="#f97316" />
           </svg>
           {stats?.avg_pace && (
-            <p className="text-[9px] text-zinc-600 mt-1">Current avg: {formatPace(stats.avg_pace)}/km</p>
+            <p className="text-[11px] text-zinc-600 mt-1">Current avg: {formatPace(stats.avg_pace)}/km</p>
           )}
         </div>
 
@@ -150,7 +150,7 @@ export function AIAnalyticsTab() {
 
       {/* Tier 5: Milestones */}
       <div>
-        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Milestones & Records</p>
+        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Milestones & Records</p>
 
         {/* Distance milestone */}
         {stats && (
@@ -167,14 +167,14 @@ export function AIAnalyticsTab() {
                 style={{ width: `${Math.min(100, (stats.total_distance / (stats.total_distance < 100000 ? 100000 : stats.total_distance < 200000 ? 200000 : 500000)) * 100)}%` }}
               />
             </div>
-            <p className="text-[9px] text-zinc-600 mt-1">{(stats.total_distance / 1000).toFixed(0)}km total</p>
+            <p className="text-[11px] text-zinc-600 mt-1">{(stats.total_distance / 1000).toFixed(0)}km total</p>
           </div>
         )}
 
         {/* Personal Bests */}
         {records && records.length > 0 && (
           <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3 mb-2">
-            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Personal Bests</p>
+            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Personal Bests</p>
             <div className="grid grid-cols-3 gap-2">
               {records.slice(0, 6).map((r: any, i: number) => (
                 <div key={i} className="text-center p-2 rounded-lg bg-bg-primary/50">
@@ -217,7 +217,7 @@ function MetricCard({ label, value, sub, color = 'default' }: { label: string; v
     <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3">
       <p className="text-[7px] font-bold text-zinc-600 uppercase tracking-widest mb-1">{label}</p>
       <p className={`text-[18px] font-bold ${colorClass}`}>{value}</p>
-      {sub && <p className="text-[8px] text-zinc-600 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[11px] text-zinc-600 mt-0.5">{sub}</p>}
     </div>
   );
 }

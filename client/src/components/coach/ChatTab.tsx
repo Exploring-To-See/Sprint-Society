@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
@@ -89,7 +89,7 @@ export function ChatTab() {
             <button
               key={i}
               onClick={() => { setInput(s); }}
-              className="px-2.5 py-1.5 rounded-full bg-bg-tertiary/50 border border-bg-tertiary text-[9px] text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="px-2.5 py-1.5 rounded-full bg-bg-tertiary/50 border border-bg-tertiary text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               {s}
             </button>

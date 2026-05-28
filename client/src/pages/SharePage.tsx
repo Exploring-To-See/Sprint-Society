@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
@@ -54,11 +54,11 @@ function CardTemplate({ template, run, userName, streak, tier }: {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
               <p className="font-mono text-xl font-bold text-white">{distance}</p>
-              <p className="text-white/50 text-[9px] uppercase">km</p>
+              <p className="text-white/50 text-[11px] uppercase">km</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
               <p className="font-mono text-xl font-bold text-white">{duration}</p>
-              <p className="text-white/50 text-[9px] uppercase">time</p>
+              <p className="text-white/50 text-[11px] uppercase">time</p>
             </div>
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-white/10">
@@ -66,7 +66,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
             <p className="text-white/40 text-xs">{date}</p>
           </div>
         </div>
-        <p className="text-center text-white/20 text-[8px] mt-4">Kendu Entertainment</p>
+        <p className="text-center text-white/20 text-[11px] mt-4">Kendu Entertainment</p>
       </div>
     );
   }
@@ -100,7 +100,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
           <p className="text-zinc-500 text-xs">{userName}</p>
           <p className="text-zinc-600 text-xs">{date}</p>
         </div>
-        <p className="absolute bottom-2 text-zinc-700 text-[8px]">Kendu Entertainment</p>
+        <p className="absolute bottom-2 text-zinc-700 text-[11px]">Kendu Entertainment</p>
       </div>
     );
   }
@@ -127,15 +127,15 @@ function CardTemplate({ template, run, userName, streak, tier }: {
           <div className="bg-white/5 rounded-xl p-3 flex justify-between">
             <div className="text-center">
               <p className="font-mono text-lg font-bold text-white">{distance}</p>
-              <p className="text-white/40 text-[8px] uppercase">today</p>
+              <p className="text-white/40 text-[11px] uppercase">today</p>
             </div>
             <div className="text-center">
               <p className="font-mono text-lg font-bold text-white">{pace}</p>
-              <p className="text-white/40 text-[8px] uppercase">pace</p>
+              <p className="text-white/40 text-[11px] uppercase">pace</p>
             </div>
             <div className="text-center">
               <p className="font-mono text-lg font-bold text-white">{duration}</p>
-              <p className="text-white/40 text-[8px] uppercase">time</p>
+              <p className="text-white/40 text-[11px] uppercase">time</p>
             </div>
           </div>
           <div className="flex items-center justify-between">
@@ -143,7 +143,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
             <p className="text-orange-200/30 text-xs">{date}</p>
           </div>
         </div>
-        <p className="text-center text-orange-200/15 text-[8px] mt-3">Kendu Entertainment</p>
+        <p className="text-center text-orange-200/15 text-[11px] mt-3">Kendu Entertainment</p>
       </div>
     );
   }
@@ -197,7 +197,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
             )}
           </div>
         </div>
-        <p className="text-center text-blue-300/15 text-[8px] mt-3">Kendu Entertainment</p>
+        <p className="text-center text-blue-300/15 text-[11px] mt-3">Kendu Entertainment</p>
       </div>
     );
   }
@@ -210,7 +210,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
         <div className="relative z-10 flex-1 flex flex-col">
           <div className="flex items-center gap-2 mb-auto">
             <span className="font-heading font-bold text-sm text-purple-300/90 tracking-tight">Sprint Society</span>
-            <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold">PRO</span>
+            <span className="text-[11px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold">PRO</span>
           </div>
           <div className="space-y-5">
             <div className="text-center">
@@ -220,11 +220,11 @@ function CardTemplate({ template, run, userName, streak, tier }: {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 text-center">
                 <p className="font-mono text-xl font-bold text-white">{duration}</p>
-                <p className="text-purple-300/40 text-[9px] uppercase">time</p>
+                <p className="text-purple-300/40 text-[11px] uppercase">time</p>
               </div>
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 text-center">
                 <p className="font-mono text-xl font-bold text-white">{pace}</p>
-                <p className="text-purple-300/40 text-[9px] uppercase">/km</p>
+                <p className="text-purple-300/40 text-[11px] uppercase">/km</p>
               </div>
             </div>
           </div>
@@ -256,12 +256,12 @@ function CardTemplate({ template, run, userName, streak, tier }: {
               <div className="flex gap-4 justify-center">
                 <div>
                   <p className="font-mono text-lg font-bold text-amber-200">{pace}</p>
-                  <p className="text-amber-500/40 text-[9px]">PACE</p>
+                  <p className="text-amber-500/40 text-[11px]">PACE</p>
                 </div>
                 <div className="w-px bg-amber-500/20" />
                 <div>
                   <p className="font-mono text-lg font-bold text-amber-200">{duration}</p>
-                  <p className="text-amber-500/40 text-[9px]">TIME</p>
+                  <p className="text-amber-500/40 text-[11px]">TIME</p>
                 </div>
               </div>
               {streak && streak > 0 && (
@@ -271,7 +271,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
           </div>
           <div className="mt-auto pt-4 border-t border-amber-500/10 text-center">
             <p className="text-amber-200/60 text-xs font-semibold">{userName}</p>
-            <p className="text-amber-500/20 text-[9px] mt-0.5">{date} · Sprint Society</p>
+            <p className="text-amber-500/20 text-[11px] mt-0.5">{date} · Sprint Society</p>
           </div>
         </div>
       </div>
@@ -296,15 +296,15 @@ function CardTemplate({ template, run, userName, streak, tier }: {
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-white/5 rounded-xl p-2.5 text-center">
                 <p className="font-mono text-sm font-bold text-white">{pace}</p>
-                <p className="text-blue-300/30 text-[8px]">PACE</p>
+                <p className="text-blue-300/30 text-[11px]">PACE</p>
               </div>
               <div className="bg-white/5 rounded-xl p-2.5 text-center">
                 <p className="font-mono text-sm font-bold text-white">{duration}</p>
-                <p className="text-blue-300/30 text-[8px]">TIME</p>
+                <p className="text-blue-300/30 text-[11px]">TIME</p>
               </div>
               <div className="bg-white/5 rounded-xl p-2.5 text-center">
                 <p className="font-mono text-sm font-bold text-white">{streak || 0}d</p>
-                <p className="text-blue-300/30 text-[8px]">STREAK</p>
+                <p className="text-blue-300/30 text-[11px]">STREAK</p>
               </div>
             </div>
           </div>
@@ -362,7 +362,7 @@ function CardTemplate({ template, run, userName, streak, tier }: {
         <p className="text-white/60 text-xs">{userName}</p>
         <p className="text-white/30 text-xs">{date}</p>
       </div>
-      <p className="text-center text-white/15 text-[9px] mt-3">Kendu Entertainment</p>
+      <p className="text-center text-white/15 text-[11px] mt-3">Kendu Entertainment</p>
     </div>
   );
 }
@@ -523,7 +523,7 @@ export function SharePage() {
                   >
                     <span>{t.icon}</span>
                     {t.label}
-                    {isLocked && <span className="text-[8px] ml-0.5">🔒</span>}
+                    {isLocked && <span className="text-[11px] ml-0.5">🔒</span>}
                   </button>
                 );
               })}

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -91,7 +91,7 @@ export function UserProfilePage() {
             <h1 className="font-heading text-[20px] font-bold text-white">{profile.name}</h1>
             <div className="flex items-center gap-2 mt-1">
               {profile.current_tier && (
-                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${tierStyle.bg} ${tierStyle.text}`}>
+                <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${tierStyle.bg} ${tierStyle.text}`}>
                   {profile.current_tier}
                 </span>
               )}
@@ -130,19 +130,19 @@ export function UserProfilePage() {
         <div className="flex rounded-xl bg-bg-secondary border border-bg-tertiary divide-x divide-bg-tertiary overflow-hidden">
           <div className="flex-1 p-3 text-center">
             <p className="font-mono font-bold text-[16px] text-white">{profile.total_runs}</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Runs</p>
+            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Runs</p>
           </div>
           <div className="flex-1 p-3 text-center">
             <p className="font-mono font-bold text-[16px] text-white">{profile.total_distance_km}</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-wider">km</p>
+            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">km</p>
           </div>
           <div className="flex-1 p-3 text-center">
             <p className="font-mono font-bold text-[16px] text-white">{profile.followers_count}</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Followers</p>
+            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Followers</p>
           </div>
           <div className="flex-1 p-3 text-center">
             <p className="font-mono font-bold text-[16px] text-white">{profile.following_count}</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Following</p>
+            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Following</p>
           </div>
         </div>
 

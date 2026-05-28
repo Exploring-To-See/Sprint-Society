@@ -113,9 +113,9 @@ function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(community_id);
     CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_community_posts_community ON community_posts(community_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, start_time);
-    CREATE INDEX IF NOT EXISTS idx_event_attendees_event ON event_attendees(event_id);
-    CREATE INDEX IF NOT EXISTS idx_event_attendees_user ON event_attendees(user_id);
+    CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, date);
+    CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id, status);
+    CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps(user_id);
     CREATE INDEX IF NOT EXISTS idx_kendu_balances_user ON kendu_balances(user_id);
     CREATE INDEX IF NOT EXISTS idx_kendu_transactions_user ON kendu_transactions(user_id, created_at DESC);
   `);

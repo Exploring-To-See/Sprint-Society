@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
@@ -61,8 +61,8 @@ export function KenduWidget() {
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[9px] text-zinc-600">{progressPercent}% to Level {data.current_level + 1}</span>
-          <span className="text-[9px] text-zinc-600">Lifetime: {data.lifetime_earned.toLocaleString()}</span>
+          <span className="text-[11px] text-zinc-600">{progressPercent}% to Level {data.current_level + 1}</span>
+          <span className="text-[11px] text-zinc-600">Lifetime: {data.lifetime_earned.toLocaleString()}</span>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export function KenduWidget() {
             {subs.filter((s: any) => s.is_active).length} active subs
           </span>
           {subs.some((s: any) => s.is_active && new Date(s.next_due_at) <= new Date(Date.now() + 7 * 86400000)) && (
-            <span className="text-[9px] text-amber-500 font-medium">• Due soon</span>
+            <span className="text-[11px] text-amber-500 font-medium">• Due soon</span>
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
@@ -73,7 +73,7 @@ export function RunnerCardPopup({ userId, onClose }: RunnerCardPopupProps) {
                     </div>
                     <h3 className="font-heading font-bold text-[16px] text-white">{runner.name}</h3>
                     <div className="flex items-center justify-center gap-2 mt-1">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                         runner.tier === 'advanced' ? 'bg-accent-gold/10 text-accent-gold' :
                         runner.tier === 'intermediate' ? 'bg-accent/10 text-accent' :
                         'bg-accent-green/10 text-accent-green'
@@ -88,15 +88,15 @@ export function RunnerCardPopup({ userId, onClose }: RunnerCardPopupProps) {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="text-center px-2 py-2 rounded-lg bg-bg-primary/50">
                       <p className="font-mono font-bold text-[14px] text-white">{runner.total_km || 0}</p>
-                      <p className="text-[8px] text-zinc-600 uppercase">km</p>
+                      <p className="text-[11px] text-zinc-600 uppercase">km</p>
                     </div>
                     <div className="text-center px-2 py-2 rounded-lg bg-bg-primary/50">
                       <p className="font-mono font-bold text-[14px] text-accent">{runner.best_pace || '--'}</p>
-                      <p className="text-[8px] text-zinc-600 uppercase">/km</p>
+                      <p className="text-[11px] text-zinc-600 uppercase">/km</p>
                     </div>
                     <div className="text-center px-2 py-2 rounded-lg bg-bg-primary/50">
                       <p className="font-mono font-bold text-[14px] text-white">{runner.streak || 0}</p>
-                      <p className="text-[8px] text-zinc-600 uppercase">streak</p>
+                      <p className="text-[11px] text-zinc-600 uppercase">streak</p>
                     </div>
                   </div>
 

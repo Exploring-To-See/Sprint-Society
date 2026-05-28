@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 
 interface RunShareCardProps {
   distance: number; // km
@@ -129,15 +129,15 @@ export function RunShareCard({
       >
         <div className="bg-white/[0.03] rounded-xl p-3 text-center border border-white/[0.04]">
           <p className="font-mono text-[18px] font-bold text-white">{pace}</p>
-          <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">min/km</p>
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">min/km</p>
         </div>
         <div className="bg-white/[0.03] rounded-xl p-3 text-center border border-white/[0.04]">
           <p className="font-mono text-[18px] font-bold text-white">{time}</p>
-          <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">time</p>
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">time</p>
         </div>
         <div className="bg-white/[0.03] rounded-xl p-3 text-center border border-white/[0.04]">
           <p className="font-mono text-[18px] font-bold text-white">{date}</p>
-          <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">date</p>
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">date</p>
         </div>
       </motion.div>
 
@@ -172,7 +172,7 @@ export function RunShareCard({
       </motion.div>
 
       {/* Branding footer */}
-      <p className="relative z-10 text-center text-zinc-800 text-[8px] mt-3 tracking-wider">
+      <p className="relative z-10 text-center text-zinc-800 text-[11px] mt-3 tracking-wider">
         Kendu Entertainment
       </p>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -344,7 +344,7 @@ export function RacePredictor({ vo2max, recentPace }: { vo2max: number; recentPa
                   transition={{ delay: i * 0.08 + 0.3, duration: 0.5 }}
                 />
               </div>
-              <span className="text-[8px] text-zinc-600 font-mono">
+              <span className="text-[11px] text-zinc-600 font-mono">
                 {Math.round(pred.confidence * 100)}%
               </span>
             </div>
@@ -463,15 +463,15 @@ export function InjuryRiskBanner({ risk, acuteLoad, chronicLoad }: InjuryRiskBan
               </p>
               <div className="flex gap-4 mt-2">
                 <div>
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider">7-day load</p>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">7-day load</p>
                   <p className="font-mono text-[12px] font-semibold text-white">{acuteLoad}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider">28-day avg</p>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">28-day avg</p>
                   <p className="font-mono text-[12px] font-semibold text-white">{chronicLoad}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Ratio</p>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Ratio</p>
                   <p className={`font-mono text-[12px] font-bold ${config.textColor}`}>{ratio}</p>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+﻿import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -112,7 +112,7 @@ export function CreateCommunityPage() {
                 }`}
               >
                 <span className="text-base">{c.icon}</span>
-                <span className="text-[9px] font-medium">{c.label}</span>
+                <span className="text-[11px] font-medium">{c.label}</span>
               </button>
             ))}
           </div>

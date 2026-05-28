@@ -1,4 +1,4 @@
-interface Attendee {
+﻿interface Attendee {
   user_id: number;
   name: string;
   profile_image_url?: string;
@@ -28,7 +28,7 @@ export function AttendeeAvatars({ attendees, totalCount, maxShow = 5 }: Attendee
             {a.profile_image_url ? (
               <img src={a.profile_image_url} alt="" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[9px] font-bold text-zinc-500">
+              <span className="text-[11px] font-bold text-zinc-500">
                 {a.name?.[0]?.toUpperCase()}
               </span>
             )}
@@ -36,7 +36,7 @@ export function AttendeeAvatars({ attendees, totalCount, maxShow = 5 }: Attendee
         ))}
         {remaining > 0 && (
           <div className="w-7 h-7 rounded-full border-2 border-bg-primary bg-bg-secondary flex items-center justify-center">
-            <span className="text-[9px] font-bold text-zinc-500">+{remaining}</span>
+            <span className="text-[11px] font-bold text-zinc-500">+{remaining}</span>
           </div>
         )}
       </div>

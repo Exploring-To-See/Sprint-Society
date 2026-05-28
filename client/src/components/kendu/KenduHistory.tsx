@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
@@ -58,7 +58,7 @@ export function KenduHistory() {
               <span className="text-sm">{source.icon}</span>
               <div>
                 <p className="text-[12px] text-zinc-300 font-medium">{source.label}</p>
-                <p className="text-[9px] text-zinc-600">{timeStr}</p>
+                <p className="text-[11px] text-zinc-600">{timeStr}</p>
               </div>
             </div>
             <span className={`text-[13px] font-bold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>

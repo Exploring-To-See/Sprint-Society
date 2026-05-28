@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -160,7 +160,7 @@ export function CommunityDetailPage() {
               {/* Pinned post */}
               {community.recent_posts?.filter((p: any) => p.pinned).map((post: any) => (
                 <div key={post.id} className="rounded-xl bg-amber-500/5 border border-amber-500/15 p-4">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400 mb-2">📌 Pinned</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-2">📌 Pinned</p>
                   <p className="text-[14px] text-zinc-200 leading-relaxed">{post.body}</p>
                   <p className="text-[10px] text-zinc-600 mt-2">{post.author_name} · {formatTimeAgo(post.created_at)}</p>
                 </div>
@@ -593,12 +593,12 @@ function CommunityChat({ communityId }: { communityId: string }) {
         {messages.map((msg: any) => (
           <div key={msg.id} className="flex gap-2">
             <div className="w-6 h-6 rounded-full bg-bg-tertiary flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-[8px] font-bold text-zinc-500">{msg.user_name?.[0]?.toUpperCase()}</span>
+              <span className="text-[11px] font-bold text-zinc-500">{msg.user_name?.[0]?.toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2">
                 <span className="text-[10px] font-semibold text-zinc-300">{msg.user_name}</span>
-                <span className="text-[8px] text-zinc-700">
+                <span className="text-[11px] text-zinc-700">
                   {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                 </span>
               </div>
@@ -690,15 +690,15 @@ function CommunityLeaderboard({ communityId }: { communityId: string }) {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <p className="font-mono text-lg font-bold text-white">{digest.active_members}</p>
-              <p className="text-[8px] text-zinc-500 uppercase">Active</p>
+              <p className="text-[11px] text-zinc-500 uppercase">Active</p>
             </div>
             <div>
               <p className="font-mono text-lg font-bold text-white">{digest.total_runs}</p>
-              <p className="text-[8px] text-zinc-500 uppercase">Runs</p>
+              <p className="text-[11px] text-zinc-500 uppercase">Runs</p>
             </div>
             <div>
               <p className="font-mono text-lg font-bold text-white">{digest.total_distance_km}</p>
-              <p className="text-[8px] text-zinc-500 uppercase">km</p>
+              <p className="text-[11px] text-zinc-500 uppercase">km</p>
             </div>
           </div>
           {digest.top_runner && (
@@ -729,18 +729,18 @@ function CommunityLeaderboard({ communityId }: { communityId: string }) {
                 {entry.profile_image_url ? (
                   <img src={entry.profile_image_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-500">
+                  <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-zinc-500">
                     {entry.name?.[0]?.toUpperCase()}
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-white truncate">{entry.name}</p>
-                <p className="text-[9px] text-zinc-600">{entry.total_runs} runs</p>
+                <p className="text-[11px] text-zinc-600">{entry.total_runs} runs</p>
               </div>
               <div className="text-right">
                 <p className="font-mono text-[12px] font-bold text-accent">{entry.total_distance_km} km</p>
-                {entry.streak > 0 && <p className="text-[8px] text-zinc-600">🔥 {entry.streak}d</p>}
+                {entry.streak > 0 && <p className="text-[11px] text-zinc-600">🔥 {entry.streak}d</p>}
               </div>
             </div>
           ))}

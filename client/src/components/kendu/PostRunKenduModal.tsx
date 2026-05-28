@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 interface KenduEarnResult {
@@ -120,16 +120,16 @@ export function PostRunKenduModal({ isOpen, onClose, result }: Props) {
             >
               <div className="text-center">
                 <p className="text-[13px] font-bold text-zinc-200">{result.newBalance.toLocaleString()}</p>
-                <p className="text-[9px] text-zinc-500">Balance</p>
+                <p className="text-[11px] text-zinc-500">Balance</p>
               </div>
               <div className="text-center">
                 <p className="text-[13px] font-bold text-zinc-200">🔥 {result.streakDays}d</p>
-                <p className="text-[9px] text-zinc-500">Streak</p>
+                <p className="text-[11px] text-zinc-500">Streak</p>
               </div>
               {result.cappedToday && (
                 <div className="text-center">
                   <p className="text-[11px] font-semibold text-amber-400">Max today</p>
-                  <p className="text-[9px] text-zinc-500">Daily cap reached</p>
+                  <p className="text-[11px] text-zinc-500">Daily cap reached</p>
                 </div>
               )}
             </motion.div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -102,7 +102,7 @@ export function Dashboard() {
         {/* Tier + Level bar */}
         <motion.div variants={fadeUp}>
           <div className="flex items-center gap-2 mb-1">
-            <span className={`text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-md ${
+            <span className={`text-[11px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-md ${
               tierName === 'advanced' ? 'bg-accent-gold/10 text-accent-gold border border-accent-gold/20' :
               tierName === 'intermediate' ? 'bg-accent/10 text-accent border border-accent/20' :
               'bg-accent-green/10 text-accent-green border border-accent-green/20'
@@ -120,7 +120,7 @@ export function Dashboard() {
             <span className="text-[10px] font-mono text-zinc-600 tabular-nums">L{level}</span>
           </div>
           {xpToNext > 0 && (
-            <p className="text-[9px] text-zinc-600">{xpToNext} XP to Level {level + 1}</p>
+            <p className="text-[11px] text-zinc-600">{xpToNext} XP to Level {level + 1}</p>
           )}
         </motion.div>
 

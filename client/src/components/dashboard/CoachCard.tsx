@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
@@ -115,7 +115,7 @@ export function CoachCard() {
             {todaySession ? `Today: ${todaySession.name || todaySession.type}` : 'Rest day'}
           </p>
         </div>
-        <span className="text-[9px] text-zinc-600">Day {currentDay}/{totalDays}</span>
+        <span className="text-[11px] text-zinc-600">Day {currentDay}/{totalDays}</span>
       </div>
 
       {dailyInsight && (

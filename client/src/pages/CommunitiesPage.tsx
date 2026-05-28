@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -69,7 +69,7 @@ export function CommunitiesPage() {
                   className="flex items-center gap-2 px-3 py-2 rounded-full bg-bg-secondary border border-bg-tertiary whitespace-nowrap shrink-0 active:scale-95 transition-all"
                 >
                   <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center">
-                    <span className="text-[9px]">{getCategoryIcon(c.category)}</span>
+                    <span className="text-[11px]">{getCategoryIcon(c.category)}</span>
                   </div>
                   <span className="text-[11px] font-medium text-zinc-300">{c.name}</span>
                 </button>

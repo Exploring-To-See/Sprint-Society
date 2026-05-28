@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,7 +61,7 @@ export function TrainTab() {
         <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/[0.03] border border-accent/15">
           <div className="flex-1">
             <p className="text-[12px] font-bold text-white">{goalName}</p>
-            <p className="text-[9px] text-zinc-500">{daysLeft ? `${daysLeft} days` : ''} · {phase} phase</p>
+            <p className="text-[11px] text-zinc-500">{daysLeft ? `${daysLeft} days` : ''} · {phase} phase</p>
           </div>
           <div className="px-2.5 py-1 rounded-full bg-accent-green/10 border border-accent-green/20">
             <span className="text-[10px] font-bold text-accent-green">✓ On track</span>
@@ -90,7 +90,7 @@ export function TrainTab() {
               onClick={() => setExpandedDay(expandedDay === i ? -1 : i)}
               className={`flex-1 rounded-lg py-2 px-1 text-center border transition-all ${getDayColor(status)} ${expandedDay === i ? 'ring-1 ring-accent/50' : ''}`}
             >
-              <div className="text-[8px] font-bold uppercase">{label}</div>
+              <div className="text-[11px] font-bold uppercase">{label}</div>
               <div className="text-[7px] opacity-60">{dateNum}</div>
               <div className="text-[10px] mt-0.5">
                 {status === 'done' ? '✓' : status === 'today' ? '→' : status === 'missed' ? '✗' : session?.type?.[0]?.toUpperCase() || '—'}
@@ -139,19 +139,19 @@ export function TrainTab() {
                     {status === 'today' && preRun && (
                       <>
                         <div className="p-3 rounded-lg bg-accent/[0.03] border border-accent/10">
-                          <p className="text-[8px] font-bold text-accent uppercase tracking-widest mb-1">⚔️ Pre-Run</p>
+                          <p className="text-[11px] font-bold text-accent uppercase tracking-widest mb-1">⚔️ Pre-Run</p>
                           <p className="text-[10px] text-zinc-400 leading-relaxed">
                             • 5-min walk warmup<br/>• Relaxed shoulders, quick turnover<br/>• Hydrate 500ml 30min before
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-indigo-500/[0.03] border border-indigo-500/10">
-                          <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Post-Run</p>
+                          <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Post-Run</p>
                           <p className="text-[10px] text-zinc-400 leading-relaxed">
                             • Cool-down walk 5min<br/>• Stretch hamstrings + calves<br/>• Protein within 30min
                           </p>
                         </div>
                         <div className="p-3 rounded-lg bg-accent-green/[0.03] border border-accent-green/10">
-                          <p className="text-[8px] font-bold text-accent-green uppercase tracking-widest mb-1">Nutrition</p>
+                          <p className="text-[11px] font-bold text-accent-green uppercase tracking-widest mb-1">Nutrition</p>
                           <p className="text-[10px] text-zinc-400 leading-relaxed">
                             • Light carbs 1-2h before<br/>• Post-run: protein shake or eggs within 30min
                           </p>

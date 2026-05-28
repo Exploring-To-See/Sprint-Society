@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
@@ -57,10 +57,10 @@ export function FeedTab() {
             </button>
             <div className="flex-1">
               <p className="text-[11px] font-bold text-white">{activity.user_name || 'Runner'}</p>
-              <p className="text-[9px] text-zinc-600">{activity.time_ago || 'recently'}</p>
+              <p className="text-[11px] text-zinc-600">{activity.time_ago || 'recently'}</p>
             </div>
             {activity.streak_days >= 7 && (
-              <span className="text-[9px] text-accent font-bold">🔥{activity.streak_days}</span>
+              <span className="text-[11px] text-accent font-bold">🔥{activity.streak_days}</span>
             )}
           </div>
 
@@ -88,7 +88,7 @@ export function FeedTab() {
               </button>
             ))}
             {activity.kudos_count > 0 && (
-              <span className="text-[9px] text-zinc-600 self-center ml-1">{activity.kudos_count}</span>
+              <span className="text-[11px] text-zinc-600 self-center ml-1">{activity.kudos_count}</span>
             )}
           </div>
         </div>

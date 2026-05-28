@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 
 interface Props {
@@ -113,7 +113,7 @@ export function RedeemModal({ isOpen, onClose, offer, onConfirm }: Props) {
                     className="w-full py-3 rounded-lg bg-bg-tertiary border border-bg-tertiary hover:border-orange-500/30 transition-colors"
                   >
                     <p className="text-lg font-mono font-bold text-zinc-100 tracking-wider">{couponCode}</p>
-                    <p className="text-[9px] text-zinc-500 mt-1">Tap to copy</p>
+                    <p className="text-[11px] text-zinc-500 mt-1">Tap to copy</p>
                   </button>
 
                   <p className="text-[10px] text-zinc-500">New balance: {newBalance.toLocaleString()} Kendu</p>

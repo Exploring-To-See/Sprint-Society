@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useCallback } from 'react';
 import api from '../lib/api';
@@ -145,20 +145,20 @@ export function FeedPage() {
             <div className="p-4">
               <div className="flex gap-4 py-3 px-4 rounded-lg bg-bg-primary/60 border border-bg-tertiary/50">
                 <div>
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Distance</p>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Distance</p>
                   <p className="font-mono text-[15px] font-bold text-white">{activity.distance_km}<span className="text-[10px] text-zinc-600 ml-0.5">km</span></p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Duration</p>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Duration</p>
                   <p className="font-mono text-[15px] font-bold text-white">{formatDuration(activity.moving_time_seconds)}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Pace</p>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Pace</p>
                   <p className="font-mono text-[15px] font-bold text-accent">{activity.pace_formatted}<span className="text-[10px] text-zinc-600">/km</span></p>
                 </div>
                 {activity.elevation_gain > 0 && (
                   <div>
-                    <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Elev</p>
+                    <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Elev</p>
                     <p className="font-mono text-[15px] font-bold text-white">{Math.round(activity.elevation_gain)}<span className="text-[10px] text-zinc-600">m</span></p>
                   </div>
                 )}

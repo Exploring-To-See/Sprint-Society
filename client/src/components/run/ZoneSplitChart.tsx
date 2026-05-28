@@ -1,4 +1,4 @@
-interface ZoneSplitChartProps {
+﻿interface ZoneSplitChartProps {
   splits: Array<{ pace: number; km: number }>;
   targetPaceMin: number;
   targetPaceMax: number;
@@ -43,8 +43,8 @@ export function ZoneSplitChart({ splits, targetPaceMin, targetPaceMax }: ZoneSpl
   return (
     <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Splits</span>
-        <span className="text-[9px] font-bold text-accent-green">{inZoneCount}/{splits.length} in zone</span>
+        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Splits</span>
+        <span className="text-[11px] font-bold text-accent-green">{inZoneCount}/{splits.length} in zone</span>
       </div>
 
       <svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
@@ -76,7 +76,7 @@ export function ZoneSplitChart({ splits, targetPaceMin, targetPaceMax }: ZoneSpl
 
       <div className="flex justify-between mt-1">
         {splits.map((s, i) => (
-          <span key={i} className={`text-[8px] ${
+          <span key={i} className={`text-[11px] ${
             s.pace >= targetPaceMin && s.pace <= targetPaceMax ? 'text-accent-green' :
             s.pace < targetPaceMin ? 'text-red-400' : 'text-zinc-500'
           }`}>

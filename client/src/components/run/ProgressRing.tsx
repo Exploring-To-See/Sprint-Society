@@ -1,4 +1,4 @@
-interface ProgressRingProps {
+﻿interface ProgressRingProps {
   currentDistance: number;
   goalDistance: number;
   currentPace: number;
@@ -47,7 +47,7 @@ export function ProgressRing({ currentDistance, goalDistance, currentPace, targe
         <div className="text-[36px] font-bold font-mono tracking-tight" style={{ color: paceColor }}>
           {formatPace(currentPace)}
         </div>
-        <div className="text-[9px] font-semibold mt-0.5" style={{ color: paceColor }}>
+        <div className="text-[11px] font-semibold mt-0.5" style={{ color: paceColor }}>
           {paceLabel}
         </div>
         <div className="text-[11px] text-zinc-500 mt-1.5">

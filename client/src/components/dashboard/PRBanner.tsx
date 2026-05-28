@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 
 interface PR {
   category: string;
@@ -42,7 +42,7 @@ export function PRBanner({ pr, totalPRs }: PRBannerProps) {
               -{pr.improvement.formatted}
             </p>
           )}
-          <p className="text-[9px] text-zinc-600 mt-0.5">
+          <p className="text-[11px] text-zinc-600 mt-0.5">
             {totalPRs} records total
           </p>
         </div>

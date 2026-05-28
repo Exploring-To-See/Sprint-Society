@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+﻿import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 export function BottomNav() {
@@ -32,7 +32,7 @@ export function BottomNav() {
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
           </div>
-          <span className="text-[9px] font-bold text-accent">Run</span>
+          <span className="text-[11px] font-bold text-accent">Run</span>
         </button>
 
         <NavButton active={isActive('/social')} onClick={() => navigate('/social')} label="Social">
@@ -58,7 +58,7 @@ function NavButton({ active, onClick, label, children }: { active: boolean; onCl
         />
       )}
       {children}
-      <span className={`text-[9px] font-semibold tracking-wide ${active ? 'text-white' : 'text-zinc-600'}`}>
+      <span className={`text-[11px] font-semibold tracking-wide ${active ? 'text-white' : 'text-zinc-600'}`}>
         {label}
       </span>
     </button>

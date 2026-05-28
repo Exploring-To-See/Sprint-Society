@@ -631,9 +631,12 @@ router.post('/upkeep/reactivate', (req: AuthRequest, res: Response) => {
 });
 
 // Resolve expired challenges every 5 minutes (instead of on every GET request)
-setInterval(() => {
+// Delayed start to allow initializeDatabase() to complete first
+setTimeout(() => {
   try { resolveExpiredChallenges(); } catch {}
-}, 5 * 60 * 1000);
-resolveExpiredChallenges();
+  setInterval(() => {
+    try { resolveExpiredChallenges(); } catch {}
+  }, 5 * 60 * 1000);
+}, 5000);
 
 export default router;

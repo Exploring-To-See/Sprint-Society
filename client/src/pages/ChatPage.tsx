@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import api from '../lib/api';
@@ -145,7 +145,7 @@ export function ChatPage() {
                 }`}>
                   {msg.content}
                 </p>
-                <p className="text-[9px] text-zinc-700 mt-1.5">
+                <p className="text-[11px] text-zinc-700 mt-1.5">
                   {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                 </p>
               </div>

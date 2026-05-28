@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -215,12 +215,12 @@ export function EventDetailPage() {
                     {host.profile_image_url ? (
                       <img src={host.profile_image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[8px] font-bold text-zinc-500">{host.name?.[0]}</span>
+                      <span className="text-[11px] font-bold text-zinc-500">{host.name?.[0]}</span>
                     )}
                   </div>
                   <div>
                     <p className="text-[11px] font-medium text-white">{host.name}</p>
-                    <p className="text-[9px] text-zinc-600">{host.role_label}</p>
+                    <p className="text-[11px] text-zinc-600">{host.role_label}</p>
                   </div>
                 </div>
               ))}
@@ -241,7 +241,7 @@ export function EventDetailPage() {
                     {a.profile_image_url ? (
                       <img src={a.profile_image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[8px] font-bold text-zinc-500">{a.name?.[0]}</span>
+                      <span className="text-[11px] font-bold text-zinc-500">{a.name?.[0]}</span>
                     )}
                   </div>
                   <span className="text-[11px] text-zinc-400">{a.name?.split(' ')[0]}</span>
@@ -369,25 +369,25 @@ export function EventDetailPage() {
               <div className="flex justify-center gap-6 py-2">
                 <div className="text-center">
                   <p className="font-mono font-bold text-[20px] text-white">{(myAwards.activity.distance_meters / 1000).toFixed(1)}</p>
-                  <p className="text-[9px] text-zinc-600 uppercase">km</p>
+                  <p className="text-[11px] text-zinc-600 uppercase">km</p>
                 </div>
                 <div className="text-center">
                   <p className="font-mono font-bold text-[20px] text-accent">
                     {Math.floor(myAwards.activity.average_pace_per_km / 60)}:{String(Math.round(myAwards.activity.average_pace_per_km % 60)).padStart(2, '0')}
                   </p>
-                  <p className="text-[9px] text-zinc-600 uppercase">pace/km</p>
+                  <p className="text-[11px] text-zinc-600 uppercase">pace/km</p>
                 </div>
                 <div className="text-center">
                   <p className="font-mono font-bold text-[20px] text-white">
                     {Math.floor(myAwards.activity.moving_time_seconds / 60)}:{String(myAwards.activity.moving_time_seconds % 60).padStart(2, '0')}
                   </p>
-                  <p className="text-[9px] text-zinc-600 uppercase">time</p>
+                  <p className="text-[11px] text-zinc-600 uppercase">time</p>
                 </div>
               </div>
             )}
 
             <div className="text-center">
-              <p className="text-[9px] text-zinc-700 uppercase tracking-wider">Sprint Society · {event.date}</p>
+              <p className="text-[11px] text-zinc-700 uppercase tracking-wider">Sprint Society · {event.date}</p>
             </div>
 
             <button
@@ -427,13 +427,13 @@ export function EventDetailPage() {
                     {c.profile_image_url ? (
                       <img src={c.profile_image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[8px] font-bold text-zinc-500">{c.user_name?.[0]}</span>
+                      <span className="text-[11px] font-bold text-zinc-500">{c.user_name?.[0]}</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="text-[11px] font-semibold text-white">{c.user_name}</span>
-                      <span className="text-[9px] text-zinc-700">
+                      <span className="text-[11px] text-zinc-700">
                         {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
@@ -488,17 +488,17 @@ function EventRecap({ eventId }: { eventId: string }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <p className="font-mono text-lg font-bold text-white">{recap.stats.total_distance_km}</p>
-          <p className="text-[8px] text-zinc-600 uppercase">km total</p>
+          <p className="text-[11px] text-zinc-600 uppercase">km total</p>
         </div>
         <div>
           <p className="font-mono text-lg font-bold text-white">{recap.stats.total_runs}</p>
-          <p className="text-[8px] text-zinc-600 uppercase">runs</p>
+          <p className="text-[11px] text-zinc-600 uppercase">runs</p>
         </div>
         <div>
           <p className="font-mono text-lg font-bold text-accent">
             {recap.stats.avg_pace ? `${Math.floor(recap.stats.avg_pace / 60)}:${String(Math.round(recap.stats.avg_pace % 60)).padStart(2, '0')}` : '--'}
           </p>
-          <p className="text-[8px] text-zinc-600 uppercase">avg pace</p>
+          <p className="text-[11px] text-zinc-600 uppercase">avg pace</p>
         </div>
       </div>
 

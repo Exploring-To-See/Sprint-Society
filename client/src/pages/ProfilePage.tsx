@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -97,9 +97,9 @@ function CountUpStat({ label, value, unit, accent }: { label: string; value: num
         <span className={`font-mono font-bold text-[20px] tabular-nums tracking-tight ${accent ? 'text-accent' : 'text-white'}`}>
           {animated}
         </span>
-        {unit && <span className="text-[9px] text-zinc-600 font-medium">{unit}</span>}
+        {unit && <span className="text-[11px] text-zinc-600 font-medium">{unit}</span>}
       </div>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mt-1">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mt-1">{label}</p>
     </div>
   );
 }
@@ -117,14 +117,14 @@ function KenduBalanceCard() {
     <motion.div variants={fadeUp}>
       <div className="rounded-xl bg-gradient-to-r from-accent/[0.06] to-amber-500/[0.03] border border-accent/20 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[9px] font-bold text-accent uppercase tracking-[0.15em]">Kendu</span>
-          <button onClick={() => navigate('/rewards')} className="text-[9px] text-zinc-500">History →</button>
+          <span className="text-[11px] font-bold text-accent uppercase tracking-[0.15em]">Kendu</span>
+          <button onClick={() => navigate('/rewards')} className="text-[11px] text-zinc-500">History →</button>
         </div>
         <div className="flex items-baseline gap-1.5">
           <span className="text-[24px] font-bold text-white">{kendu.spendable_balance || 0}</span>
           <span className="text-[11px] text-accent font-semibold">Kendu</span>
         </div>
-        <p className="text-[9px] text-zinc-600 mt-1">
+        <p className="text-[11px] text-zinc-600 mt-1">
           Earned: {kendu.lifetime_earned || 0} · Spent: {(kendu.lifetime_earned || 0) - (kendu.spendable_balance || 0)}
         </p>
       </div>
@@ -152,7 +152,7 @@ function RunningDNACard({ dna, tier }: { dna: any; tier: string }) {
         {/* Card Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500">Running DNA</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Running DNA</p>
             <h3 className="font-heading text-[16px] font-bold text-white mt-0.5">Athlete Card</h3>
           </div>
           <div className={`px-2.5 py-1 rounded-lg ${config.bg} border ${config.border}`}>
@@ -166,7 +166,7 @@ function RunningDNACard({ dna, tier }: { dna: any; tier: string }) {
         {dna?.estimated_vo2max && (
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-[9px] uppercase tracking-wider text-zinc-500">VO2max</p>
+              <p className="text-[11px] uppercase tracking-wider text-zinc-500">VO2max</p>
               <p className="font-mono text-[28px] font-bold text-white leading-none mt-0.5">
                 {dna.estimated_vo2max}
               </p>
@@ -181,7 +181,7 @@ function RunningDNACard({ dna, tier }: { dna: any; tier: string }) {
                   { label: 'Race', value: dna.pace_zones.race, color: 'text-accent' },
                 ].map(z => (
                   <div key={z.label} className="flex items-baseline justify-between px-2 py-1.5 rounded-md bg-black/20">
-                    <span className="text-[8px] text-zinc-500">{z.label}</span>
+                    <span className="text-[11px] text-zinc-500">{z.label}</span>
                     <span className={`font-mono text-[11px] font-bold ${z.color}`}>{z.value}</span>
                   </div>
                 ))}
@@ -196,7 +196,7 @@ function RunningDNACard({ dna, tier }: { dna: any; tier: string }) {
             {dna.personality_tags.slice(0, 5).map((tag: string) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-semibold text-zinc-300"
+                className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-semibold text-zinc-300"
               >
                 {tag}
               </span>
@@ -246,13 +246,13 @@ function PRBoard({ records }: { records: any }) {
                 <svg width="10" height="10" viewBox="0 0 10 10" className="text-accent-green">
                   <path d="M5 2L8 6H2L5 2Z" fill="currentColor" />
                 </svg>
-                <span className="text-[9px] font-mono text-accent-green">
+                <span className="text-[11px] font-mono text-accent-green">
                   {pr.improvement.percent > 0 ? `${pr.improvement.percent.toFixed(1)}%` : ''}
                 </span>
               </div>
             )}
             {!pr && (
-              <span className="text-[9px] text-zinc-700">No data</span>
+              <span className="text-[11px] text-zinc-700">No data</span>
             )}
           </div>
         ))}
@@ -292,7 +292,7 @@ function AchievementShowcase({ achievements }: { achievements: Achievement[] }) 
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-2.5 py-1 rounded-md text-[9px] font-semibold capitalize whitespace-nowrap transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold capitalize whitespace-nowrap transition-colors ${
                 displayCategory === cat ? 'bg-accent/10 text-accent' : 'text-zinc-600 hover:text-zinc-400'
               }`}
             >
@@ -343,7 +343,7 @@ function CommunitiesList({ communities }: { communities: { id: number; name: str
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.97] transition-all hover:border-zinc-600"
           >
             <span className="text-[11px] text-zinc-300 font-medium">{c.name}</span>
-            <span className="text-[9px] text-zinc-600 capitalize">{c.category.replace('_', ' ')}</span>
+            <span className="text-[11px] text-zinc-600 capitalize">{c.category.replace('_', ' ')}</span>
           </button>
         ))}
       </div>
@@ -409,7 +409,7 @@ function SettingsSection() {
             </div>
             <div>
               <p className="text-[12px] font-medium text-white">AI Coach</p>
-              <p className="text-[9px] text-zinc-600">{dnaProfile?.ai_coach_name || 'Not assigned'}</p>
+              <p className="text-[11px] text-zinc-600">{dnaProfile?.ai_coach_name || 'Not assigned'}</p>
             </div>
           </div>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
@@ -438,7 +438,7 @@ function SettingsSection() {
               <span className="text-[14px]">🧠</span>
               <div className="flex-1 text-left">
                 <p className={`text-[12px] font-semibold ${c.color}`}>{c.name}</p>
-                <p className="text-[9px] text-zinc-600">{c.title} — {c.vibe}</p>
+                <p className="text-[11px] text-zinc-600">{c.title} — {c.vibe}</p>
               </div>
               {dnaProfile?.ai_coach_name === c.name && <span className="text-accent text-[11px]">✓</span>}
             </button>
@@ -645,7 +645,7 @@ export function ProfilePage() {
               {profile?.name || user?.name}
             </h1>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className={`text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-md border ${tierConfig.bg} ${tierConfig.border} ${tierConfig.text}`}>
+              <span className={`text-[11px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-md border ${tierConfig.bg} ${tierConfig.border} ${tierConfig.text}`}>
                 {tierConfig.label}
               </span>
               <span className="text-[10px] font-mono text-zinc-500">L{currentLevel}</span>
@@ -690,7 +690,7 @@ export function ProfilePage() {
                 <span className="font-mono font-bold text-[20px] tabular-nums tracking-tight text-white">
                   {avgPace ? formatPace(avgPace) : '--:--'}
                 </span>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mt-1">Avg Pace</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mt-1">Avg Pace</p>
               </div>
               <CountUpStat label="Consistency" value={consistencyPercent} unit="%" />
               <CountUpStat label="Best Streak" value={longestStreak} unit="days" />

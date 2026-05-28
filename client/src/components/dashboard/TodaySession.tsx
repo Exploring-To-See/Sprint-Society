@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
@@ -56,12 +56,12 @@ export function TodaySession({ streak = 0 }: { streak?: number }) {
         <div className="flex items-center gap-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Today</p>
           {urgencyText && (
-            <span className="text-[9px] text-accent font-medium">{urgencyText}</span>
+            <span className="text-[11px] text-accent font-medium">{urgencyText}</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-mono text-zinc-700">W{data.current_week}/{data.total_weeks}</span>
-          <span className={`text-[9px] px-1.5 py-[1px] rounded font-medium capitalize ${config.bg} ${config.color}`}>
+          <span className="text-[11px] font-mono text-zinc-700">W{data.current_week}/{data.total_weeks}</span>
+          <span className={`text-[11px] px-1.5 py-[1px] rounded font-medium capitalize ${config.bg} ${config.color}`}>
             {data.week.phase}
           </span>
         </div>
@@ -81,14 +81,14 @@ export function TodaySession({ streak = 0 }: { streak?: number }) {
       {!isRest && todaySession.target_pace_per_km && (
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-bg-tertiary/70">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-zinc-600 uppercase tracking-wider">Pace</span>
+            <span className="text-[11px] text-zinc-600 uppercase tracking-wider">Pace</span>
             <span className={`font-mono text-[12px] font-semibold ${config.color}`}>
               {formatPace(todaySession.target_pace_per_km)}/km
             </span>
           </div>
           {todaySession.rpe > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-zinc-600 uppercase tracking-wider">RPE</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-wider">RPE</span>
               <div className="flex gap-[2px]">
                 {Array.from({ length: 10 }).map((_, i) => (
                   <div
@@ -103,7 +103,7 @@ export function TodaySession({ streak = 0 }: { streak?: number }) {
               </div>
             </div>
           )}
-          <span className="ml-auto text-[9px] text-zinc-700 font-medium">Auto-tracked</span>
+          <span className="ml-auto text-[11px] text-zinc-700 font-medium">Auto-tracked</span>
         </div>
       )}
     </motion.div>

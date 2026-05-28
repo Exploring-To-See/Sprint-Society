@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -47,8 +47,8 @@ export function AthleteCard() {
 
       {/* Header: SS branding + Tier */}
       <div className="flex items-center justify-between mb-4 relative">
-        <span className="text-[8px] font-bold text-accent uppercase tracking-[0.2em]">Sprint Society</span>
-        <span className="text-[9px] font-bold px-2.5 py-1 rounded-md bg-accent/10 border border-accent/20 text-accent uppercase tracking-wider">
+        <span className="text-[11px] font-bold text-accent uppercase tracking-[0.2em]">Sprint Society</span>
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-accent/10 border border-accent/20 text-accent uppercase tracking-wider">
           {tierName}
         </span>
       </div>
@@ -64,7 +64,7 @@ export function AthleteCard() {
         )}
         <div>
           <p className="text-[14px] font-bold text-white">{name}</p>
-          <p className="text-[9px] text-zinc-500">{totalKm}km lifetime</p>
+          <p className="text-[11px] text-zinc-500">{totalKm}km lifetime</p>
         </div>
       </div>
 

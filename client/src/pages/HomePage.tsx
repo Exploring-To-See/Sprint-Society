@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -47,8 +47,8 @@ function CardInfographic({ index }: { index: number }) {
           ))}
         </div>
         <div className="flex justify-between mt-2">
-          <span className="text-[9px] text-zinc-600">5'50"/km</span>
-          <span className="text-[9px] text-zinc-600">Last Month</span>
+          <span className="text-[11px] text-zinc-600">5'50"/km</span>
+          <span className="text-[11px] text-zinc-600">Last Month</span>
         </div>
       </div>
     );
@@ -165,12 +165,12 @@ function CardInfographic({ index }: { index: number }) {
       >
         <div className="text-center">
           <p className="text-lg font-heading font-bold text-white">12</p>
-          <p className="text-[9px] text-zinc-500">Events/month</p>
+          <p className="text-[11px] text-zinc-500">Events/month</p>
         </div>
         <div className="w-px h-8 bg-bg-tertiary" />
         <div className="text-center">
           <p className="text-lg font-heading font-bold text-accent">89%</p>
-          <p className="text-[9px] text-zinc-500">Show-up rate</p>
+          <p className="text-[11px] text-zinc-500">Show-up rate</p>
         </div>
       </motion.div>
     </div>

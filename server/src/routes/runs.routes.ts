@@ -118,6 +118,30 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
 
   const pacePerKm = distance_meters > 0 ? (moving_time_seconds / (distance_meters / 1000)) : 0;
 
+  const anomalies: string[] = [];
+  if (pacePerKm > 0 && pacePerKm < 150) anomalies.push('pace_faster_than_world_record');
+  if (pacePerKm > 1200) anomalies.push('pace_unrealistically_slow');
+  if (distance_meters > 100000) anomalies.push('distance_over_100km');
+  if (distance_meters < 50) anomalies.push('distance_too_short');
+  const avgSpeedKmh = distance_meters > 0 ? (distance_meters / 1000) / (moving_time_seconds / 3600) : 0;
+  if (avgSpeedKmh > 45) anomalies.push('speed_exceeds_human_limit');
+
+  if (splits) {
+    try {
+      const parsed = typeof splits === 'string' ? JSON.parse(splits) : splits;
+      if (Array.isArray(parsed)) {
+        for (const split of parsed) {
+          if (split.time_seconds && split.time_seconds < 90) anomalies.push('split_faster_than_world_record');
+          if (split.time_seconds && split.time_seconds > 1200) anomalies.push('split_unrealistically_slow');
+        }
+      }
+    } catch {}
+  }
+
+  if (anomalies.length > 0 && anomalies.includes('speed_exceeds_human_limit')) {
+    return res.status(400).json({ error: 'Run data appears invalid — speed exceeds human limits. GPS may have glitched.', anomalies });
+  }
+
   const result = db.prepare(`
     INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type, elevation_gain, splits, rpe)
     VALUES (?, ?, ?, ?, ?, ?, 'Run', ?, ?, ?)
@@ -147,6 +171,7 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
     id: result.lastInsertRowid,
     message: 'Run saved!',
     cascade,
+    ...(anomalies.length > 0 ? { warnings: anomalies } : {}),
   });
 });
 

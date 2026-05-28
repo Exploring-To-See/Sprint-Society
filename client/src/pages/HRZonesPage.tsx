@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
@@ -63,19 +63,19 @@ export function HRZonesPage() {
         {profile && (
           <motion.div variants={fadeUp} className="flex gap-2">
             <div className="flex-1 card p-3.5 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-600 mb-1">Max HR</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600 mb-1">Max HR</p>
               <p className="font-mono text-lg font-bold text-white">{profile.max_hr}</p>
-              <p className="text-[9px] text-zinc-700">bpm</p>
+              <p className="text-[11px] text-zinc-700">bpm</p>
             </div>
             <div className="flex-1 card p-3.5 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-600 mb-1">HR Reserve</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600 mb-1">HR Reserve</p>
               <p className="font-mono text-lg font-bold text-white">{profile.hr_reserve}</p>
-              <p className="text-[9px] text-zinc-700">bpm</p>
+              <p className="text-[11px] text-zinc-700">bpm</p>
             </div>
             <div className="flex-1 card p-3.5 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-600 mb-1">LT HR</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600 mb-1">LT HR</p>
               <p className="font-mono text-lg font-bold text-accent">{profile.lactate_threshold_hr}</p>
-              <p className="text-[9px] text-zinc-700">bpm</p>
+              <p className="text-[11px] text-zinc-700">bpm</p>
             </div>
           </motion.div>
         )}

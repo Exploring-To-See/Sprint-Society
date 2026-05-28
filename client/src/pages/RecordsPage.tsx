@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
@@ -87,7 +87,7 @@ export function RecordsPage() {
                       <div className="flex items-center gap-2">
                         <p className="text-[13px] font-semibold text-white">{distName}</p>
                         {isRecent && (
-                          <span className="text-[8px] px-1.5 py-[1px] rounded bg-accent-gold/10 text-accent-gold font-bold uppercase tracking-wider">
+                          <span className="text-[11px] px-1.5 py-[1px] rounded bg-accent-gold/10 text-accent-gold font-bold uppercase tracking-wider">
                             New
                           </span>
                         )}
@@ -120,7 +120,7 @@ export function RecordsPage() {
                 <div key={pr.id} className="card p-3.5">
                   <p className="text-[10px] text-zinc-600 capitalize mb-1">{pr.category}</p>
                   <p className="font-mono text-[14px] font-bold text-white">{pr.formatted}</p>
-                  <p className="text-[9px] text-zinc-700 mt-1">
+                  <p className="text-[11px] text-zinc-700 mt-1">
                     {new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </p>
                 </div>

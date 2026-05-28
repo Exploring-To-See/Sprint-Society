@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 
 interface TrainingLoadRingProps {
   acuteLoad: number;
@@ -58,19 +58,19 @@ export function TrainingLoadRing({ acuteLoad, chronicLoad, balance, injuryRisk, 
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${config.color}`}>
               {config.label}
             </span>
-            <span className="text-[9px] text-zinc-600">A:C ratio</span>
+            <span className="text-[11px] text-zinc-600">A:C ratio</span>
           </div>
           <div className="flex gap-4">
             <div>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Acute</p>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Acute</p>
               <p className="font-mono text-[13px] font-semibold text-white tabular-nums">{acuteLoad}</p>
             </div>
             <div>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Chronic</p>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Chronic</p>
               <p className="font-mono text-[13px] font-semibold text-white tabular-nums">{chronicLoad}</p>
             </div>
             <div>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-wider">Freshness</p>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Freshness</p>
               <p className={`font-mono text-[13px] font-semibold tabular-nums ${balance > 0 ? 'text-accent-green' : balance < -10 ? 'text-red-400' : 'text-zinc-400'}`}>
                 {balance > 0 ? '+' : ''}{balance}
               </p>
@@ -81,10 +81,10 @@ export function TrainingLoadRing({ acuteLoad, chronicLoad, balance, injuryRisk, 
         {/* VDOT badge */}
         {vdot && (
           <div className="shrink-0 text-right">
-            <p className="text-[9px] text-zinc-600 uppercase tracking-wider mb-0.5">VDOT</p>
+            <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-0.5">VDOT</p>
             <p className="font-mono text-lg font-bold text-white">{vdot}</p>
             {vdotTrend && (
-              <span className={`text-[9px] font-medium ${
+              <span className={`text-[11px] font-medium ${
                 vdotTrend === 'improving' ? 'text-accent-green' :
                 vdotTrend === 'declining' ? 'text-red-400' : 'text-zinc-500'
               }`}>

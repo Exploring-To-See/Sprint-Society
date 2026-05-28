@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -308,7 +308,7 @@ export function AIProfilingPage() {
                         }`}
                       >
                         <span className="text-base">{o.icon}</span>
-                        <span className="text-[9px] font-medium">{o.label}</span>
+                        <span className="text-[11px] font-medium">{o.label}</span>
                       </button>
                     ))}
                   </div>
@@ -327,7 +327,7 @@ export function AIProfilingPage() {
                         }`}
                       >
                         <span className="text-base">{o.icon}</span>
-                        <span className="text-[9px] font-medium">{o.label}</span>
+                        <span className="text-[11px] font-medium">{o.label}</span>
                       </button>
                     ))}
                   </div>
@@ -602,7 +602,7 @@ function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
               ].map(z => (
                 <div key={z.label} className="flex items-baseline justify-between px-3 py-2.5 rounded-lg bg-bg-primary border border-bg-tertiary">
                   <span className="text-[11px] text-zinc-500">{z.label}</span>
-                  <span className={`font-mono font-bold text-[15px] ${z.color}`}>{z.pace}<span className="text-[9px] text-zinc-600">/km</span></span>
+                  <span className={`font-mono font-bold text-[15px] ${z.color}`}>{z.pace}<span className="text-[11px] text-zinc-600">/km</span></span>
                 </div>
               ))}
             </div>

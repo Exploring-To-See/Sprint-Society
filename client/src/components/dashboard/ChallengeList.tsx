@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/api';
@@ -101,7 +101,7 @@ export function ChallengeList() {
                   <span className="text-[10px] text-zinc-700">·</span>
                   <span className="text-[10px] font-mono text-zinc-600">+{challenge.xp_reward}</span>
                   {isAutoDetect && !challenge.completed && (
-                    <span className="text-[8px] px-1.5 py-[1px] rounded bg-accent/8 text-accent/70 font-semibold uppercase tracking-wider">
+                    <span className="text-[11px] px-1.5 py-[1px] rounded bg-accent/8 text-accent/70 font-semibold uppercase tracking-wider">
                       Auto
                     </span>
                   )}
@@ -155,7 +155,7 @@ export function ChallengeList() {
                       <p className="text-[12px] text-zinc-400 leading-relaxed">{challenge.description}</p>
                       {challenge.target_value && (
                         <div className="mt-2.5 flex items-center gap-2">
-                          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-600">Target</span>
+                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600">Target</span>
                           <span className="font-mono text-[12px] font-semibold text-accent">
                             {challenge.target_value} {challenge.target_unit || ''}
                           </span>

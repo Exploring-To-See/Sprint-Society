@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 
@@ -27,7 +27,7 @@ export function CommunitiesTab() {
       {/* My Communities */}
       {joined.length > 0 && (
         <div>
-          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">My Communities</p>
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2">My Communities</p>
           <div className="space-y-2">
             {joined.map((c: any) => (
               <button
@@ -40,7 +40,7 @@ export function CommunitiesTab() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-bold text-white truncate">{c.name}</p>
-                  <p className="text-[9px] text-zinc-600">{c.member_count} members</p>
+                  <p className="text-[11px] text-zinc-600">{c.member_count} members</p>
                 </div>
                 {c.unread_posts > 0 && (
                   <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />
@@ -54,7 +54,7 @@ export function CommunitiesTab() {
       {/* Discover */}
       {discover.length > 0 && (
         <div>
-          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Discover</p>
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Discover</p>
           <div className="space-y-2">
             {discover.slice(0, 5).map((c: any) => (
               <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl bg-bg-secondary border border-bg-tertiary">
@@ -63,11 +63,11 @@ export function CommunitiesTab() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-bold text-white truncate">{c.name}</p>
-                  <p className="text-[9px] text-zinc-600">{c.member_count} members</p>
+                  <p className="text-[11px] text-zinc-600">{c.member_count} members</p>
                 </div>
                 <button
                   onClick={() => navigate(`/communities/${c.id}`)}
-                  className="px-3 py-1.5 rounded-md bg-accent/10 border border-accent/20 text-[9px] font-bold text-accent"
+                  className="px-3 py-1.5 rounded-md bg-accent/10 border border-accent/20 text-[11px] font-bold text-accent"
                 >
                   Join
                 </button>
