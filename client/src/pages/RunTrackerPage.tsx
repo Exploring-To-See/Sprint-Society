@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
+import { SplitChart } from '../components/run/SplitChart';
 import { useAuth } from '../context/AuthContext';
 
 type TrackingState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FINISHED' | 'ANALYSIS';
@@ -385,6 +386,13 @@ export function RunTrackerPage() {
               <p className="text-[9px] text-zinc-500 uppercase">time</p>
             </div>
           </div>
+
+          {/* Split Chart */}
+          {splits.length > 1 && (
+            <div className="w-full max-w-[320px] rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
+              <SplitChart splits={splits} averagePace={averagePace} />
+            </div>
+          )}
 
           {/* Fastest/Slowest */}
           {analysis.fastest_km && analysis.slowest_km && splits.length > 1 && (

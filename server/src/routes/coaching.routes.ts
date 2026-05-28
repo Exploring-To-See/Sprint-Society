@@ -5,6 +5,8 @@ import { classifyTier } from '../engine/tierClassifier';
 import { calculateIdealPace, analyzeCurrentPace } from '../engine/paceCalculator';
 import { generateWeeklyChallenges } from '../engine/challengeGenerator';
 import { generateTransformationPlan } from '../engine/transformationPlan';
+import { awardKenduForChallenge } from '../engine/kenduEngine';
+import { createNotification } from './notifications.routes';
 
 const router = Router();
 
@@ -123,8 +125,16 @@ router.post('/challenges/:id/complete', authenticate, (req: AuthRequest, res: Re
 
   db.prepare('UPDATE challenges SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?').run(challenge.id);
 
-  db.prepare('UPDATE user_xp SET total_xp = total_xp + ? WHERE user_id = ?').run(challenge.xp_reward, req.userId);
-  db.prepare(`INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, 'challenge', ?)`).run(req.userId, challenge.xp_reward, `Completed: ${challenge.title}`);
+  // Award XP (original challenge XP + 15 bonus XP)
+  const totalXpReward = challenge.xp_reward + 15;
+  db.prepare('UPDATE user_xp SET total_xp = total_xp + ? WHERE user_id = ?').run(totalXpReward, req.userId);
+  db.prepare(`INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, 'challenge', ?)`).run(req.userId, totalXpReward, `Completed: ${challenge.title}`);
+
+  // Award Kendu for challenge completion
+  const kenduEarned = awardKenduForChallenge(req.userId!, challenge.id);
+  if (kenduEarned > 0) {
+    createNotification(req.userId!, 'kendu_earned', `Challenge complete! +${kenduEarned} Kendu`, `Completed: ${challenge.title}`);
+  }
 
   const xp = db.prepare('SELECT total_xp, current_level FROM user_xp WHERE user_id = ?').get(req.userId) as any;
   const newLevel = calculateLevel(xp.total_xp);
@@ -132,7 +142,7 @@ router.post('/challenges/:id/complete', authenticate, (req: AuthRequest, res: Re
     db.prepare('UPDATE user_xp SET current_level = ? WHERE user_id = ?').run(newLevel, req.userId);
   }
 
-  res.json({ success: true, xp_earned: challenge.xp_reward, new_total_xp: xp.total_xp });
+  res.json({ success: true, xp_earned: totalXpReward, kendu_earned: kenduEarned, new_total_xp: xp.total_xp });
 });
 
 function calculateLevel(totalXp: number): number {

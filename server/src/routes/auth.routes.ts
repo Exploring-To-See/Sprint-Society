@@ -4,6 +4,8 @@ import { z } from 'zod';
 import db from '../database/db';
 import { signToken } from '../utils/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { awardWelcomeBonus } from '../engine/kenduEngine';
+import { createNotification } from './notifications.routes';
 
 const router = Router();
 
@@ -77,6 +79,10 @@ router.post('/register', async (req, res: Response) => {
       db.prepare('INSERT OR IGNORE INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(socialClub.id, userId, 'member');
       db.prepare('UPDATE communities SET member_count = member_count + 1 WHERE id = ?').run(socialClub.id);
     }
+
+    // Award 25 starter Kendu + welcome notification
+    awardWelcomeBonus(userId);
+    createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
 
     const token = signToken(userId);
     res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email } });

@@ -11,10 +11,10 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   const offset = (page - 1) * limit;
 
   const runs = db.prepare(`
-    SELECT * FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT ? OFFSET ?
+    SELECT * FROM activities WHERE user_id = ? AND deleted_at IS NULL ORDER BY start_date DESC LIMIT ? OFFSET ?
   `).all(req.userId, limit, offset);
 
-  const total = db.prepare('SELECT COUNT(*) as count FROM activities WHERE user_id = ?').get(req.userId) as any;
+  const total = db.prepare('SELECT COUNT(*) as count FROM activities WHERE user_id = ? AND deleted_at IS NULL').get(req.userId) as any;
 
   res.json({ runs: runs.map(parseRun), total: total.count, page, limit });
 });

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { generateInsights } from '../engine/proactiveCoach';
 
 const router = Router();
 router.use(authenticate);
@@ -57,11 +58,28 @@ router.post('/:id/read', (req: AuthRequest, res: Response) => {
 
 export default router;
 
-// Proactive notifications: streak warning + event reminders
+// Proactive notifications: AI coaching insights + streak warning + event reminders
 function generateProactiveNotifications(userId: number) {
   const today = new Date().toISOString().split('T')[0];
 
-  // Streak warning: if streak > 2 and last activity was yesterday (at risk today)
+  // --- AI Coaching Insights (from proactive coach engine) ---
+  const insights = generateInsights(userId);
+  for (const insight of insights) {
+    // Only create notifications for high-priority insights (3+)
+    if (insight.priority < 3) continue;
+
+    // Deduplicate: don't send same insight title today
+    const existing = db.prepare(
+      "SELECT id FROM user_notifications WHERE user_id = ? AND type = 'ai_insight' AND title = ? AND date(created_at) = ?"
+    ).get(userId, insight.title, today) as any;
+
+    if (!existing) {
+      db.prepare("INSERT INTO user_notifications (user_id, type, title, body) VALUES (?, 'ai_insight', ?, ?)")
+        .run(userId, insight.title, insight.body);
+    }
+  }
+
+  // --- Streak warning (legacy — kept for backward compat, now also handled by proactive coach) ---
   const xp = db.prepare('SELECT current_streak_days, last_activity_date FROM user_xp WHERE user_id = ?').get(userId) as any;
   if (xp && xp.current_streak_days >= 3 && xp.last_activity_date) {
     const lastDate = new Date(xp.last_activity_date);
@@ -77,7 +95,7 @@ function generateProactiveNotifications(userId: number) {
     }
   }
 
-  // Event reminder: event tomorrow that user RSVP'd to
+  // --- Event reminder: event tomorrow that user RSVP'd to ---
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
   const upcomingEvents = db.prepare(`
     SELECT e.title, e.time FROM event_rsvps er

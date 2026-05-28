@@ -2,6 +2,7 @@ import db from '../database/db';
 import { RunCompletedPayload, CascadeResult } from './eventBus';
 import { checkAndUnlockAchievements } from './achievementEngine';
 import { calculateKenduForRun } from './kenduEngine';
+import { validateRunData } from './gpsValidation';
 
 function xpNeededForLevel(level: number): number {
   return Math.floor(100 * Math.pow(1.5, level - 1));
@@ -35,6 +36,20 @@ function createNotification(userId: number, type: string, title: string, body: s
 export function executeRunCascade(payload: RunCompletedPayload): CascadeResult {
   const { userId, activityId, distanceMeters, movingTimeSeconds, pacePerKm } = payload;
   const distanceKm = distanceMeters / 1000;
+
+  // --- 0. GPS FRAUD DETECTION ---
+  const activity = db.prepare('SELECT splits, elevation_gain FROM activities WHERE id = ?').get(activityId) as any;
+  const validation = validateRunData({
+    distanceMeters,
+    movingTimeSeconds,
+    pacePerKm,
+    splits: activity?.splits || null,
+    elevationGain: payload.elevationGain,
+  });
+
+  if (validation.suspicious) {
+    db.prepare('UPDATE activities SET suspicious = 1 WHERE id = ?').run(activityId);
+  }
 
   // --- 1. STREAK (unified — using user_xp as source of truth) ---
   const today = new Date().toISOString().split('T')[0];
@@ -169,6 +184,11 @@ export function executeRunCascade(payload: RunCompletedPayload): CascadeResult {
     notifications: { created: notificationsCreated },
     streak: { current: currentStreak, longest: longestStreak, extended: streakExtended },
     personalBest: { isPB, type: pbType, previousBest },
+    validation: {
+      suspicious: validation.suspicious,
+      flags: validation.flags,
+      confidence: validation.confidence,
+    },
   };
 }
 

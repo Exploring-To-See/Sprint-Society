@@ -17,6 +17,7 @@ export interface CascadeResult {
   notifications: { created: number };
   streak: { current: number; longest: number; extended: boolean };
   personalBest: { isPB: boolean; type: string | null; previousBest: number | null };
+  validation: { suspicious: boolean; flags: string[]; confidence: number };
 }
 
 type EventMap = {

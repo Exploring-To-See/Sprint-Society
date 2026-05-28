@@ -29,7 +29,7 @@ router.get('/', (req: AuthRequest, res: Response) => {
   const limitNum = parseInt(limit as string) || 20;
   const offset = (pageNum - 1) * limitNum;
 
-  let where = 'WHERE 1=1';
+  let where = 'WHERE c.deleted_at IS NULL';
   const params: any[] = [];
 
   if (category && category !== 'all') {

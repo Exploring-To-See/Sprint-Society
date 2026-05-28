@@ -61,6 +61,12 @@ function runMigrations() {
     db.exec("ALTER TABLE kudos ADD COLUMN reaction_type TEXT DEFAULT 'high_five'");
   }
 
+  // Add suspicious column for GPS fraud detection
+  const activityCols3 = db.prepare("PRAGMA table_info(activities)").all() as any[];
+  if (!activityCols3.find((c: any) => c.name === 'suspicious')) {
+    db.exec("ALTER TABLE activities ADD COLUMN suspicious INTEGER DEFAULT 0");
+  }
+
   // Ensure user_notifications table exists (cascade system)
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_notifications (
@@ -78,6 +84,57 @@ function runMigrations() {
     )
   `);
   db.exec('CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, read, created_at DESC)');
+
+  // Immutable economy ledger — append-only audit trail for all Kendu flow
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kendu_ledger (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('credit', 'debit')),
+      source TEXT NOT NULL,
+      balance_after INTEGER NOT NULL,
+      metadata TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_kendu_ledger_user ON kendu_ledger(user_id, created_at DESC)');
+
+  // Performance indexes
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, start_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_activities_user_type ON activities(user_id, activity_type);
+    CREATE INDEX IF NOT EXISTS idx_xp_transactions_user ON xp_transactions(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_user_xp_level ON user_xp(current_level DESC, total_xp DESC);
+    CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+    CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+    CREATE INDEX IF NOT EXISTS idx_kudos_activity ON kudos(activity_id);
+    CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(community_id);
+    CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id);
+    CREATE INDEX IF NOT EXISTS idx_community_posts_community ON community_posts(community_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, start_time);
+    CREATE INDEX IF NOT EXISTS idx_event_attendees_event ON event_attendees(event_id);
+    CREATE INDEX IF NOT EXISTS idx_event_attendees_user ON event_attendees(user_id);
+    CREATE INDEX IF NOT EXISTS idx_kendu_balances_user ON kendu_balances(user_id);
+    CREATE INDEX IF NOT EXISTS idx_kendu_transactions_user ON kendu_transactions(user_id, created_at DESC);
+  `);
+
+  // Soft delete columns
+  const activityColsSoft = db.prepare("PRAGMA table_info(activities)").all() as any[];
+  if (!activityColsSoft.find((c: any) => c.name === 'deleted_at')) {
+    db.exec("ALTER TABLE activities ADD COLUMN deleted_at DATETIME");
+  }
+
+  const postCols = db.prepare("PRAGMA table_info(community_posts)").all() as any[];
+  if (!postCols.find((c: any) => c.name === 'deleted_at')) {
+    db.exec("ALTER TABLE community_posts ADD COLUMN deleted_at DATETIME");
+  }
+
+  const communityCols = db.prepare("PRAGMA table_info(communities)").all() as any[];
+  if (!communityCols.find((c: any) => c.name === 'deleted_at')) {
+    db.exec("ALTER TABLE communities ADD COLUMN deleted_at DATETIME");
+  }
 }
 
 function seedAdmin() {

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications.routes';
+import { awardKenduForEvent } from '../engine/kenduEngine';
 
 const router = Router();
 router.use(authenticate);
@@ -273,7 +274,16 @@ router.post('/:id/checkin', (req: AuthRequest, res: Response) => {
   db.prepare('INSERT INTO event_checkins (event_id, user_id) VALUES (?, ?)').run(eventId, req.userId);
   awardXP(req.userId!, 50, 'event_checkin', `Checked in at: ${event.title}`);
 
-  res.json({ success: true, already_checked_in: false, message: 'Checked in! +50 XP' });
+  // Award Kendu for event attendance
+  const kenduEarned = awardKenduForEvent(req.userId!, eventId);
+  if (kenduEarned > 0) {
+    createNotification(req.userId!, 'kendu_earned', `You earned ${kenduEarned} Kendu for attending ${event.title}!`, `+${kenduEarned} Kendu`);
+  }
+
+  // Award 10 XP for attendance (on top of check-in XP)
+  awardXP(req.userId!, 10, 'event_attendance', `Attended: ${event.title}`);
+
+  res.json({ success: true, already_checked_in: false, message: `Checked in! +50 XP +${kenduEarned} Kendu` });
 });
 
 // GET /events/:id/checkins — list checked-in users

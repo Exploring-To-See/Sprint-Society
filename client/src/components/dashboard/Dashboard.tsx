@@ -13,6 +13,7 @@ import { TodaySession } from './TodaySession';
 import { TrainingLoadRing } from './TrainingLoadRing';
 import { PRBanner } from './PRBanner';
 import { LevelCard } from './LevelCard';
+import { AchievementProgress } from './AchievementProgress';
 import { Confetti, CelebrationToast } from '../celebrations/Confetti';
 
 const stagger = {
@@ -527,6 +528,11 @@ export function Dashboard() {
           </div>
         </div>
         <ChallengeList />
+      </motion.div>
+
+      {/* Achievement Progress */}
+      <motion.div variants={fadeUp}>
+        <AchievementProgress />
       </motion.div>
     </motion.div>
     </>

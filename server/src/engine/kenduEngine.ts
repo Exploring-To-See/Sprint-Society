@@ -26,7 +26,7 @@ const COST_SPONSOR_LEADERBOARD = 500;
 const CHALLENGE_STAKE_MIN = 5;
 const CHALLENGE_STAKE_MAX = 50;
 const GIFT_MIN = 3;
-const GIFT_FEE_PERCENT = 15;
+const GIFT_FEE_PERCENT = 3;
 const CHALLENGE_RAKE_PERCENT = 20;
 const COMMUNITY_UPKEEP_MONTHLY = 20;
 
@@ -89,6 +89,12 @@ function ensureBalance(userId: number) {
   db.prepare('INSERT OR IGNORE INTO kendu_balances (user_id) VALUES (?)').run(userId);
 }
 
+function insertLedgerEntry(userId: number, amount: number, type: 'credit' | 'debit', source: string, balanceAfter: number, metadata?: string) {
+  db.prepare(`
+    INSERT INTO kendu_ledger (user_id, amount, type, source, balance_after, metadata) VALUES (?, ?, ?, ?, ?, ?)
+  `).run(userId, Math.abs(amount), type, source, balanceAfter, metadata || null);
+}
+
 function getDailyEarnedToday(userId: number): number {
   const today = getISTDateString();
   const row = db.prepare(`
@@ -117,6 +123,10 @@ function awardKendu(userId: number, amount: number, source: string, metadata?: s
     SET spendable_balance = spendable_balance + ?, lifetime_earned = lifetime_earned + ?, updated_at = CURRENT_TIMESTAMP
     WHERE user_id = ?
   `).run(actual, actual, userId);
+
+  // Append to immutable ledger
+  const bal = db.prepare('SELECT spendable_balance FROM kendu_balances WHERE user_id = ?').get(userId) as { spendable_balance: number };
+  insertLedgerEntry(userId, actual, 'credit', source, bal.spendable_balance, metadata);
 
   return actual;
 }
@@ -317,6 +327,32 @@ export function awardKenduForPlan(userId: number, planId?: number): number {
   return awardKendu(userId, PLAN_COMPLETE_BONUS, 'training_plan', JSON.stringify({ planId }));
 }
 
+export function awardWelcomeBonus(userId: number): number {
+  // Only award once — check if user already has a welcome_bonus transaction
+  const existing = db.prepare(
+    "SELECT id FROM kendu_transactions WHERE user_id = ? AND source = 'welcome_bonus' LIMIT 1"
+  ).get(userId);
+  if (existing) return 0;
+
+  ensureBalance(userId);
+  const amount = 25;
+  const metadata = JSON.stringify({ reason: 'New user starter Kendu' });
+  db.prepare('INSERT INTO kendu_transactions (user_id, amount, source, metadata) VALUES (?, ?, ?, ?)')
+    .run(userId, amount, 'welcome_bonus', metadata);
+  db.prepare('UPDATE kendu_balances SET spendable_balance = spendable_balance + ?, lifetime_earned = lifetime_earned + ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?')
+    .run(amount, amount, userId);
+
+  // Append to immutable ledger
+  const bal = db.prepare('SELECT spendable_balance FROM kendu_balances WHERE user_id = ?').get(userId) as { spendable_balance: number };
+  insertLedgerEntry(userId, amount, 'credit', 'welcome_bonus', bal.spendable_balance, metadata);
+
+  return amount;
+}
+
+export function awardKenduForChallenge(userId: number, challengeId: number): number {
+  return awardKendu(userId, WORKOUT_COMPLETE_BONUS, 'challenge_complete', JSON.stringify({ challengeId }));
+}
+
 export function getKenduBalance(userId: number) {
   ensureBalance(userId);
   const bal = db.prepare('SELECT * FROM kendu_balances WHERE user_id = ?').get(userId) as any;
@@ -473,6 +509,10 @@ function deductKendu(userId: number, amount: number, source: string, metadata?: 
     .run(userId, -amount, source, metadata || null);
 
   const newBal = db.prepare('SELECT spendable_balance FROM kendu_balances WHERE user_id = ?').get(userId) as { spendable_balance: number };
+
+  // Append to immutable ledger
+  insertLedgerEntry(userId, amount, 'debit', source, newBal.spendable_balance, metadata);
+
   return { success: true, amountSpent: amount, fee: 0, newBalance: newBal.spendable_balance };
 }
 
@@ -499,8 +539,13 @@ export function awardChallengeWinner(winnerId: number, totalPot: number, challen
   db.prepare('UPDATE kendu_balances SET spendable_balance = spendable_balance + ? WHERE user_id = ?')
     .run(winnings, winnerId);
 
+  const metadata = JSON.stringify({ challengeId, totalPot, rake });
   db.prepare('INSERT INTO kendu_transactions (user_id, amount, source, metadata) VALUES (?, ?, ?, ?)')
-    .run(winnerId, winnings, 'challenge_winnings', JSON.stringify({ challengeId, totalPot, rake }));
+    .run(winnerId, winnings, 'challenge_winnings', metadata);
+
+  // Append to immutable ledger
+  const bal = db.prepare('SELECT spendable_balance FROM kendu_balances WHERE user_id = ?').get(winnerId) as { spendable_balance: number };
+  insertLedgerEntry(winnerId, winnings, 'credit', 'challenge_winnings', bal.spendable_balance, metadata);
 
   return winnings;
 }
@@ -543,6 +588,12 @@ export function giftKendu(fromUserId: number, toUserId: number, amount: number, 
   giftTx();
 
   const newBal = db.prepare('SELECT spendable_balance FROM kendu_balances WHERE user_id = ?').get(fromUserId) as { spendable_balance: number };
+  const recipientBal = db.prepare('SELECT spendable_balance FROM kendu_balances WHERE user_id = ?').get(toUserId) as { spendable_balance: number };
+
+  // Ledger entries for both sides
+  insertLedgerEntry(fromUserId, totalCost, 'debit', 'spend_gift_sent', newBal.spendable_balance, JSON.stringify({ toUserId, amount, fee, message }));
+  insertLedgerEntry(toUserId, amount, 'credit', 'gift_received', recipientBal.spendable_balance, JSON.stringify({ fromUserId, amount, message }));
+
   return { success: true, amountSpent: totalCost, fee, newBalance: newBal.spendable_balance };
 }
 
@@ -650,6 +701,28 @@ export function getEconomyStats() {
     totalBurned: totalBurned.total,
     activeSubscriptions: activeSubscriptions.count,
     dormantCommunities: dormantSubscriptions.count,
+  };
+}
+
+export function getEconomyHealth() {
+  const totalInCirculation = (db.prepare('SELECT COALESCE(SUM(spendable_balance), 0) as total FROM kendu_balances').get() as { total: number }).total;
+
+  const dailyVelocity = (db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total FROM kendu_transactions
+    WHERE amount > 0 AND created_at >= datetime('now', '-1 day')
+  `).get() as { total: number }).total;
+
+  const userCount = (db.prepare('SELECT COUNT(*) as count FROM kendu_balances WHERE spendable_balance > 0').get() as { count: number }).count;
+  const avgBalance = userCount > 0 ? Math.round(totalInCirculation / userCount) : 0;
+
+  const inflationFlag = dailyVelocity > 500 ? 'high_inflation' : 'healthy';
+
+  return {
+    total_in_circulation: totalInCirculation,
+    daily_velocity: dailyVelocity,
+    avg_balance_per_user: avgBalance,
+    active_users: userCount,
+    status: inflationFlag,
   };
 }
 

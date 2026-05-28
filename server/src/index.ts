@@ -6,6 +6,8 @@ import path from 'path';
 import { config } from './config';
 import { initializeDatabase } from './database/db';
 import { errorHandler } from './middleware/errorHandler';
+import { generalLimiter, authLimiter, aiLimiter, chatLimiter } from './middleware/rateLimiter';
+import { sanitizeInput } from './middleware/sanitize';
 import authRoutes from './routes/auth.routes';
 import passwordRoutes from './routes/password.routes';
 import runsRoutes from './routes/runs.routes';
@@ -38,15 +40,19 @@ import adminContentRoutes from './routes/admin-content.routes';
 import adminAuditRoutes from './routes/admin-audit.routes';
 import adminEngineeringRoutes from './routes/admin-engineering.routes';
 import adminModerationRoutes from './routes/admin-moderation.routes';
+import insightsRoutes from './routes/insights.routes';
+import { startScheduler } from './scheduler';
 
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());
+app.use(sanitizeInput);
+app.use('/api', generalLimiter);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/auth', passwordRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authLimiter, passwordRoutes);
 app.use('/api/runs', runsRoutes);
 app.use('/api/coaching', coachingRoutes);
 app.use('/api/training', trainingRoutes);
@@ -66,7 +72,7 @@ app.use('/api/heartrate', heartrateRoutes);
 app.use('/api/records', recordsRoutes);
 app.use('/api/adaptive', adaptiveRoutes);
 app.use('/api/social', socialRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/chat', chatLimiter, chatRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/communities', communitiesRoutes);
 app.use('/api/notifications', notificationsRoutes);
@@ -75,8 +81,9 @@ app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/profiling', profilingRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/feedback', feedbackRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/kendu', kenduRoutes);
+app.use('/api/insights', insightsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', name: 'Sprint Society API', version: '1.2.0', uptime: Math.floor(process.uptime()) });
@@ -118,6 +125,7 @@ try {
 server.listen(config.port, '0.0.0.0', () => {
   console.log(`\n  Sprint Society API running on http://localhost:${config.port}`);
   console.log(`  Environment: ${config.nodeEnv}\n`);
+  startScheduler();
 });
 
 export default app;
