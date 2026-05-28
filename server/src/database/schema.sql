@@ -808,3 +808,62 @@ CREATE TABLE IF NOT EXISTS community_chat_messages (
   FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Kendu Economy: Balances
+CREATE TABLE IF NOT EXISTS kendu_balances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  spendable_balance INTEGER NOT NULL DEFAULT 0,
+  lifetime_earned INTEGER NOT NULL DEFAULT 0,
+  current_streak_days INTEGER NOT NULL DEFAULT 0,
+  last_run_date DATE,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Kendu Economy: Transaction History
+CREATE TABLE IF NOT EXISTS kendu_transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  description TEXT,
+  metadata TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Kendu Economy: Offers/Rewards Store
+CREATE TABLE IF NOT EXISTS kendu_offers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  cost INTEGER NOT NULL,
+  category TEXT NOT NULL DEFAULT 'reward',
+  active INTEGER NOT NULL DEFAULT 1,
+  max_redemptions INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Kendu Economy: Redemption Records
+CREATE TABLE IF NOT EXISTS kendu_redemptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  offer_id INTEGER NOT NULL,
+  coupon_code TEXT,
+  redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (offer_id) REFERENCES kendu_offers(id)
+);
+
+-- Kendu Economy: Coupon Codes
+CREATE TABLE IF NOT EXISTS kendu_coupon_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  offer_id INTEGER NOT NULL,
+  code TEXT NOT NULL,
+  is_used INTEGER NOT NULL DEFAULT 0,
+  used_by_user_id INTEGER,
+  used_at DATETIME,
+  FOREIGN KEY (offer_id) REFERENCES kendu_offers(id),
+  FOREIGN KEY (used_by_user_id) REFERENCES users(id)
+);

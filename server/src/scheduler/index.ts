@@ -17,20 +17,23 @@ export function registerJob(name: string, intervalMs: number, handler: () => voi
 export function startScheduler() {
   console.log(`  Scheduler started with ${jobs.length} jobs`);
 
-  // Check every 60 seconds which jobs are due
-  setInterval(() => {
-    const now = Date.now();
-    for (const job of jobs) {
-      if (now - job.lastRun >= job.interval) {
-        job.lastRun = now;
-        try {
-          job.handler();
-        } catch (err) {
-          console.error(`[Scheduler] Job "${job.name}" failed:`, err);
+  // Delay first run by 10s to let DB fully initialize
+  setTimeout(() => {
+    // Check every 60 seconds which jobs are due
+    setInterval(() => {
+      const now = Date.now();
+      for (const job of jobs) {
+        if (now - job.lastRun >= job.interval) {
+          job.lastRun = now;
+          try {
+            job.handler();
+          } catch (err) {
+            console.error(`[Scheduler] Job "${job.name}" failed:`, err);
+          }
         }
       }
-    }
-  }, 60_000);
+    }, 60_000);
+  }, 10_000);
 }
 
 // --- Job: Challenge expiry (every 1 hour) ---
