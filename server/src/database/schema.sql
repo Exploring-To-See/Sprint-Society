@@ -867,3 +867,81 @@ CREATE TABLE IF NOT EXISTS kendu_coupon_codes (
   FOREIGN KEY (offer_id) REFERENCES kendu_offers(id),
   FOREIGN KEY (used_by_user_id) REFERENCES users(id)
 );
+
+-- Kendu Economy: Immutable Ledger (audit trail)
+CREATE TABLE IF NOT EXISTS kendu_ledger (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('credit', 'debit')),
+  source TEXT NOT NULL,
+  balance_after INTEGER NOT NULL,
+  metadata TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Kendu Economy: Head-to-Head Challenges
+CREATE TABLE IF NOT EXISTS kendu_challenges (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  challenger_id INTEGER NOT NULL,
+  opponent_id INTEGER NOT NULL,
+  stake_amount INTEGER NOT NULL DEFAULT 10,
+  metric TEXT NOT NULL DEFAULT 'distance',
+  status TEXT NOT NULL DEFAULT 'pending',
+  winner_id INTEGER,
+  deadline DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (challenger_id) REFERENCES users(id),
+  FOREIGN KEY (opponent_id) REFERENCES users(id),
+  FOREIGN KEY (winner_id) REFERENCES users(id)
+);
+
+-- Kendu Economy: Recurring Subscriptions (community upkeep etc)
+CREATE TABLE IF NOT EXISTS kendu_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL DEFAULT 20,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  last_paid_at DATETIME,
+  next_due_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Personal Records
+CREATE TABLE IF NOT EXISTS personal_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  category TEXT NOT NULL,
+  value REAL NOT NULL,
+  activity_id INTEGER,
+  achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- User Card Skins
+CREATE TABLE IF NOT EXISTS user_skins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  skin_id TEXT NOT NULL,
+  purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Community Creation Requests
+CREATE TABLE IF NOT EXISTS community_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  purpose TEXT,
+  category TEXT,
+  leader_name TEXT,
+  contact TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  reviewed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
