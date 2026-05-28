@@ -5,6 +5,8 @@ import { LatLngExpression } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { SplitChart } from '../components/run/SplitChart';
+import { ProgressRing } from '../components/run/ProgressRing';
+import { ZoneBar } from '../components/run/ZoneBar';
 import { useAuth } from '../context/AuthContext';
 
 type TrackingState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FINISHED' | 'ANALYSIS';
@@ -535,9 +537,9 @@ export function RunTrackerPage() {
           {/* RUNNING / PAUSED — Overlay on map */}
           {(state === 'RUNNING' || state === 'PAUSED') && (
             <motion.div key="running" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex flex-col pointer-events-none">
-              {/* Top stats overlay */}
-              <div className="pointer-events-auto m-3 rounded-xl bg-bg-primary/80 backdrop-blur-md border border-bg-tertiary/50 p-3">
-                <div className="flex items-center justify-between">
+              {/* Top stats overlay with ProgressRing + ZoneBar */}
+              <div className="pointer-events-auto m-3 rounded-xl bg-bg-primary/90 backdrop-blur-md border border-bg-tertiary/50 p-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <motion.div
                       animate={state === 'RUNNING' ? { scale: [1, 1.3, 1] } : {}}
@@ -548,14 +550,38 @@ export function RunTrackerPage() {
                   </div>
                   <span className="font-mono text-[11px] text-zinc-400">{formatTime(elapsedSeconds)}</span>
                 </div>
-                <div className="flex items-baseline justify-center gap-6 mt-2">
+
+                {/* Progress Ring */}
+                <ProgressRing
+                  currentDistance={totalDistance}
+                  goalDistance={5000}
+                  currentPace={currentPace}
+                  targetPaceMin={375}
+                  targetPaceMax={405}
+                />
+
+                {/* Zone Bar */}
+                <div className="mt-3">
+                  <ZoneBar
+                    currentPace={currentPace}
+                    targetPaceMin={375}
+                    targetPaceMax={405}
+                  />
+                </div>
+
+                {/* Secondary metrics */}
+                <div className="flex justify-around mt-3 pt-3 border-t border-bg-tertiary/50">
                   <div className="text-center">
-                    <p className="font-mono text-[28px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
-                    <p className="text-[9px] text-zinc-500">km</p>
+                    <p className="font-mono text-[16px] font-bold text-white">{(totalDistance / 1000).toFixed(2)}</p>
+                    <p className="text-[8px] text-zinc-500 uppercase">km</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-mono text-[28px] font-bold text-white">{formatPace(currentPace)}</p>
-                    <p className="text-[9px] text-zinc-500">min/km</p>
+                    <p className="font-mono text-[16px] font-bold text-white">{Math.round(elapsedSeconds * 0.07)}</p>
+                    <p className="text-[8px] text-zinc-500 uppercase">cal</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-mono text-[16px] font-bold text-white">+{Math.round(elevationGain)}m</p>
+                    <p className="text-[8px] text-zinc-500 uppercase">elev</p>
                   </div>
                 </div>
               </div>
