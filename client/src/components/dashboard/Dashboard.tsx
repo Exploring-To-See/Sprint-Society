@@ -70,7 +70,7 @@ export function Dashboard() {
 
   const { data: challenges } = useQuery({
     queryKey: ['challenges'],
-    queryFn: () => api.get('/coaching/challenges').then(r => r.data).catch(() => null),
+    queryFn: () => api.get('/coaching/challenges').then(r => r.data).catch(() => []),
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -213,7 +213,7 @@ export function Dashboard() {
                     See all
                   </button>
                 </div>
-                <ChallengeList challenges={challenges} />
+                <ChallengeList />
               </motion.div>
             )}
           </>
