@@ -1,5 +1,4 @@
 import db from '../database/db';
-import { checkAllUpkeepDue } from '../engine/kenduEngine';
 
 interface ScheduledJob {
   name: string;
@@ -51,13 +50,13 @@ registerJob('challenge-expiry', 60 * 60 * 1000, () => {
   }
 });
 
-// --- Job: Kendu upkeep (every 24 hours) ---
-registerJob('kendu-upkeep', 24 * 60 * 60 * 1000, () => {
-  const result = checkAllUpkeepDue();
-  if (result.processed > 0 || result.dormant > 0) {
-    console.log(`[Scheduler] Kendu upkeep: ${result.processed} processed, ${result.dormant} dormant`);
-  }
-});
+// --- Job: Kendu upkeep (disabled — re-enable when kendu economy is fully tested) ---
+// registerJob('kendu-upkeep', 24 * 60 * 60 * 1000, () => {
+//   const result = checkAllUpkeepDue();
+//   if (result.processed > 0 || result.dormant > 0) {
+//     console.log(`[Scheduler] Kendu upkeep: ${result.processed} processed, ${result.dormant} dormant`);
+//   }
+// });
 
 // --- Job: Streak decay (every 6 hours) ---
 // Reset streaks for users who haven't logged activity in > 1 day
