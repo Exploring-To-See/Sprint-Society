@@ -150,8 +150,10 @@ export function generatePreRunBrief(userId: number): PreRunBrief {
     effortType = 'easy';
   } else if (recentRuns.length >= 3 && highRPERecent === 0) {
     effortType = 'moderate';
+  } else if (recentRuns.length >= 5 && !ranYesterday) {
+    effortType = 'hard';
   } else {
-    effortType = 'easy'; // Default to easy
+    effortType = 'easy';
   }
 
   // Calculate suggested pace
