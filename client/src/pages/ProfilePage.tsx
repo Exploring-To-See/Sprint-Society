@@ -104,6 +104,34 @@ function CountUpStat({ label, value, unit, accent }: { label: string; value: num
   );
 }
 
+function KenduBalanceCard() {
+  const { data: kendu } = useQuery({
+    queryKey: ['kendu-balance'],
+    queryFn: () => api.get('/kendu/balance').then(r => r.data).catch(() => null),
+  });
+  const navigate = useNavigate();
+
+  if (!kendu) return null;
+
+  return (
+    <motion.div variants={fadeUp}>
+      <div className="rounded-xl bg-gradient-to-r from-accent/[0.06] to-amber-500/[0.03] border border-accent/20 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[9px] font-bold text-accent uppercase tracking-[0.15em]">Kendu</span>
+          <button onClick={() => navigate('/rewards')} className="text-[9px] text-zinc-500">History →</button>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[24px] font-bold text-white">{kendu.spendable_balance || 0}</span>
+          <span className="text-[11px] text-accent font-semibold">Kendu</span>
+        </div>
+        <p className="text-[9px] text-zinc-600 mt-1">
+          Earned: {kendu.lifetime_earned || 0} · Spent: {(kendu.lifetime_earned || 0) - (kendu.spendable_balance || 0)}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 function RunningDNACard({ dna, tier }: { dna: any; tier: string }) {
   const config = TIER_CONFIG[tier] || TIER_CONFIG.beginner;
 
@@ -645,6 +673,9 @@ export function ProfilePage() {
         {(dna || currentTier) && (
           <RunningDNACard dna={dna} tier={currentTier} />
         )}
+
+        {/* === KENDU BALANCE (only place it shows outside of earn) === */}
+        <KenduBalanceCard />
 
         {/* === STATS SECTION (count-up) === */}
         <motion.div variants={fadeUp}>

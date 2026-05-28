@@ -25,14 +25,32 @@ export function AppShell({ children, hideNav }: AppShellProps) {
   });
 
   const unreadCount = unread?.count || 0;
+  const profileImage = (user as any)?.profile_image_url;
+  const userName = (user as any)?.name || 'Runner';
+  const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div className={`min-h-screen bg-bg-primary ${hideNav ? '' : 'pb-20'}`}>
-      {/* Minimal header */}
       {user && !isAdmin && (
         <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,8px)+8px)] pb-2 bg-bg-primary/90 backdrop-blur-md">
-          <span className="text-[13px] font-bold text-white tracking-tight">Sprint Society</span>
+          {/* Left: Avatar → Profile */}
+          <button
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-2.5 active:scale-95 transition-transform"
+          >
+            {profileImage ? (
+              <img src={profileImage} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-zinc-700" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-gold flex items-center justify-center text-[11px] font-bold text-white border-2 border-zinc-700">
+                {initials}
+              </div>
+            )}
+            <span className="text-[13px] font-bold text-white tracking-tight">
+              <span className="text-accent">Sprint</span> Society
+            </span>
+          </button>
 
+          {/* Right: Notifications */}
           <button
             onClick={() => navigate('/notifications')}
             className="relative w-8 h-8 flex items-center justify-center rounded-full active:scale-95 transition-transform"

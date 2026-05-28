@@ -22,6 +22,8 @@ const HRZonesPage = lazy(() => import('./pages/HRZonesPage').then(m => ({ defaul
 const RecordsPage = lazy(() => import('./pages/RecordsPage').then(m => ({ default: m.RecordsPage })));
 const FeedPage = lazy(() => import('./pages/FeedPage').then(m => ({ default: m.FeedPage })));
 const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const CoachPage = lazy(() => import('./pages/CoachPage').then(m => ({ default: m.CoachPage })));
+const SocialPage = lazy(() => import('./pages/SocialPage').then(m => ({ default: m.SocialPage })));
 const EventsPage = lazy(() => import('./pages/EventsPage').then(m => ({ default: m.EventsPage })));
 const EventDetailPage = lazy(() => import('./pages/EventDetailPage').then(m => ({ default: m.EventDetailPage })));
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage').then(m => ({ default: m.CommunitiesPage })));
@@ -105,21 +107,24 @@ function AppRoutes() {
         <Route path="/run/track" element={<ProtectedRoute><PageTransition><LazyLoad><RunTrackerPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/admin" element={<AdminRoute><PageTransition><LazyLoad><AdminPage /></LazyLoad></PageTransition></AdminRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
-        <Route path="/coaching" element={<ProtectedRoute><PageTransition><LazyLoad><CoachingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/training" element={<ProtectedRoute><PageTransition><LazyLoad><TrainingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/train" element={<ProtectedRoute><PageTransition><LazyLoad><TrainPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/coach" element={<ProtectedRoute><PageTransition><LazyLoad><CoachPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/social" element={<ProtectedRoute><PageTransition><LazyLoad><SocialPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        {/* Redirects for old routes */}
+        <Route path="/coaching" element={<Navigate to="/coach" replace />} />
+        <Route path="/training" element={<Navigate to="/coach" replace />} />
+        <Route path="/train" element={<Navigate to="/coach" replace />} />
         <Route path="/progress" element={<ProtectedRoute><PageTransition><LazyLoad><ProgressPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/runs" element={<ProtectedRoute><PageTransition><LazyLoad><RunHistoryPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/share" element={<ProtectedRoute><PageTransition><LazyLoad><SharePage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/heart-rate" element={<ProtectedRoute><PageTransition><LazyLoad><HRZonesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/records" element={<ProtectedRoute><PageTransition><LazyLoad><RecordsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/feed" element={<ProtectedRoute><PageTransition><LazyLoad><FeedPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/feed" element={<Navigate to="/social" replace />} />
         <Route path="/events" element={<ProtectedRoute><PageTransition><LazyLoad><EventsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/events/:id" element={<ProtectedRoute><PageTransition><LazyLoad><EventDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/communities" element={<ProtectedRoute><PageTransition><LazyLoad><CommunitiesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/communities/create" element={<ProtectedRoute><PageTransition><LazyLoad><CreateCommunityPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/communities/:id" element={<ProtectedRoute><PageTransition><LazyLoad><CommunityDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><PageTransition><LazyLoad><ChatPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/chat" element={<Navigate to="/coach" replace />} />
         <Route path="/challenges" element={<ProtectedRoute><PageTransition><LazyLoad><ChallengesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/rewards" element={<ProtectedRoute><PageTransition><LazyLoad><RewardsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><PageTransition><LazyLoad><NotificationsPage /></LazyLoad></PageTransition></ProtectedRoute>} />

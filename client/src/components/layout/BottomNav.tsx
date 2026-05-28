@@ -11,14 +11,12 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/95 backdrop-blur-lg border-t border-bg-tertiary/50">
       <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-1.5 pb-[calc(env(safe-area-inset-bottom,6px)+4px)]">
-        {/* Home */}
         <NavButton active={isActive('/dashboard')} onClick={() => navigate('/dashboard')} label="Home">
           <HomeIcon active={isActive('/dashboard')} />
         </NavButton>
 
-        {/* Events */}
-        <NavButton active={isActive('/events')} onClick={() => navigate('/events')} label="Events">
-          <EventsIcon active={isActive('/events')} />
+        <NavButton active={isActive('/coach')} onClick={() => navigate('/coach')} label="Coach">
+          <CoachIcon active={isActive('/coach')} />
         </NavButton>
 
         {/* RUN — Center primary action */}
@@ -36,14 +34,12 @@ export function BottomNav() {
           <span className="text-[9px] font-bold text-accent">Run</span>
         </button>
 
-        {/* Society */}
-        <NavButton active={isActive('/communities')} onClick={() => navigate('/communities')} label="Society">
-          <SocietyIcon active={isActive('/communities')} />
+        <NavButton active={isActive('/social')} onClick={() => navigate('/social')} label="Social">
+          <SocialIcon active={isActive('/social')} />
         </NavButton>
 
-        {/* Profile */}
-        <NavButton active={isActive('/profile')} onClick={() => navigate('/profile')} label="Profile">
-          <ProfileIcon active={isActive('/profile')} />
+        <NavButton active={isActive('/events')} onClick={() => navigate('/events')} label="Events">
+          <EventsIcon active={isActive('/events')} />
         </NavButton>
       </div>
     </nav>
@@ -80,20 +76,19 @@ function HomeIcon({ active }: { active: boolean }) {
   );
 }
 
-function EventsIcon({ active }: { active: boolean }) {
+function CoachIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"
+      <path d="M10 2L12 6L16 6.5L13 9.5L14 14L10 12L6 14L7 9.5L4 6.5L8 6L10 2Z"
+        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
       />
-      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M7 2.5V5M13 2.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <circle cx="10" cy="12.5" r="1.5" fill="currentColor"/>
+      <path d="M10 15V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
 
-function SocietyIcon({ active }: { active: boolean }) {
+function SocialIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
       <circle cx="10" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5"
@@ -107,13 +102,15 @@ function SocietyIcon({ active }: { active: boolean }) {
   );
 }
 
-function ProfileIcon({ active }: { active: boolean }) {
+function EventsIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <circle cx="10" cy="8" r="3" stroke="currentColor" strokeWidth="1.5"
+      <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
       />
-      <path d="M4 17C4 14.2386 6.68629 12 10 12C13.3137 12 16 14.2386 16 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 2.5V5M13 2.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="10" cy="12.5" r="1.5" fill="currentColor"/>
     </svg>
   );
 }
