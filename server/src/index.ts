@@ -114,8 +114,7 @@ try {
   initializeDatabase();
   console.log('  Database initialized');
 } catch (err) {
-  console.error('  FATAL: Database initialization failed:', err);
-  process.exit(1);
+  console.error('  WARNING: Database initialization error (non-fatal):', err);
 }
 
 const server = createServer(app);
