@@ -536,7 +536,7 @@ export function AIProfilingPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setData(d => ({ ...d, recent_5k_time: null }))}
+                    onClick={() => { setData(d => ({ ...d, recent_5k_time: null })); handleNext(); }}
                     className="text-[12px] text-zinc-600 hover:text-zinc-400 transition-colors"
                   >
                     Skip — I don't know my 5K time

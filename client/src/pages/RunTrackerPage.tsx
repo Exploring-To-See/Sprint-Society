@@ -92,6 +92,7 @@ export function RunTrackerPage() {
   const [analysis, setAnalysis] = useState<RunAnalysis | null>(null);
   const [kenduEarned, setKenduEarned] = useState<number | null>(null);
   const [cascadeData, setCascadeData] = useState<any>(null);
+  const [paceZones, setPaceZones] = useState<{ easy_min: number; easy_max: number }>({ easy_min: 375, easy_max: 405 });
 
   const positionsRef = useRef<Position[]>([]);
   const watchIdRef = useRef<number | null>(null);
@@ -111,6 +112,15 @@ export function RunTrackerPage() {
       (pos) => { setUserLocation([pos.coords.latitude, pos.coords.longitude]); setLocating(false); },
       () => { setLocating(false); setGpsError('Could not determine location'); }
     );
+    // Fetch pace zones for zone bar
+    fetch('/api/training/paces', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.easy_pace) {
+          setPaceZones({ easy_min: data.easy_pace - 15, easy_max: data.easy_pace + 15 });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Timer
@@ -575,8 +585,8 @@ export function RunTrackerPage() {
                   currentDistance={totalDistance}
                   goalDistance={5000}
                   currentPace={currentPace}
-                  targetPaceMin={375}
-                  targetPaceMax={405}
+                  targetPaceMin={paceZones.easy_min}
+                  targetPaceMax={paceZones.easy_max}
                 />
 
                 {/* Zone Bar */}

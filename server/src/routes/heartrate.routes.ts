@@ -130,4 +130,89 @@ router.get('/trends', (req: AuthRequest, res: Response) => {
   });
 });
 
+// ===== HRV ENDPOINTS =====
+
+// POST /heartrate/hrv — Log an HRV reading (manual or synced)
+router.post('/hrv', (req: AuthRequest, res: Response) => {
+  const { rmssd, sdnn, source } = req.body;
+
+  if (!rmssd || rmssd < 5 || rmssd > 200) {
+    return res.status(400).json({ error: 'rmssd required (5-200ms range)' });
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    db.prepare(`
+      INSERT INTO hrv_readings (user_id, date, rmssd, sdnn, source)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, date) DO UPDATE SET rmssd = excluded.rmssd, sdnn = excluded.sdnn, source = excluded.source
+    `).run(req.userId, today, rmssd, sdnn || null, source || 'manual');
+
+    res.json({ message: 'HRV logged', date: today, rmssd });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to log HRV' });
+  }
+});
+
+// GET /heartrate/hrv/trend — 7-day HRV trend + baseline comparison
+router.get('/hrv/trend', (req: AuthRequest, res: Response) => {
+  const readings = db.prepare(`
+    SELECT date, rmssd, sdnn, source FROM hrv_readings
+    WHERE user_id = ? AND date >= date('now', '-30 days')
+    ORDER BY date DESC
+  `).all(req.userId) as any[];
+
+  if (readings.length === 0) {
+    return res.json({ has_data: false, message: 'No HRV data. Log morning HRV for recovery insights.' });
+  }
+
+  const last7 = readings.slice(0, 7);
+  const baseline30 = readings.length >= 7
+    ? readings.reduce((s: number, r: any) => s + r.rmssd, 0) / readings.length
+    : null;
+
+  const todayReading = last7[0];
+  const avg7day = last7.reduce((s: number, r: any) => s + r.rmssd, 0) / last7.length;
+
+  // Recovery assessment based on HRV vs baseline
+  let recovery_status: 'recovered' | 'normal' | 'fatigued' | 'warning';
+  let recovery_factor = 1.0;
+
+  if (baseline30 && todayReading) {
+    const deviation = ((todayReading.rmssd - baseline30) / baseline30) * 100;
+
+    if (deviation > 10) {
+      recovery_status = 'recovered';
+      recovery_factor = 1.1; // Can push harder
+    } else if (deviation > -5) {
+      recovery_status = 'normal';
+      recovery_factor = 1.0;
+    } else if (deviation > -15) {
+      recovery_status = 'fatigued';
+      recovery_factor = 0.85; // Reduce intensity 15%
+    } else {
+      recovery_status = 'warning';
+      recovery_factor = 0.7; // Significant reduction
+    }
+  } else {
+    recovery_status = 'normal';
+  }
+
+  res.json({
+    has_data: true,
+    today: todayReading || null,
+    avg_7day: Math.round(avg7day * 10) / 10,
+    baseline_30day: baseline30 ? Math.round(baseline30 * 10) / 10 : null,
+    trend: last7.map((r: any) => ({ date: r.date, rmssd: r.rmssd })),
+    recovery_status,
+    recovery_factor,
+    data_points: readings.length,
+    recommendation: recovery_status === 'recovered' ? 'HRV elevated — you are well recovered. Push today.'
+      : recovery_status === 'fatigued' ? 'HRV below baseline — consider easy run or rest.'
+      : recovery_status === 'warning' ? 'HRV significantly low — rest recommended. Possible illness or overtraining.'
+      : 'HRV normal — train as planned.',
+  });
+});
+
 export default router;

@@ -45,3 +45,54 @@ export function getVO2maxCategory(vo2max: number, age: number, gender: string): 
   if (score >= 33) return 'Below Average';
   return 'Poor';
 }
+
+export interface ConfidenceInterval {
+  estimate: number;
+  range_min: number;
+  range_max: number;
+  confidence: 'high' | 'medium' | 'low';
+  data_points: number;
+}
+
+export function estimateVO2maxWithConfidence(
+  recentRuns: { distance_meters: number; moving_time_seconds: number; average_pace_per_km: number }[]
+): ConfidenceInterval {
+  const validRuns = recentRuns.filter(r => r.distance_meters >= 1000 && r.average_pace_per_km > 0);
+
+  if (validRuns.length === 0) {
+    return { estimate: 35, range_min: 25, range_max: 45, confidence: 'low', data_points: 0 };
+  }
+
+  // Estimate VO2max from each run
+  const estimates = validRuns.map(r => estimateVO2maxFromRace(r.distance_meters, r.moving_time_seconds));
+
+  // Use best 3 runs (most representative of fitness ceiling)
+  const sorted = [...estimates].sort((a, b) => b - a);
+  const best = sorted.slice(0, Math.min(3, sorted.length));
+  const estimate = best.reduce((s, v) => s + v, 0) / best.length;
+
+  // Confidence based on data quantity and consistency
+  const stdDev = Math.sqrt(estimates.reduce((s, v) => s + Math.pow(v - estimate, 2), 0) / estimates.length);
+
+  let confidence: 'high' | 'medium' | 'low';
+  let marginOfError: number;
+
+  if (validRuns.length >= 10 && stdDev < 3) {
+    confidence = 'high';
+    marginOfError = 1.5;
+  } else if (validRuns.length >= 5) {
+    confidence = 'medium';
+    marginOfError = 3;
+  } else {
+    confidence = 'low';
+    marginOfError = 5;
+  }
+
+  return {
+    estimate: Math.round(estimate * 10) / 10,
+    range_min: Math.round((estimate - marginOfError) * 10) / 10,
+    range_max: Math.round((estimate + marginOfError) * 10) / 10,
+    confidence,
+    data_points: validRuns.length,
+  };
+}

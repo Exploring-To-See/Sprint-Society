@@ -200,6 +200,14 @@ router.get('/summary', (req: AuthRequest, res: Response) => {
   const runs = activities.filter((a: any) => a.distance_meters >= 1500);
   const progression = runs.length >= 3 ? trackVDOTProgression(runs) : null;
 
+  // Detraining detection
+  const lastActivity = activities[0]?.start_date || null;
+  const { detectDetraining, calculateRunningEconomy } = require('../engine/adaptiveEngine');
+  const detraining = detectDetraining(lastActivity);
+
+  // Running economy (needs HR data)
+  const economy = calculateRunningEconomy(activities);
+
   res.json({
     status: 'active',
     training_load: {
@@ -213,6 +221,8 @@ router.get('/summary', (req: AuthRequest, res: Response) => {
       trend: progression.vdot_trend,
       change_4w: Math.round((progression.current_vdot - progression.vdot_4_weeks_ago) * 10) / 10,
     } : null,
+    detraining: detraining.detected ? detraining : null,
+    running_economy: economy.trend !== 'insufficient_data' ? economy : null,
     weekly_runs: activities.filter((a: any) =>
       Date.now() - new Date(a.start_date).getTime() < 7 * 86400000
     ).length,

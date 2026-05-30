@@ -931,6 +931,46 @@ CREATE TABLE IF NOT EXISTS user_skins (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Daily Wellness Logging (sleep + stress for adaptive engine)
+CREATE TABLE IF NOT EXISTS daily_wellness (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  date DATE NOT NULL,
+  sleep_hours REAL,
+  stress_level INTEGER CHECK(stress_level BETWEEN 1 AND 10),
+  energy_level INTEGER CHECK(energy_level BETWEEN 1 AND 10),
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, date),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Lactate Threshold Test Results
+CREATE TABLE IF NOT EXISTS lt_tests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  test_date DATE NOT NULL,
+  avg_pace_per_km REAL NOT NULL,
+  avg_heartrate INTEGER,
+  duration_seconds INTEGER NOT NULL,
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- HRV Readings (manual or synced from wearable)
+CREATE TABLE IF NOT EXISTS hrv_readings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  date DATE NOT NULL,
+  rmssd REAL NOT NULL,
+  sdnn REAL,
+  source TEXT DEFAULT 'manual',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, date),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Community Creation Requests
 CREATE TABLE IF NOT EXISTS community_requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

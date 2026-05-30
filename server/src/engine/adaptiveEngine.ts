@@ -355,3 +355,118 @@ function formatPace(seconds: number): string {
   const sec = Math.round(seconds % 60);
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
+
+// ===== DETRAINING DETECTION =====
+
+export interface DetrainingStatus {
+  detected: boolean;
+  severity: 'none' | 'mild' | 'moderate' | 'severe';
+  days_inactive: number;
+  fitness_loss_percent: number;
+  vdot_adjustment: number;
+  recommendation: string;
+}
+
+export function detectDetraining(lastActivityDate: string | null): DetrainingStatus {
+  if (!lastActivityDate) {
+    return { detected: false, severity: 'none', days_inactive: 0, fitness_loss_percent: 0, vdot_adjustment: 0, recommendation: '' };
+  }
+
+  const daysSinceLastRun = Math.floor((Date.now() - new Date(lastActivityDate).getTime()) / 86400000);
+
+  if (daysSinceLastRun <= 3) {
+    return { detected: false, severity: 'none', days_inactive: daysSinceLastRun, fitness_loss_percent: 0, vdot_adjustment: 0, recommendation: '' };
+  }
+
+  // Detraining science (from exercise physiology literature):
+  // - VO2max declines ~0.5% per day after day 4 of inactivity
+  // - Mitochondrial density drops measurably after 7 days
+  // - Capillary density starts declining after 14 days
+  // - Full detraining (return to baseline) takes 4-8 weeks of inactivity
+
+  let severity: 'mild' | 'moderate' | 'severe';
+  let fitnessLossPercent: number;
+  let vdotAdjustment: number;
+  let recommendation: string;
+
+  if (daysSinceLastRun <= 7) {
+    severity = 'mild';
+    fitnessLossPercent = Math.round((daysSinceLastRun - 3) * 0.5);
+    vdotAdjustment = -1;
+    recommendation = 'Welcome back. Start with 2-3 easy runs this week before resuming plan intensity.';
+  } else if (daysSinceLastRun <= 14) {
+    severity = 'moderate';
+    fitnessLossPercent = Math.round(2 + (daysSinceLastRun - 7) * 1.0);
+    vdotAdjustment = -2;
+    recommendation = 'Fitness has declined. Take 1 week of easy running before resuming structured training. Reduce target paces by 10-15s/km.';
+  } else {
+    severity = 'severe';
+    fitnessLossPercent = Math.min(25, Math.round(9 + (daysSinceLastRun - 14) * 0.8));
+    vdotAdjustment = Math.min(-5, Math.round(-2 - (daysSinceLastRun - 14) * 0.3));
+    recommendation = 'Extended break detected. Rebuilding phase recommended: 2 weeks easy running, then gradual return to plan. Plan timeline extended.';
+  }
+
+  return {
+    detected: true,
+    severity,
+    days_inactive: daysSinceLastRun,
+    fitness_loss_percent: fitnessLossPercent,
+    vdot_adjustment: vdotAdjustment,
+    recommendation,
+  };
+}
+
+// ===== RUNNING ECONOMY =====
+
+export interface RunningEconomy {
+  current_economy: number | null;
+  trend: 'improving' | 'stable' | 'declining' | 'insufficient_data';
+  change_percent: number;
+  description: string;
+}
+
+export function calculateRunningEconomy(
+  activities: { average_pace_per_km: number; average_heartrate?: number; start_date: string }[]
+): RunningEconomy {
+  // Running economy = pace achieved at a given HR intensity
+  // If you run faster at the same HR, your economy improved
+  const runsWithHR = activities
+    .filter(a => a.average_heartrate && a.average_heartrate > 100 && a.average_pace_per_km > 0)
+    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
+  if (runsWithHR.length < 6) {
+    return { current_economy: null, trend: 'insufficient_data', change_percent: 0, description: 'Need 6+ runs with HR data to calculate economy.' };
+  }
+
+  // Compare pace-per-HR-beat for first half vs second half of runs
+  const midpoint = Math.floor(runsWithHR.length / 2);
+  const firstHalf = runsWithHR.slice(0, midpoint);
+  const secondHalf = runsWithHR.slice(midpoint);
+
+  // Economy metric: pace (sec/km) / HR (bpm) — lower = more efficient
+  const avgEconomyFirst = firstHalf.reduce((s, r) => s + (r.average_pace_per_km / r.average_heartrate!), 0) / firstHalf.length;
+  const avgEconomySecond = secondHalf.reduce((s, r) => s + (r.average_pace_per_km / r.average_heartrate!), 0) / secondHalf.length;
+
+  const changePercent = Math.round(((avgEconomyFirst - avgEconomySecond) / avgEconomyFirst) * 100 * 10) / 10;
+
+  let trend: 'improving' | 'stable' | 'declining';
+  let description: string;
+
+  if (changePercent > 2) {
+    trend = 'improving';
+    description = `Running economy improved ${changePercent}%: faster pace at similar HR over last ${runsWithHR.length} runs.`;
+  } else if (changePercent < -2) {
+    trend = 'declining';
+    description = `Running economy declined ${Math.abs(changePercent)}%: consider more easy aerobic runs to rebuild efficiency.`;
+  } else {
+    trend = 'stable';
+    description = 'Running economy is stable. Consistent training maintaining efficiency.';
+  }
+
+  return {
+    current_economy: Math.round(avgEconomySecond * 1000) / 1000,
+    trend,
+    change_percent: changePercent,
+    description,
+  };
+}

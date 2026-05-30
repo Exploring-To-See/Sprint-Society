@@ -379,6 +379,13 @@ export function SharePage() {
   const { data } = useQuery({
     queryKey: ['runs-for-share'],
     queryFn: () => api.get('/runs?limit=10').then(r => r.data),
+    onSuccess: (result: any) => {
+      // Auto-select most recent run
+      const runs = result?.runs || result || [];
+      if (runs.length > 0 && !selectedRunId) {
+        setSelectedRunId(runs[0].id);
+      }
+    },
   });
 
   const { data: xp } = useQuery({
@@ -417,9 +424,14 @@ export function SharePage() {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 3,
+        width: cardRef.current.offsetWidth,
+        height: cardRef.current.offsetHeight,
+        style: { transform: 'none', margin: '0' },
+      });
       const link = document.createElement('a');
-      link.download = `sprint-society-${activeTemplate}.png`;
+      link.download = `sprint-society-run-${selectedRunId}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {

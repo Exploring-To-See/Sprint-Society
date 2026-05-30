@@ -32,6 +32,7 @@ import inviteRoutes from './routes/invite.routes';
 import feedbackRoutes from './routes/feedback.routes';
 import aiRoutes from './routes/ai.routes';
 import kenduRoutes from './routes/kendu.routes';
+import wellnessRoutes from './routes/wellness.routes';
 import adminAnalyticsRoutes from './routes/admin-analytics.routes';
 import adminFlagsRoutes from './routes/admin-flags.routes';
 import adminSegmentsRoutes from './routes/admin-segments.routes';
@@ -83,6 +84,7 @@ app.use('/api/invite', inviteRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/kendu', kenduRoutes);
+app.use('/api/wellness', wellnessRoutes);
 app.use('/api/insights', insightsRoutes);
 
 app.get('/api/health', (req, res) => {

@@ -179,4 +179,54 @@ router.post('/complete-session', (req: AuthRequest, res: Response) => {
   res.json({ message: 'Session completed', xp_awarded: 30 });
 });
 
+// POST /training/lt-test — Save lactate threshold test result
+router.post('/lt-test', (req: AuthRequest, res: Response) => {
+  const { avg_pace_per_km, avg_heartrate, duration_seconds, notes } = req.body;
+
+  if (!avg_pace_per_km || !duration_seconds) {
+    return res.status(400).json({ error: 'avg_pace_per_km and duration_seconds required' });
+  }
+
+  if (duration_seconds < 900 || duration_seconds > 1500) {
+    return res.status(400).json({ error: 'LT test should be 15-25 minutes' });
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+
+  db.prepare(`
+    INSERT INTO lt_tests (user_id, test_date, avg_pace_per_km, avg_heartrate, duration_seconds, notes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(req.userId, today, avg_pace_per_km, avg_heartrate || null, duration_seconds, notes || null);
+
+  res.json({
+    message: 'LT test saved',
+    lt_pace: avg_pace_per_km,
+    lt_heartrate: avg_heartrate || null,
+    test_date: today,
+  });
+});
+
+// GET /training/lt-test — Get latest LT test result
+router.get('/lt-test', (req: AuthRequest, res: Response) => {
+  const test = db.prepare(`
+    SELECT * FROM lt_tests WHERE user_id = ? ORDER BY test_date DESC LIMIT 1
+  `).get(req.userId) as any;
+
+  if (!test) {
+    return res.json({ has_test: false, message: 'No LT test recorded. Take a 20-min threshold test for personalized training paces.' });
+  }
+
+  const daysSinceTest = Math.floor((Date.now() - new Date(test.test_date).getTime()) / 86400000);
+
+  res.json({
+    has_test: true,
+    lt_pace: test.avg_pace_per_km,
+    lt_heartrate: test.avg_heartrate,
+    test_date: test.test_date,
+    days_since_test: daysSinceTest,
+    stale: daysSinceTest > 60,
+    stale_message: daysSinceTest > 60 ? 'Test is over 60 days old. Consider re-testing.' : null,
+  });
+});
+
 export default router;

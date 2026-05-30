@@ -20,11 +20,20 @@ export interface WeeklySummary {
   nextGoal: string;
 }
 
+export interface EnvironmentalContext {
+  has_alert: boolean;
+  temperature_warning: string | null;
+  aqi_warning: string | null;
+  pace_adjustment_percent: number;
+  tips: string[];
+}
+
 export interface PreRunBrief {
   suggestedDistance: number; // km
   suggestedPace: string; // formatted "M:SS"
   warmupTip: string;
   focusArea: string;
+  environment?: EnvironmentalContext;
 }
 
 export interface PostRunAnalysis {
@@ -200,11 +209,15 @@ export function generatePreRunBrief(userId: number): PreRunBrief {
 
   const dayIndex = new Date().getDay();
 
+  // India-specific environmental context
+  const envContext = getEnvironmentalContext();
+
   return {
     suggestedDistance: Math.round(suggestedDistance * 10) / 10,
     suggestedPace: formatPace(suggestedPaceSec),
     warmupTip: warmupTips[dayIndex % warmupTips.length],
     focusArea: focusAreas[dayIndex % focusAreas.length],
+    environment: envContext,
   };
 }
 
@@ -443,4 +456,80 @@ function formatPace(secondsPerKm: number): string {
   const min = Math.floor(secondsPerKm / 60);
   const sec = Math.round(secondsPerKm % 60);
   return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+/**
+ * India-Specific Environmental Context
+ *
+ * Accounts for heat, monsoon, and air pollution — common factors
+ * that significantly affect running performance in Indian cities.
+ *
+ * Science:
+ * - Every 1°C above 20°C costs ~0.3% performance (marathon data)
+ * - AQI >150 reduces VO2max by 5-15% (respiratory load)
+ * - Humidity >80% impairs thermoregulation (sweat can't evaporate)
+ */
+function getEnvironmentalContext(temperature?: number, humidity?: number, aqi?: number): EnvironmentalContext {
+  const tips: string[] = [];
+  let paceAdjustment = 0;
+  let temperatureWarning: string | null = null;
+  let aqiWarning: string | null = null;
+
+  // Month-based seasonal heuristic for India (if no live data)
+  const month = new Date().getMonth(); // 0-indexed
+
+  if (!temperature) {
+    // Indian seasonal defaults (approximate for North India)
+    if (month >= 3 && month <= 5) temperature = 38; // Apr-Jun: summer
+    else if (month >= 6 && month <= 8) { temperature = 32; humidity = humidity || 85; } // Jul-Sep: monsoon
+    else if (month >= 9 && month <= 10) temperature = 30; // Oct-Nov: post-monsoon
+    else temperature = 18; // Dec-Mar: winter (ideal running)
+  }
+
+  // Temperature adjustments
+  if (temperature && temperature > 35) {
+    paceAdjustment = -15; // 15% slower targets
+    temperatureWarning = `🌡️ ${temperature}°C — extreme heat. Reduce pace 15s/km. Hydrate every 2km. Run early morning or after sunset.`;
+    tips.push('Carry water or plan route with water stops');
+    tips.push('Wet your cap/hair before starting');
+    tips.push('If dizzy or nauseous, stop immediately');
+  } else if (temperature && temperature > 30) {
+    paceAdjustment = -8;
+    temperatureWarning = `🌡️ ${temperature}°C — warm. Targets relaxed 8s/km. Hydrate well before and during.`;
+    tips.push('Start slower than usual — your body needs time to adjust');
+    tips.push('Prefer shaded routes');
+  } else if (temperature && temperature > 25) {
+    paceAdjustment = -3;
+    tips.push('Good running weather — stay hydrated');
+  }
+
+  // Humidity adjustments (monsoon season)
+  if (humidity && humidity > 85) {
+    paceAdjustment -= 5;
+    tips.push('High humidity — sweat won\'t cool you. Keep effort perception-based, not pace-based.');
+    if (!temperatureWarning) temperatureWarning = `💧 Humidity ${humidity}% — sweat evaporation impaired. Go by feel.`;
+  }
+
+  // AQI adjustments (Delhi/NCR specific concern)
+  if (aqi && aqi > 200) {
+    aqiWarning = `⚠️ AQI ${aqi} — Very Unhealthy. Indoor run strongly recommended. If outside: mask, short duration (<20min), nasal breathing.`;
+    paceAdjustment -= 10;
+    tips.push('Consider treadmill or indoor alternative');
+    tips.push('Nasal breathing only — filters more particles');
+    tips.push('Avoid heavy traffic routes');
+  } else if (aqi && aqi > 150) {
+    aqiWarning = `⚠️ AQI ${aqi} — Unhealthy. Keep run short (<30min). Avoid peak traffic hours.`;
+    paceAdjustment -= 5;
+    tips.push('Run in parks/green areas away from roads');
+  } else if (aqi && aqi > 100) {
+    tips.push('Moderate air quality — fine for running, prefer green routes');
+  }
+
+  return {
+    has_alert: !!(temperatureWarning || aqiWarning),
+    temperature_warning: temperatureWarning,
+    aqi_warning: aqiWarning,
+    pace_adjustment_percent: paceAdjustment,
+    tips,
+  };
 }
