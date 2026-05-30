@@ -7,22 +7,7 @@ import { spendToCreateCommunity, createCommunitySubscription } from '../engine/k
 const router = Router();
 router.use(authenticate);
 
-// Ensure community_requests table exists (run once at module load)
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS community_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    purpose TEXT NOT NULL,
-    category TEXT DEFAULT 'custom',
-    leader_name TEXT NOT NULL,
-    contact TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    reviewed_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )
-`).run();
+// community_requests table is created by schema.sql during initializeDatabase()
 
 const MIN_LEVEL_TO_CREATE = 5;
 const MIN_XP_TO_CREATE = 500;

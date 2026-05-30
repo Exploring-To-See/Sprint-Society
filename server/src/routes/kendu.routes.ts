@@ -31,15 +31,7 @@ import {
 const router = Router();
 router.use(authenticate);
 
-// Ensure user_skins table exists (run once at module load, not per-request)
-db.prepare(`CREATE TABLE IF NOT EXISTS user_skins (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  skin_id TEXT NOT NULL,
-  purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, skin_id),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)`).run();
+// user_skins table is created by schema.sql during initializeDatabase()
 
 // POST /kendu/earn — Award Kendu after a run (admin only — normal earning happens via runCascade)
 router.post('/earn', (req: AuthRequest, res: Response) => {
