@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
@@ -423,14 +423,15 @@ export function SharePage() {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(cardRef.current, {
+      const dataUrl = await toJpeg(cardRef.current, {
         pixelRatio: 3,
+        quality: 0.92,
         width: cardRef.current.offsetWidth,
         height: cardRef.current.offsetHeight,
         style: { transform: 'none', margin: '0' },
       });
       const link = document.createElement('a');
-      link.download = `sprint-society-run-${selectedRunId}.png`;
+      link.download = `sprint-society-run-${selectedRunId}.jpg`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -442,9 +443,9 @@ export function SharePage() {
   const handleShare = async () => {
     if (!cardRef.current) return;
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+      const dataUrl = await toJpeg(cardRef.current, { pixelRatio: 3, quality: 0.92 });
       const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], 'sprint-society-run.png', { type: 'image/png' });
+      const file = new File([blob], 'sprint-society-run.jpg', { type: 'image/jpeg' });
       if (navigator.share) {
         await navigator.share({ files: [file], title: 'My Sprint Society Run' });
       } else {
