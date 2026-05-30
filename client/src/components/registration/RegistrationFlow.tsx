@@ -104,7 +104,6 @@ export function RegistrationFlow() {
         email: form.email,
         phone: form.phone,
         password: form.password,
-        profile_photo: form.profile_photo_preview || undefined,
       });
       // Use window.location to avoid PublicRoute redirect race condition
       window.location.href = '/profiling';

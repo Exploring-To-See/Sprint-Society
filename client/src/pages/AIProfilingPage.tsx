@@ -143,7 +143,7 @@ export function AIProfilingPage() {
   };
 
   if (dna) {
-    return <DNAReveal dna={dna} onContinue={() => navigate('/dashboard')} />;
+    return <DNAReveal dna={dna} onContinue={() => navigate('/set-goal')} />;
   }
 
   if (analyzing) {
