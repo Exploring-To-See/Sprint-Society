@@ -1,7 +1,6 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { useRef } from 'react';
 import { toPng } from 'html-to-image';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
@@ -379,14 +378,14 @@ export function SharePage() {
   const { data } = useQuery({
     queryKey: ['runs-for-share'],
     queryFn: () => api.get('/runs?limit=10').then(r => r.data),
-    onSuccess: (result: any) => {
-      // Auto-select most recent run
-      const runs = result?.runs || result || [];
-      if (runs.length > 0 && !selectedRunId) {
-        setSelectedRunId(runs[0].id);
-      }
-    },
   });
+
+  // Auto-select most recent run when data loads
+  useEffect(() => {
+    if (!data || selectedRunId) return;
+    const runs = data?.runs || data || [];
+    if (runs.length > 0) setSelectedRunId(runs[0].id);
+  }, [data, selectedRunId]);
 
   const { data: xp } = useQuery({
     queryKey: ['xp'],

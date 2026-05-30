@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { calculateTrainingLoad, analyzeWeekPerformance, adaptNextWeek, trackVDOTProgression } from '../engine/adaptiveEngine';
+import { calculateTrainingLoad, analyzeWeekPerformance, adaptNextWeek, trackVDOTProgression, detectDetraining, calculateRunningEconomy } from '../engine/adaptiveEngine';
 import { getTrainingPaces } from '../engine/trainingPlanGenerator';
 
 const router = Router();
@@ -202,7 +202,6 @@ router.get('/summary', (req: AuthRequest, res: Response) => {
 
   // Detraining detection
   const lastActivity = activities[0]?.start_date || null;
-  const { detectDetraining, calculateRunningEconomy } = require('../engine/adaptiveEngine');
   const detraining = detectDetraining(lastActivity);
 
   // Running economy (needs HR data)
