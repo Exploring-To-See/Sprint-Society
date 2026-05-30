@@ -550,6 +550,7 @@ function SettingsSection() {
 export function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Fetch own profile using user id
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -624,8 +625,26 @@ export function ProfilePage() {
 
         {/* === HEADER === */}
         <motion.div variants={fadeUp} className="flex items-center gap-4 pt-2">
-          {/* Avatar */}
-          <div className={`w-20 h-20 rounded-full border-2 ${tierConfig.border} overflow-hidden flex items-center justify-center bg-bg-tertiary flex-shrink-0`}>
+          {/* Avatar — tappable to upload photo */}
+          <label className={`relative w-20 h-20 rounded-full border-2 ${tierConfig.border} overflow-hidden flex items-center justify-center bg-bg-tertiary flex-shrink-0 cursor-pointer active:scale-95 transition-transform`}>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return; }
+                const reader = new FileReader();
+                reader.onload = async () => {
+                  try {
+                    await api.put('/auth/profile', { profile_photo: reader.result });
+                    queryClient.invalidateQueries({ queryKey: ['profile'] });
+                  } catch { alert('Upload failed'); }
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
             {(profile?.profile_image_url || (user as any)?.profile_image_url) ? (
               <img
                 src={profile?.profile_image_url || (user as any)?.profile_image_url}
@@ -637,7 +656,10 @@ export function ProfilePage() {
                 {(profile?.name || user?.name)?.[0]?.toUpperCase() || '?'}
               </span>
             )}
-          </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 active:opacity-100 transition-opacity">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 2h6l1 3h-8l1-3z"/></svg>
+            </div>
+          </label>
 
           {/* Name + meta */}
           <div className="flex-1 min-w-0">
