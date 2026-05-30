@@ -931,6 +931,26 @@ CREATE TABLE IF NOT EXISTS user_skins (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- User Goals (multiple goals that merge into one plan)
+CREATE TABLE IF NOT EXISTS user_goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('race', 'pace', 'volume', 'event')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'abandoned')),
+  distance_meters INTEGER,
+  target_time_seconds INTEGER,
+  target_pace_per_km REAL,
+  target_date DATE,
+  target_km REAL,
+  target_period TEXT CHECK(target_period IN ('week', 'month')),
+  event_id INTEGER,
+  name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id) REFERENCES events(id)
+);
+
 -- Daily Wellness Logging (sleep + stress for adaptive engine)
 CREATE TABLE IF NOT EXISTS daily_wellness (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

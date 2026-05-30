@@ -20,6 +20,8 @@ const HRZonesPage = lazy(() => import('./pages/HRZonesPage').then(m => ({ defaul
 const RecordsPage = lazy(() => import('./pages/RecordsPage').then(m => ({ default: m.RecordsPage })));
 const CoachPage = lazy(() => import('./pages/CoachPage').then(m => ({ default: m.CoachPage })));
 const SocialPage = lazy(() => import('./pages/SocialPage').then(m => ({ default: m.SocialPage })));
+const SetGoalPage = lazy(() => import('./pages/SetGoalPage').then(m => ({ default: m.SetGoalPage })));
+const PlanPage = lazy(() => import('./pages/PlanPage').then(m => ({ default: m.PlanPage })));
 const EventsPage = lazy(() => import('./pages/EventsPage').then(m => ({ default: m.EventsPage })));
 const EventDetailPage = lazy(() => import('./pages/EventDetailPage').then(m => ({ default: m.EventDetailPage })));
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage').then(m => ({ default: m.CommunitiesPage })));
@@ -114,6 +116,8 @@ function AppRoutes() {
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><PageTransition><LazyLoad><CoachPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/social" element={<ProtectedRoute><PageTransition><LazyLoad><SocialPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/set-goal" element={<ProtectedRoute><PageTransition><LazyLoad><SetGoalPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/plan" element={<ProtectedRoute><PageTransition><LazyLoad><PlanPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         {/* Redirects for old routes */}
         <Route path="/coaching" element={<Navigate to="/coach" replace />} />
         <Route path="/training" element={<Navigate to="/coach" replace />} />

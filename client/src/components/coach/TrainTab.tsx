@@ -7,7 +7,6 @@ import api from '../../lib/api';
 export function TrainTab() {
   const navigate = useNavigate();
   const [expandedDay, setExpandedDay] = useState<number>(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1);
-  const [showFullPlan, setShowFullPlan] = useState(false);
 
   const { data: plan } = useQuery({
     queryKey: ['training-plan'],
@@ -56,6 +55,18 @@ export function TrainTab() {
 
   return (
     <div className="space-y-3">
+      {/* No goal state — CTA to set goal */}
+      {!plan && (
+        <div className="rounded-xl bg-gradient-to-br from-accent/[0.06] to-bg-secondary border border-accent/15 p-5 text-center">
+          <span className="text-3xl mb-3 block">🎯</span>
+          <h3 className="text-[14px] font-bold text-white mb-2">Set your running goal</h3>
+          <p className="text-[11px] text-zinc-500 mb-4 max-w-[240px] mx-auto">Tell your AI coach what you're training for and get a personalized plan.</p>
+          <button onClick={() => navigate('/set-goal')} className="px-6 py-3 rounded-xl bg-accent text-white text-[12px] font-bold active:scale-[0.98] transition-transform">
+            Set Goal →
+          </button>
+        </div>
+      )}
+
       {/* Goal + On-track row */}
       {plan && (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/[0.03] border border-accent/15">
@@ -69,11 +80,13 @@ export function TrainTab() {
         </div>
       )}
 
+      {!plan && null}
+      {plan && <>
       {/* Week header + See full plan */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Week {currentWeek}</span>
-        <button onClick={() => setShowFullPlan(!showFullPlan)} className="text-[10px] font-semibold text-accent">
-          {showFullPlan ? 'Hide plan' : 'See full plan →'}
+        <button onClick={() => navigate('/plan')} className="text-[10px] font-semibold text-accent">
+          See full plan →
         </button>
       </div>
 
@@ -178,45 +191,8 @@ export function TrainTab() {
         )}
       </AnimatePresence>
 
-      {/* Full Plan View */}
-      <AnimatePresence>
-        {showFullPlan && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-1.5 mt-2">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
-                Full {totalWeeks}-Week Plan
-              </p>
-              {Array.from({ length: totalWeeks }).map((_, i) => {
-                const weekNum = i + 1;
-                const isDone = weekNum < currentWeek;
-                const isCurrent = weekNum === currentWeek;
-                const phaseLabel = weekNum <= 2 ? 'Base' : weekNum <= 5 ? 'Build' : weekNum <= 7 ? 'Peak' : 'Taper';
-
-                return (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg border ${
-                      isCurrent ? 'bg-accent/[0.04] border-accent/20' : 'bg-bg-secondary border-bg-tertiary'
-                    }`}
-                  >
-                    <span className={`text-[11px] ${isCurrent ? 'text-accent font-bold' : isDone ? 'text-accent-green' : 'text-zinc-500'}`}>
-                      Week {weekNum} — {phaseLabel}
-                    </span>
-                    <span className={`text-[10px] ${isDone ? 'text-accent-green' : isCurrent ? 'text-accent' : 'text-zinc-600'}`}>
-                      {isDone ? '✓ Done' : isCurrent ? 'In progress' : 'Upcoming'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Full Plan View is now a separate page at /plan */}
+      </>}
     </div>
   );
 }
