@@ -21,7 +21,7 @@ const ZONE_COLORS = [
   { bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-400', bar: 'bg-red-500' },
 ];
 
-export function HRZonesPage() {
+export function HRZonesPage({ embedded }: { embedded?: boolean } = {}) {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['hr-zones'],
     queryFn: () => api.get('/heartrate/zones').then(r => r.data),
@@ -32,9 +32,11 @@ export function HRZonesPage() {
     queryFn: () => api.get('/heartrate/trends').then(r => r.data).catch(() => null),
   });
 
+  const Wrapper = embedded ? ({ children }: { children: React.ReactNode }) => <>{children}</> : AppShell;
+
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
+    <Wrapper>
+      <motion.div variants={stagger} initial="hidden" animate="show" className={`space-y-5 ${embedded ? 'px-4 pb-2' : 'pb-6'}`}>
         {/* Header */}
         <motion.div variants={fadeUp}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-1">Training Intelligence</p>
@@ -141,6 +143,6 @@ export function HRZonesPage() {
           </motion.div>
         )}
       </motion.div>
-    </AppShell>
+    </Wrapper>
   );
 }

@@ -53,13 +53,11 @@ export function RewardsPage() {
 
   return (
     <AppShell>
-    <div className="min-h-screen bg-bg-primary pb-24">
+    <div className="pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-sm border-b border-bg-tertiary px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="text-zinc-400 text-lg">&larr;</button>
-          <h1 className="text-[16px] font-bold text-zinc-100">Kendu Store</h1>
-        </div>
+      <div className="flex items-center gap-2 mb-4">
+        <button onClick={() => navigate(-1)} className="text-zinc-400 text-lg">&larr;</button>
+        <h1 className="text-[16px] font-bold text-zinc-100">Kendu Store</h1>
       </div>
 
       {/* Balance Banner */}

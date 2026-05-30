@@ -1,36 +1,57 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { AppShell } from '../components/layout/AppShell';
 import { TrainTab } from '../components/coach/TrainTab';
 import { ChatTab } from '../components/coach/ChatTab';
 import { AIAnalyticsTab } from '../components/coach/AIAnalyticsTab';
 
-type CoachSubTab = 'train' | 'chat' | 'analytics';
+const HRZonesPage = lazy(() => import('./HRZonesPage').then(m => ({ default: m.default || (m as any).HRZonesPage || Object.values(m)[0] })));
+const RecordsPage = lazy(() => import('./RecordsPage').then(m => ({ default: m.default || (m as any).RecordsPage || Object.values(m)[0] })));
+
+type CoachSubTab = 'chat' | 'plan' | 'insights' | 'zones' | 'records';
+
+const TABS: { key: CoachSubTab; label: string }[] = [
+  { key: 'chat', label: 'Chat' },
+  { key: 'plan', label: 'Plan' },
+  { key: 'insights', label: 'Insights' },
+  { key: 'zones', label: 'Zones' },
+  { key: 'records', label: 'Records' },
+];
 
 export function CoachPage() {
-  const [activeTab, setActiveTab] = useState<CoachSubTab>('train');
+  const [activeTab, setActiveTab] = useState<CoachSubTab>('chat');
 
   return (
     <AppShell>
-      {/* Sub-tabs */}
-      <div className="flex bg-bg-secondary rounded-lg p-[3px] border border-bg-tertiary mb-4">
-        {(['train', 'chat', 'analytics'] as const).map(tab => (
+      {/* Sub-tabs — horizontally scrollable on small screens */}
+      <div className="flex gap-1 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2 mb-3">
+        {TABS.map(tab => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 text-center text-[11px] font-bold rounded-md transition-all ${
-              activeTab === tab
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`shrink-0 px-4 py-2 text-[12px] font-bold rounded-lg transition-all ${
+              activeTab === tab.key
                 ? 'bg-accent text-white'
-                : 'text-zinc-500 hover:text-zinc-300'
+                : 'bg-bg-secondary border border-bg-tertiary text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            {tab === 'train' ? 'Train' : tab === 'chat' ? 'Chat' : 'AI Analytics'}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {activeTab === 'train' && <TrainTab />}
       {activeTab === 'chat' && <ChatTab />}
-      {activeTab === 'analytics' && <AIAnalyticsTab />}
+      {activeTab === 'plan' && <TrainTab />}
+      {activeTab === 'insights' && <AIAnalyticsTab />}
+      {activeTab === 'zones' && (
+        <Suspense fallback={<div className="h-[200px] rounded-xl bg-bg-secondary animate-pulse" />}>
+          <div className="-mx-4 -mt-2"><HRZonesPage embedded /></div>
+        </Suspense>
+      )}
+      {activeTab === 'records' && (
+        <Suspense fallback={<div className="h-[200px] rounded-xl bg-bg-secondary animate-pulse" />}>
+          <div className="-mx-4 -mt-2"><RecordsPage embedded /></div>
+        </Suspense>
+      )}
     </AppShell>
   );
 }

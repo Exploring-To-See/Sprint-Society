@@ -35,10 +35,8 @@ function stripHtml(input: string): string {
   cleaned = cleaned.replace(/on\w+\s*=\s*(['"])[^'"]*\1/gi, '');
   cleaned = cleaned.replace(/on\w+\s*=\s*[^\s>]*/gi, '');
 
-  // Decode common HTML entities to prevent double-encoding attacks
-  cleaned = cleaned.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-  // Then strip any tags that were encoded
-  cleaned = cleaned.replace(/<[^>]*>/g, '');
+  // Remove encoded entities that could be used in attribute contexts
+  cleaned = cleaned.replace(/&#\d+;/g, '').replace(/&#x[\da-fA-F]+;/g, '');
 
   // Remove null bytes
   cleaned = cleaned.replace(/\0/g, '');

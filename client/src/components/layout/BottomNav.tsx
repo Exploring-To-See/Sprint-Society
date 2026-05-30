@@ -15,10 +15,6 @@ export function BottomNav() {
           <HomeIcon active={isActive('/dashboard')} />
         </NavButton>
 
-        <NavButton active={isActive('/coach')} onClick={() => navigate('/coach')} label="Coach">
-          <CoachIcon active={isActive('/coach')} />
-        </NavButton>
-
         {/* RUN — Center primary action */}
         <button
           aria-label="Start a run"
@@ -35,12 +31,8 @@ export function BottomNav() {
           <span className="text-[11px] font-bold text-accent">Run</span>
         </button>
 
-        <NavButton active={isActive('/social')} onClick={() => navigate('/social')} label="Social">
-          <SocialIcon active={isActive('/social')} />
-        </NavButton>
-
-        <NavButton active={isActive('/events')} onClick={() => navigate('/events')} label="Events">
-          <EventsIcon active={isActive('/events')} />
+        <NavButton active={isActive('/coach')} onClick={() => navigate('/coach')} label="AI Coach">
+          <CoachIcon active={isActive('/coach')} />
         </NavButton>
       </div>
     </nav>
@@ -89,29 +81,3 @@ function CoachIcon({ active }: { active: boolean }) {
   );
 }
 
-function SocialIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <circle cx="10" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5"
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
-      />
-      <circle cx="5" cy="9" r="2" stroke="currentColor" strokeWidth="1.3"/>
-      <circle cx="15" cy="9" r="2" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M3 16c0-2 1.5-3.5 3.5-3.5M17 16c0-2-1.5-3.5-3.5-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <path d="M6 17c0-2.5 1.8-4 4-4s4 1.5 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function EventsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
-      />
-      <path d="M3 8H17" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M7 2.5V5M13 2.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <circle cx="10" cy="12.5" r="1.5" fill="currentColor"/>
-    </svg>
-  );
-}

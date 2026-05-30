@@ -18,7 +18,7 @@ const DISTANCE_ICONS: Record<string, string> = {
   'Half Marathon': '🏅', 'Marathon': '👑',
 };
 
-export function RecordsPage() {
+export function RecordsPage({ embedded }: { embedded?: boolean } = {}) {
   const { data, isLoading } = useQuery({
     queryKey: ['records'],
     queryFn: () => api.get('/records').then(r => r.data),
@@ -29,9 +29,11 @@ export function RecordsPage() {
     queryFn: () => api.get('/records/timeline').then(r => r.data).catch(() => null),
   });
 
+  const Wrapper = embedded ? ({ children }: { children: React.ReactNode }) => <>{children}</> : AppShell;
+
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-6">
+    <Wrapper>
+      <motion.div variants={stagger} initial="hidden" animate="show" className={`space-y-5 ${embedded ? 'px-4 pb-2' : 'pb-6'}`}>
         {/* Header */}
         <motion.div variants={fadeUp}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-1">Performance</p>
@@ -159,6 +161,6 @@ export function RecordsPage() {
           </motion.div>
         )}
       </motion.div>
-    </AppShell>
+    </Wrapper>
   );
 }

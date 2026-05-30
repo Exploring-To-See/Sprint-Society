@@ -7,7 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useCountUp } from '../../hooks/useCountUp';
 import { playSound } from '../../lib/sounds';
 import { ChallengeList } from './ChallengeList';
-import { CoachCard } from './CoachCard';
+import { TodaySession } from './TodaySession';
+import { RecentRuns } from './RecentRuns';
 import { PaceDotTrail } from './PaceDotTrail';
 import { AthleteCard } from './AthleteCard';
 import { ProgressPill } from './ProgressPill';
@@ -175,19 +176,23 @@ export function Dashboard() {
         {/* ACTIVE USER STATE */}
         {!isNewUser && (
           <>
+            {/* Loading skeleton */}
+            {statsLoading && !stats && (
+              <motion.div variants={fadeUp} className="space-y-3">
+                <div className="h-[40px] rounded-xl bg-bg-secondary animate-pulse" />
+                <div className="h-[88px] rounded-xl bg-bg-secondary animate-pulse" />
+                <div className="h-[72px] rounded-xl bg-bg-secondary animate-pulse" />
+              </motion.div>
+            )}
+
             {/* Progress vs Plan */}
             <motion.div variants={fadeUp}>
               <ProgressPill />
             </motion.div>
 
-            {/* Coach Card */}
+            {/* Today's Session */}
             <motion.div variants={fadeUp}>
-              <CoachCard />
-            </motion.div>
-
-            {/* Pace Dot Trail */}
-            <motion.div variants={fadeUp}>
-              <PaceDotTrail />
+              <TodaySession streak={xp?.current_streak_days || 0} />
             </motion.div>
 
             {/* Stats Row */}
@@ -197,6 +202,16 @@ export function Dashboard() {
                 <StatCard label="KM" value={stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0} animate />
                 <StatCard label="Best" value={stats?.best_pace ? `${Math.floor(stats.best_pace / 60)}:${String(Math.round(stats.best_pace % 60)).padStart(2, '0')}` : '—'} />
               </div>
+            </motion.div>
+
+            {/* Pace Dot Trail */}
+            <motion.div variants={fadeUp}>
+              <PaceDotTrail />
+            </motion.div>
+
+            {/* Recent Runs */}
+            <motion.div variants={fadeUp}>
+              <RecentRuns />
             </motion.div>
 
             {/* Athlete Card */}
@@ -209,7 +224,7 @@ export function Dashboard() {
               <motion.div variants={fadeUp}>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-heading font-semibold text-[14px]">Challenges</h3>
-                  <button onClick={() => navigate('/challenges')} className="text-[10px] text-accent font-semibold">
+                  <button onClick={() => navigate('/challenges')} className="text-[11px] text-accent font-semibold">
                     See all
                   </button>
                 </div>
