@@ -4,8 +4,8 @@ import { TrainTab } from '../components/coach/TrainTab';
 import { ChatTab } from '../components/coach/ChatTab';
 import { AIAnalyticsTab } from '../components/coach/AIAnalyticsTab';
 
-const HRZonesPage = lazy(() => import('./HRZonesPage').then(m => ({ default: m.default || (m as any).HRZonesPage || Object.values(m)[0] })));
-const RecordsPage = lazy(() => import('./RecordsPage').then(m => ({ default: m.default || (m as any).RecordsPage || Object.values(m)[0] })));
+const HRZonesPage = lazy(() => import('./HRZonesPage').then(m => ({ default: m.HRZonesPage })));
+const RecordsPage = lazy(() => import('./RecordsPage').then(m => ({ default: m.RecordsPage })));
 
 type CoachSubTab = 'chat' | 'plan' | 'insights' | 'zones' | 'records';
 
