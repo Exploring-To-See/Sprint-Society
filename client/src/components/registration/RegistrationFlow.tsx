@@ -106,7 +106,8 @@ export function RegistrationFlow() {
         password: form.password,
         profile_photo: form.profile_photo_preview || undefined,
       });
-      navigate('/profiling');
+      // Use window.location to avoid PublicRoute redirect race condition
+      window.location.href = '/profiling';
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed');
       setSubmitting(false);
