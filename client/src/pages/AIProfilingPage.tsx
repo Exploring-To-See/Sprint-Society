@@ -580,11 +580,11 @@ function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
             className={`rounded-2xl bg-gradient-to-b ${coach.gradient} border border-accent/20 p-5 text-center`}
           >
             <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Estimated VO2max</p>
-            <p className="font-mono text-[40px] font-bold text-white">{dna.estimated_vo2max}</p>
+            <p className="font-mono text-[40px] font-bold text-white">{dna.estimated_vo2max ?? '--'}</p>
             <p className="text-[12px] text-zinc-400 mt-1">
               Classification: <span className={`font-semibold ${
                 dna.tier === 'advanced' ? 'text-accent-gold' : dna.tier === 'intermediate' ? 'text-accent' : 'text-accent-green'
-              }`}>{dna.tier.charAt(0).toUpperCase() + dna.tier.slice(1)} Runner</span>
+              }`}>{dna.tier ? dna.tier.charAt(0).toUpperCase() + dna.tier.slice(1) : 'Beginner'} Runner</span>
             </p>
           </motion.div>
 
@@ -595,14 +595,14 @@ function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
             <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Your Pace Zones</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Easy', pace: dna.pace_zones.easy, color: 'text-emerald-400' },
-                { label: 'Tempo', pace: dna.pace_zones.tempo, color: 'text-amber-400' },
-                { label: 'Interval', pace: dna.pace_zones.interval, color: 'text-red-400' },
-                { label: 'Race', pace: dna.pace_zones.race, color: 'text-accent' },
+                { label: 'Easy', pace: dna.pace_zones?.easy, color: 'text-emerald-400' },
+                { label: 'Tempo', pace: dna.pace_zones?.tempo, color: 'text-amber-400' },
+                { label: 'Interval', pace: dna.pace_zones?.interval, color: 'text-red-400' },
+                { label: 'Race', pace: dna.pace_zones?.race, color: 'text-accent' },
               ].map(z => (
                 <div key={z.label} className="flex items-baseline justify-between px-3 py-2.5 rounded-lg bg-bg-primary border border-bg-tertiary">
                   <span className="text-[11px] text-zinc-500">{z.label}</span>
-                  <span className={`font-mono font-bold text-[15px] ${z.color}`}>{z.pace}<span className="text-[11px] text-zinc-600">/km</span></span>
+                  <span className={`font-mono font-bold text-[15px] ${z.color}`}>{z.pace || '--'}<span className="text-[11px] text-zinc-600">/km</span></span>
                 </div>
               ))}
             </div>
@@ -612,7 +612,7 @@ function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}>
             <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mb-2">Your Runner Identity</h3>
             <div className="flex flex-wrap gap-2">
-              {dna.personality_tags.map((tag: string) => (
+              {(dna.personality_tags || []).map((tag: string) => (
                 <span key={tag} className="px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-semibold">
                   {tag}
                 </span>
@@ -626,7 +626,7 @@ function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
           >
             <div className="card p-3 space-y-2">
               <h4 className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">Strengths</h4>
-              {dna.strengths.map((s: string) => (
+              {(dna.strengths || []).map((s: string) => (
                 <p key={s} className="text-[11px] text-zinc-400 flex items-center gap-1.5">
                   <span className="text-emerald-400">+</span> {s}
                 </p>
@@ -634,7 +634,7 @@ function DNAReveal({ dna, onContinue }: { dna: any; onContinue: () => void }) {
             </div>
             <div className="card p-3 space-y-2">
               <h4 className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">Focus Areas</h4>
-              {dna.focus_areas.map((f: string) => (
+              {(dna.focus_areas || []).map((f: string) => (
                 <p key={f} className="text-[11px] text-zinc-400 flex items-center gap-1.5">
                   <span className="text-amber-400">→</span> {f}
                 </p>

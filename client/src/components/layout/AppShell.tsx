@@ -26,7 +26,9 @@ export function AppShell({ children, hideNav }: AppShellProps) {
   const unreadCount = unread?.count || 0;
   const profileImage = user?.profile_image_url;
   const userName = user?.name || 'Runner';
-  const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = userName.trim()
+    ? userName.split(' ').filter(Boolean).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'R';
 
   return (
     <div className={`min-h-screen bg-bg-primary ${hideNav ? '' : 'pb-20'}`}>

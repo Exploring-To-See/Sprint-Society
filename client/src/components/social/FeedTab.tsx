@@ -71,7 +71,7 @@ export function FeedTab() {
 
           {/* Run stats */}
           <div className="flex gap-4 text-[10px] text-zinc-500 font-semibold">
-            {activity.distance_km && <span>{activity.distance_km.toFixed(1)} km</span>}
+            {activity.distance_km != null && activity.distance_km > 0 && <span>{activity.distance_km.toFixed(1)} km</span>}
             {activity.pace_formatted && <span>{activity.pace_formatted}/km</span>}
             {activity.duration_formatted && <span>{activity.duration_formatted}</span>}
           </div>

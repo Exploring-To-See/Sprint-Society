@@ -4,7 +4,6 @@ import db from '../database/db';
 import {
   getAIProfile,
   updateAIProfile,
-  chatWithSonnet,
   evaluateTrainingWithHaiku,
   getTodayUsage,
   checkUsageLimit,
@@ -118,64 +117,8 @@ router.patch('/profile', (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/ai/chat — send a message to Sonnet coach
-router.post('/chat', async (req: AuthRequest, res: Response) => {
-  const { message } = req.body;
-
-  if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    return res.status(400).json({ error: 'Message is required' });
-  }
-
-  if (message.length > 2000) {
-    return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
-  }
-
-  // Check subscription tier — only pro/premium get AI chat
-  const subscription = db.prepare(`
-    SELECT plan_key FROM user_subscriptions
-    WHERE user_id = ? AND status = 'active' AND expires_at > datetime('now')
-    ORDER BY created_at DESC LIMIT 1
-  `).get(req.userId!) as any;
-
-  const planKey = subscription?.plan_key || 'free';
-  if (planKey === 'free') {
-    return res.status(403).json({
-      error: 'AI coaching requires a Pro or Premium subscription.',
-      upgrade_required: true,
-    });
-  }
-
-  // Get recent chat messages for context
-  const recentMessages = db.prepare(`
-    SELECT role, content FROM chat_messages
-    WHERE user_id = ? ORDER BY created_at DESC LIMIT 10
-  `).all(req.userId!) as any[];
-
-  // Reverse to get chronological order
-  recentMessages.reverse();
-
-  try {
-    const result = await chatWithSonnet(req.userId!, message.trim(), recentMessages);
-
-    if (result.error === 'limit_reached') {
-      return res.status(429).json({ error: result.response, limit_reached: true });
-    }
-
-    if (result.error === 'api_error') {
-      return res.status(503).json({ error: result.response });
-    }
-
-    // Store messages in chat history
-    const insertMsg = db.prepare('INSERT INTO chat_messages (user_id, role, content) VALUES (?, ?, ?)');
-    insertMsg.run(req.userId!, 'user', message.trim());
-    insertMsg.run(req.userId!, 'assistant', result.response);
-
-    res.json({ response: result.response });
-  } catch (err: any) {
-    console.error('[AI Routes] Chat error:', err.message);
-    res.status(500).json({ error: 'Coach had a moment — please try again.' });
-  }
-});
+// NOTE: Chat endpoint consolidated into /api/chat/message (chat.routes.ts)
+// Use /api/chat/message for all AI chat interactions
 
 // POST /api/ai/evaluate — trigger background Haiku evaluation (called after run sync)
 router.post('/evaluate', async (req: AuthRequest, res: Response) => {

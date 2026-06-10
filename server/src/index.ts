@@ -95,13 +95,18 @@ app.get('/api/health', (req, res) => {
 
 // Public announcements endpoint (runners see these on their dashboard)
 app.get('/api/announcements', (req, res) => {
-  const { default: db } = require('./database/db');
-  const announcements = db.prepare(`
-    SELECT a.id, a.title, a.body, a.pinned, a.created_at, u.name as author_name
-    FROM announcements a JOIN users u ON a.admin_id = u.id
-    ORDER BY a.pinned DESC, a.created_at DESC LIMIT 10
-  `).all();
-  res.json(announcements);
+  try {
+    const db = require('./database/db').default;
+    const announcements = db.prepare(`
+      SELECT a.id, a.title, a.body, a.pinned, a.created_at, COALESCE(u.name, 'System') as author_name
+      FROM announcements a LEFT JOIN users u ON a.admin_id = u.id
+      ORDER BY a.pinned DESC, a.created_at DESC LIMIT 10
+    `).all();
+    res.json(announcements);
+  } catch (err) {
+    console.error('[Announcements] Error:', err);
+    res.json([]);
+  }
 });
 
 if (config.nodeEnv === 'production') {

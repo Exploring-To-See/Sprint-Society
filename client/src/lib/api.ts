@@ -18,7 +18,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('sprint_society_token');
-      window.location.href = '/';
+      window.dispatchEvent(new CustomEvent('sprint:session-expired'));
     }
     return Promise.reject(error);
   }

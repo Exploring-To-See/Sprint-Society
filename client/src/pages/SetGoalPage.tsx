@@ -64,8 +64,9 @@ export function SetGoalPage() {
       setGenerating(false);
       setStep(3);
     },
-    onError: () => {
+    onError: (error: any) => {
       setGenerating(false);
+      alert(error?.response?.data?.error || 'Failed to generate your plan. Please try again.');
     },
   });
 

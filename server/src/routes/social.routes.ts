@@ -78,7 +78,8 @@ router.post('/kudos/:activityId', (req: AuthRequest, res: Response) => {
     if (e.message?.includes('UNIQUE')) {
       return res.status(409).json({ error: 'Already reacted' });
     }
-    throw e;
+    console.error('[Social] Kudos error:', e.message);
+    return res.status(500).json({ error: 'Failed to save reaction' });
   }
 });
 

@@ -140,6 +140,40 @@ export function executeRunCascade(payload: RunCompletedPayload): CascadeResult {
     latestPacePerKm: pacePerKm,
   });
 
+  // --- 5b. GOAL PROGRESS CHECK ---
+  let goalsCompleted: string[] = [];
+  const activeGoals = db.prepare(
+    `SELECT * FROM user_goals WHERE user_id = ? AND status = 'active'`
+  ).all(userId) as any[];
+
+  for (const goal of activeGoals) {
+    let completed = false;
+
+    if (goal.type === 'volume' && goal.target_km) {
+      const periodDays = goal.target_period === 'week' ? 7 : 30;
+      const periodKm = db.prepare(`
+        SELECT COALESCE(SUM(distance_meters), 0) / 1000.0 as km
+        FROM activities WHERE user_id = ? AND start_date >= datetime('now', '-${periodDays} days') AND deleted_at IS NULL
+      `).get(userId) as any;
+      if (periodKm.km >= goal.target_km) completed = true;
+    } else if (goal.type === 'pace' && goal.target_pace_per_km && pacePerKm > 0) {
+      if (pacePerKm <= goal.target_pace_per_km && distanceMeters >= (goal.distance_meters || 3000)) {
+        completed = true;
+      }
+    } else if (goal.type === 'race' && goal.target_time_seconds && goal.distance_meters) {
+      if (distanceMeters >= goal.distance_meters * 0.95 && movingTimeSeconds <= goal.target_time_seconds) {
+        completed = true;
+      }
+    }
+
+    if (completed) {
+      db.prepare('UPDATE user_goals SET status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run('completed', goal.id);
+      createNotification(userId, 'goal_completed', 'Goal Achieved!', `You hit ${goal.name || 'your goal'}!`);
+      goalsCompleted.push(goal.name || goal.type);
+    }
+  }
+
   // --- 6. LEVEL-UP CHECK (after all XP awarded including achievements) ---
   const xpAfter = db.prepare('SELECT total_xp FROM user_xp WHERE user_id = ?').get(userId) as any;
   const newTotalXp = xpAfter?.total_xp || 0;
@@ -184,6 +218,7 @@ export function executeRunCascade(payload: RunCompletedPayload): CascadeResult {
     notifications: { created: notificationsCreated },
     streak: { current: currentStreak, longest: longestStreak, extended: streakExtended },
     personalBest: { isPB, type: pbType, previousBest },
+    goals: { completed: goalsCompleted },
     validation: {
       suspicious: validation.suspicious,
       flags: validation.flags,

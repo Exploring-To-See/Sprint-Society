@@ -289,7 +289,7 @@ export function RunTrackerPage() {
     if (km >= 3) score += 10;
     if (km >= 5) score += 10;
     if (km >= 10) score += 10;
-    if (splits.length >= 2) {
+    if (splits.length >= 2 && avgPace > 0) {
       const variance = splits.reduce((sum, s) => sum + Math.abs(s.time_seconds - avgPace), 0) / splits.length;
       if (variance < avgPace * 0.1) score += 10; // consistent
     }
@@ -495,10 +495,10 @@ export function RunTrackerPage() {
               Share Card
             </button>
             <button
-              onClick={discardRun}
+              onClick={() => navigate('/dashboard', { state: { fromRun: true } })}
               className="flex-1 py-3 rounded-xl bg-accent text-[13px] font-semibold text-white active:scale-95 transition-all"
             >
-              Done
+              Back to Dashboard
             </button>
           </div>
         </motion.div>

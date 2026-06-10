@@ -101,12 +101,28 @@ router.get('/week', (req: AuthRequest, res: Response) => {
   const weeksSinceStart = Math.floor((Date.now() - startDate.getTime()) / (7 * 86400000));
   const currentWeekIndex = Math.min(weeksSinceStart, plan.weeks.length - 1);
 
+  // Wellness-adjusted intensity
+  const today = new Date().toISOString().split('T')[0];
+  const wellness = db.prepare(
+    'SELECT sleep_hours, stress_level, energy_level FROM daily_wellness WHERE user_id = ? AND date = ?'
+  ).get(req.userId, today) as any;
+
+  let recoveryFactor = 1.0;
+  if (wellness) {
+    if (wellness.sleep_hours && wellness.sleep_hours < 6) recoveryFactor -= 0.12;
+    if (wellness.stress_level && wellness.stress_level >= 8) recoveryFactor -= 0.10;
+    if (wellness.energy_level && wellness.energy_level <= 3) recoveryFactor -= 0.08;
+    recoveryFactor = Math.max(0.6, recoveryFactor);
+  }
+
   res.json({
     current_week: currentWeekIndex + 1,
     total_weeks: plan.total_weeks,
     week: plan.weeks[currentWeekIndex],
     training_paces: plan.training_paces,
     vdot: plan.vdot,
+    recovery_factor: recoveryFactor,
+    wellness_logged: !!wellness,
   });
 });
 

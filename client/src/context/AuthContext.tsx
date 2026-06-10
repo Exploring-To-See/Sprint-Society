@@ -42,6 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
+  useEffect(() => {
+    const handleSessionExpired = () => { setToken(null); setUser(null); };
+    window.addEventListener('sprint:session-expired', handleSessionExpired);
+    return () => window.removeEventListener('sprint:session-expired', handleSessionExpired);
+  }, []);
+
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('sprint_society_token', res.data.token);

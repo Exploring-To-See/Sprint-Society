@@ -20,8 +20,11 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   const { email } = parsed.data;
   const user = db.prepare('SELECT id, name, email FROM users WHERE email = ?').get(email) as any;
 
-  // Always return success to prevent email enumeration
-  if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
+  // Always return success to prevent email enumeration (with timing normalization)
+  if (!user) {
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+    return res.json({ message: 'If that email exists, a reset link has been sent.' });
+  }
 
   // Rate limit: max 3 tokens per user per hour
   const recentTokens = db.prepare(
