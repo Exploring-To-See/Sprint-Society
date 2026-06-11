@@ -260,6 +260,7 @@ export function RunTrackerPage() {
           elevation_gain: Math.round(elevationGain),
           splits: JSON.stringify(splits),
           rpe,
+          map_polyline: routeCoords.length > 1 ? JSON.stringify(routeCoords) : null,
         }),
       });
       const data = await res.json();

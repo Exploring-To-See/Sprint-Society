@@ -12,11 +12,14 @@ import { formatPace, formatDistance, formatDuration, formatDate } from '../lib/f
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
 
-type TemplateName = 'dark_minimal' | 'gradient_pace' | 'achievement' | 'streak_fire' | 'race_recap' | 'neon_glow' | 'gold_elite' | 'midnight_run';
+import { RouteShape } from '../components/share/RouteShape';
+
+type TemplateName = 'dark_minimal' | 'gradient_pace' | 'achievement' | 'streak_fire' | 'race_recap' | 'photo_route' | 'neon_glow' | 'gold_elite' | 'midnight_run';
 
 const TEMPLATES: { key: TemplateName; label: string; icon: string; premium?: boolean }[] = [
   { key: 'dark_minimal', label: 'Dark', icon: '🖤' },
   { key: 'gradient_pace', label: 'Gradient', icon: '🌈' },
+  { key: 'photo_route', label: 'Photo', icon: '📸' },
   { key: 'achievement', label: 'Achievement', icon: '🏆' },
   { key: 'streak_fire', label: 'Streak', icon: '🔥' },
   { key: 'race_recap', label: 'Recap', icon: '📊' },
@@ -25,17 +28,57 @@ const TEMPLATES: { key: TemplateName; label: string; icon: string; premium?: boo
   { key: 'midnight_run', label: 'Midnight', icon: '🌙', premium: true },
 ];
 
-function CardTemplate({ template, run, userName, streak, tier }: {
+function CardTemplate({ template, run, userName, streak, tier, backgroundImage }: {
   template: TemplateName;
   run: any;
   userName: string;
   streak?: number;
   tier?: string;
+  backgroundImage?: string | null;
 }) {
   const distance = formatDistance(run.distance_meters);
   const pace = formatPace(run.average_pace_per_km);
   const duration = formatDuration(run.moving_time_seconds);
   const date = formatDate(run.start_date);
+  const hasRoute = !!run.map_polyline;
+
+  if (template === 'photo_route') {
+    return (
+      <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden flex flex-col justify-end">
+        {backgroundImage ? (
+          <img src={backgroundImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 to-zinc-950" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        {hasRoute && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <RouteShape polyline={run.map_polyline} width={280} height={280} strokeColor="#ffffff" strokeWidth={3} opacity={backgroundImage ? 0.5 : 0.15} />
+          </div>
+        )}
+        <div className="relative z-10 p-6 space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center">
+              <p className="font-mono text-lg font-bold text-white">{distance}</p>
+              <p className="text-white/50 text-[10px] uppercase">km</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center">
+              <p className="font-mono text-lg font-bold text-white">{pace}</p>
+              <p className="text-white/50 text-[10px] uppercase">/km</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center">
+              <p className="font-mono text-lg font-bold text-white">{duration}</p>
+              <p className="text-white/50 text-[10px] uppercase">time</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-white/10">
+            <p className="text-white/80 text-xs font-medium">{userName}</p>
+            <span className="font-heading text-[11px] font-bold text-white/60 tracking-tight">Sprint Society</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (template === 'gradient_pace') {
     return (
@@ -326,10 +369,14 @@ function CardTemplate({ template, run, userName, streak, tier }: {
           Sprint <span className="text-accent-green">Society</span>
         </span>
       </div>
-      <div className="flex-1 flex items-center justify-center mb-6">
-        <div className="w-32 h-32 rounded-full border-2 border-accent-green/20 flex items-center justify-center">
-          <span className="text-4xl">🏃</span>
-        </div>
+      <div className="flex-1 flex items-center justify-center mb-6 relative">
+        {hasRoute ? (
+          <RouteShape polyline={run.map_polyline} width={200} height={160} strokeColor="#22c55e" strokeWidth={2.5} opacity={0.4} />
+        ) : (
+          <div className="w-32 h-32 rounded-full border-2 border-accent-green/20 flex items-center justify-center">
+            <span className="text-4xl">🏃</span>
+          </div>
+        )}
       </div>
       <div className="space-y-4">
         <div className="text-center">
@@ -373,7 +420,9 @@ export function SharePage() {
   const [activeTemplate, setActiveTemplate] = useState<TemplateName>('dark_minimal');
   const [downloading, setDownloading] = useState(false);
   const [skinToBuy, setSkinToBuy] = useState<TemplateName | null>(null);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const { data } = useQuery({
     queryKey: ['runs-for-share'],
@@ -541,6 +590,32 @@ export function SharePage() {
               })}
             </div>
 
+            {/* Background image picker for photo template */}
+            {activeTemplate === 'photo_route' && (
+              <div className="max-w-[320px] mx-auto">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB'); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => setBackgroundImage(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  className="w-full py-2.5 rounded-lg border border-dashed border-zinc-700 text-[11px] font-semibold text-zinc-400 hover:text-accent hover:border-accent/30 transition-colors mb-3"
+                >
+                  {backgroundImage ? '📸 Change background photo' : '📸 Add background photo'}
+                </button>
+              </div>
+            )}
+
             {/* Card preview */}
             <div ref={cardRef} className="max-w-[320px] mx-auto">
               <CardTemplate
@@ -549,6 +624,7 @@ export function SharePage() {
                 userName={user?.name || 'Runner'}
                 streak={xp?.current_streak_days}
                 tier={tier?.tier}
+                backgroundImage={activeTemplate === 'photo_route' ? backgroundImage : null}
               />
             </div>
 

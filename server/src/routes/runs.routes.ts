@@ -142,9 +142,11 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'Run data appears invalid — speed exceeds human limits. GPS may have glitched.', anomalies });
   }
 
+  const { map_polyline } = req.body;
+
   const result = db.prepare(`
-    INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type, elevation_gain, splits, rpe)
-    VALUES (?, ?, ?, ?, ?, ?, 'Run', ?, ?, ?)
+    INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type, elevation_gain, splits, rpe, map_polyline)
+    VALUES (?, ?, ?, ?, ?, ?, 'Run', ?, ?, ?, ?)
   `).run(
     req.userId,
     distance_meters,
@@ -154,7 +156,8 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
     start_date || new Date().toISOString(),
     elevation_gain || null,
     splits || null,
-    rpe || null
+    rpe || null,
+    map_polyline || null
   );
 
   const cascade = executeRunCascade({
