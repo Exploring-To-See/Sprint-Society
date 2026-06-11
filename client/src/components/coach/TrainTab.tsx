@@ -18,15 +18,23 @@ export function TrainTab() {
     queryFn: () => api.get('/training/week').then(r => r.data),
   });
 
+  const { data: goals } = useQuery({
+    queryKey: ['user-goals'],
+    queryFn: () => api.get('/goals').then(r => r.data),
+  });
+
   const { data: preRun } = useQuery({
     queryKey: ['pre-run-brief'],
     queryFn: () => api.get('/insights/pre-run').then(r => r.data).catch(() => null),
   });
 
-  const goalName = plan?.race_name || plan?.goal_name || 'No goal set';
-  const daysLeft = plan?.race_date ? Math.ceil((new Date(plan.race_date).getTime() - Date.now()) / 86400000) : null;
-  const currentWeek = plan?.current_week || 1;
-  const totalWeeks = plan?.total_weeks || 8;
+  const activeGoals = goals?.active || [];
+  const hasGoal = activeGoals.length > 0;
+  const primaryGoal = activeGoals[0];
+  const goalName = primaryGoal?.name || plan?.race_name || plan?.goal_name || 'Training Plan';
+  const daysLeft = primaryGoal?.target_date ? Math.ceil((new Date(primaryGoal.target_date).getTime() - Date.now()) / 86400000) : null;
+  const currentWeek = week?.current_week || plan?.current_week || 1;
+  const totalWeeks = week?.total_weeks || plan?.total_weeks || 8;
   const phase = plan?.current_phase || 'Base';
 
   const sessions: any[] = week?.sessions || [];
@@ -56,7 +64,7 @@ export function TrainTab() {
   return (
     <div className="space-y-3">
       {/* No goal state — CTA to set goal */}
-      {!plan && (
+      {!hasGoal && !plan && (
         <div className="rounded-xl bg-gradient-to-br from-accent/[0.06] to-bg-secondary border border-accent/15 p-5 text-center">
           <span className="text-3xl mb-3 block">🎯</span>
           <h3 className="text-[14px] font-bold text-white mb-2">Set your running goal</h3>
@@ -67,21 +75,38 @@ export function TrainTab() {
         </div>
       )}
 
-      {/* Goal + On-track row */}
-      {plan && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/[0.03] border border-accent/15">
-          <div className="flex-1">
-            <p className="text-[12px] font-bold text-white">{goalName}</p>
-            <p className="text-[11px] text-zinc-500">{daysLeft ? `${daysLeft} days` : ''} · {phase} phase</p>
-          </div>
-          <div className="px-2.5 py-1 rounded-full bg-accent-green/10 border border-accent-green/20">
-            <span className="text-[10px] font-bold text-accent-green">✓ On track</span>
-          </div>
+      {/* Goal(s) display */}
+      {(hasGoal || plan) && (
+        <div className="space-y-2">
+          {activeGoals.map((goal: any) => (
+            <div key={goal.id} className="flex items-center gap-3 p-3 rounded-xl bg-accent/[0.03] border border-accent/15">
+              <div className="flex-1">
+                <p className="text-[12px] font-bold text-white">{goal.name || goal.type}</p>
+                <p className="text-[11px] text-zinc-500">
+                  {goal.target_date ? `${Math.ceil((new Date(goal.target_date).getTime() - Date.now()) / 86400000)} days` : ''}
+                  {goal.target_date && phase ? ' · ' : ''}{phase} phase
+                </p>
+              </div>
+              <div className="px-2.5 py-1 rounded-full bg-accent-green/10 border border-accent-green/20">
+                <span className="text-[10px] font-bold text-accent-green">✓ Active</span>
+              </div>
+            </div>
+          ))}
+          {!hasGoal && plan && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/[0.03] border border-accent/15">
+              <div className="flex-1">
+                <p className="text-[12px] font-bold text-white">{goalName}</p>
+                <p className="text-[11px] text-zinc-500">{phase} phase · Week {currentWeek}/{totalWeeks}</p>
+              </div>
+            </div>
+          )}
+          <button onClick={() => navigate('/set-goal')} className="w-full py-2.5 rounded-lg border border-dashed border-zinc-700 text-[11px] font-semibold text-zinc-500 hover:text-accent hover:border-accent/30 transition-colors">
+            + Add another goal
+          </button>
         </div>
       )}
 
-      {!plan && null}
-      {plan && <>
+      {(plan || week) && <>
       {/* Week header + See full plan */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Week {currentWeek}</span>

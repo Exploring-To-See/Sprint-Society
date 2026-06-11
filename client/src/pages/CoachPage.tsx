@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { TrainTab } from '../components/coach/TrainTab';
 import { ChatTab } from '../components/coach/ChatTab';
@@ -18,7 +19,9 @@ const TABS: { key: CoachSubTab; label: string }[] = [
 ];
 
 export function CoachPage() {
-  const [activeTab, setActiveTab] = useState<CoachSubTab>('chat');
+  const location = useLocation();
+  const initialTab = (location.state as any)?.tab || 'chat';
+  const [activeTab, setActiveTab] = useState<CoachSubTab>(initialTab);
 
   return (
     <AppShell>

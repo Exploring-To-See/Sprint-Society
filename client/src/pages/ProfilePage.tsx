@@ -638,7 +638,7 @@ export function ProfilePage() {
                 const reader = new FileReader();
                 reader.onload = async () => {
                   try {
-                    await api.put('/auth/profile', { profile_photo: reader.result });
+                    await api.patch('/profile/photo', { photo: reader.result });
                     queryClient.invalidateQueries({ queryKey: ['profile'] });
                   } catch { alert('Upload failed'); }
                 };

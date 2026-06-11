@@ -11,10 +11,11 @@ export function ProgressRing({ currentDistance, goalDistance, currentPace, targe
   const circumference = 2 * Math.PI * 72;
   const dashOffset = circumference * (1 - progress);
 
-  const inZone = currentPace >= targetPaceMin && currentPace <= targetPaceMax;
-  const tooSlow = currentPace > targetPaceMax;
-  const paceColor = inZone ? '#22c55e' : tooSlow ? '#ef4444' : '#f59e0b';
-  const paceLabel = inZone ? 'IN ZONE' : tooSlow ? 'SLOW DOWN' : 'TOO FAST';
+  const isStationary = currentPace <= 0 || currentPace < 120;
+  const inZone = !isStationary && currentPace >= targetPaceMin && currentPace <= targetPaceMax;
+  const tooSlow = !isStationary && currentPace > targetPaceMax;
+  const paceColor = isStationary ? '#71717a' : inZone ? '#22c55e' : tooSlow ? '#ef4444' : '#f59e0b';
+  const paceLabel = isStationary ? 'WAITING' : inZone ? 'IN ZONE' : tooSlow ? 'SLOW DOWN' : 'TOO FAST';
 
   function formatPace(sec: number): string {
     const m = Math.floor(sec / 60);

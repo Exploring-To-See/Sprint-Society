@@ -80,7 +80,7 @@ export function PlanPage() {
       <div className="pb-8">
         {/* Header */}
         <div className="mb-5">
-          <button onClick={() => navigate(-1)} className="text-[11px] text-zinc-500 mb-2 flex items-center gap-1">
+          <button onClick={() => navigate('/coach', { state: { tab: 'plan' } })} className="text-[11px] text-zinc-500 mb-2 flex items-center gap-1">
             <span>←</span> Back to Coach
           </button>
           <h1 className="text-[18px] font-bold text-white">{goalName}</h1>

@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (token) {
-      api.get('/auth/me')
+      api.get('/auth/me', { timeout: 10000 })
         .then(res => setUser(res.data))
         .catch(() => { localStorage.removeItem('sprint_society_token'); setToken(null); })
         .finally(() => setLoading(false));

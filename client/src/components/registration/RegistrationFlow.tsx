@@ -105,7 +105,6 @@ export function RegistrationFlow() {
         phone: form.phone,
         password: form.password,
       });
-      // Use window.location to avoid PublicRoute redirect race condition
       window.location.href = '/profiling';
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed');

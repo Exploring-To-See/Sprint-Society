@@ -9,7 +9,9 @@ export function ZoneBar({ currentPace, targetPaceMin, targetPaceMax }: ZoneBarPr
   const fastBound = targetPaceMin - 60;
   const range = slowBound - fastBound;
 
-  const position = Math.max(0, Math.min(100, ((slowBound - currentPace) / range) * 100));
+  // When not moving (pace = 0 or unreasonably fast), hide the marker
+  const isStationary = currentPace <= 0 || currentPace < 120;
+  const position = isStationary ? 50 : Math.max(0, Math.min(100, ((slowBound - currentPace) / range) * 100));
 
   function formatPace(sec: number): string {
     const m = Math.floor(sec / 60);
@@ -29,7 +31,7 @@ export function ZoneBar({ currentPace, targetPaceMin, targetPaceMax }: ZoneBarPr
       {/* Position marker */}
       <div className="relative -mt-[13px] h-[13px]">
         <div
-          className="absolute w-[3px] h-[13px] bg-white rounded-sm shadow-[0_0_6px_rgba(255,255,255,0.6)] transition-all duration-300"
+          className={`absolute w-[3px] h-[13px] bg-white rounded-sm shadow-[0_0_6px_rgba(255,255,255,0.6)] transition-all duration-300 ${isStationary ? 'opacity-30' : 'opacity-100'}`}
           style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
         />
       </div>
