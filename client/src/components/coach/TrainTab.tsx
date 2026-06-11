@@ -37,14 +37,28 @@ export function TrainTab() {
   const totalWeeks = week?.total_weeks || plan?.total_weeks || 8;
   const phase = plan?.current_phase || 'Base';
 
-  const sessions: any[] = week?.sessions || [];
+  const rawSessions: any[] = week?.sessions || week?.week?.sessions || [];
   const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+
+  // Map sessions by day number (1=Mon, 7=Sun) → index (0=Mon, 6=Sun)
+  const sessionsByDay: Record<number, any> = {};
+  for (const s of rawSessions) {
+    if (s.day) sessionsByDay[s.day - 1] = s;
+  }
+  // Fallback: if sessions don't have .day, use array index
+  if (rawSessions.length > 0 && !rawSessions[0]?.day) {
+    rawSessions.forEach((s, i) => { sessionsByDay[i] = s; });
+  }
 
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+  function getSessionForDay(index: number) {
+    return sessionsByDay[index] || null;
+  }
+
   function getDayStatus(index: number) {
-    const session = sessions[index];
-    if (!session) return 'rest';
+    const session = getSessionForDay(index);
+    if (!session || session.type === 'rest') return 'rest';
     if (session.completed) return 'done';
     if (index < today) return 'missed';
     if (index === today) return 'today';
@@ -119,7 +133,7 @@ export function TrainTab() {
       <div className="flex gap-1">
         {dayLabels.map((label, i) => {
           const status = getDayStatus(i);
-          const session = sessions[i];
+          const session = getSessionForDay(i);
           const dateNum = new Date(Date.now() + (i - today) * 86400000).getDate();
 
           return (
@@ -149,7 +163,7 @@ export function TrainTab() {
           >
             <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 space-y-3">
               {(() => {
-                const session = sessions[expandedDay];
+                const session = getSessionForDay(expandedDay);
                 const status = getDayStatus(expandedDay);
 
                 if (!session || session.type === 'rest') {
@@ -165,12 +179,13 @@ export function TrainTab() {
                   <>
                     <div>
                       <p className={`text-[13px] font-bold ${status === 'done' ? 'text-accent-green' : status === 'today' ? 'text-accent' : 'text-white'}`}>
-                        {status === 'done' ? '✓ ' : status === 'today' ? '→ ' : ''}{dayLabels[expandedDay]} — {session.name || session.type}
+                        {status === 'done' ? '✓ ' : status === 'today' ? '→ ' : ''}{dayLabels[expandedDay]} — {session.title || session.name || session.type}
                       </p>
                       <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
                         <span className="text-white font-medium">Target:</span> {session.target_pace || session.description || 'Follow coach guidance'}<br/>
                         {session.why && <><span className="text-white font-medium">Why:</span> {session.why}<br/></>}
-                        {session.duration && <><span className="text-white font-medium">Duration:</span> ~{session.duration}min</>}
+                        {(session.duration_minutes || session.duration) && <><span className="text-white font-medium">Duration:</span> ~{session.duration_minutes || session.duration}min</>}
+                        {session.distance_km && <><br/><span className="text-white font-medium">Distance:</span> {session.distance_km}km</>}
                       </p>
                     </div>
 
