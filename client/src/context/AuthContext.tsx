@@ -20,6 +20,7 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
+  googleLogin: (credential: string) => Promise<{ isNew?: boolean }>;
   logout: () => void;
   loading: boolean;
 }
@@ -62,6 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.data.user);
   };
 
+  const googleLogin = async (credential: string): Promise<{ isNew?: boolean }> => {
+    const res = await api.post('/auth/google', { credential });
+    localStorage.setItem('sprint_society_token', res.data.token);
+    setToken(res.data.token);
+    setUser(res.data.user);
+    return { isNew: res.data.isNew };
+  };
+
   const logout = () => {
     localStorage.removeItem('sprint_society_token');
     setToken(null);
@@ -69,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, googleLogin, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

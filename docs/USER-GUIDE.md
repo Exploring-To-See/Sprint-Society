@@ -10,8 +10,15 @@ Sprint Society is an AI-powered run club app that tracks your runs, coaches your
 
 ### 1. Create Your Account
 
-- Open the app and tap **Sign Up**
-- Enter your name, email, and password
+**Option A: Sign in with Google (Recommended)**
+- Tap **Continue with Google** on the home screen
+- Select your Google account — done in 2 seconds
+- New users are taken to AI Profiling automatically
+
+**Option B: Sign up with Email**
+- Tap **Join with Email**
+- Enter your name, phone, email, and password
+- Add a profile photo (optional)
 - Fill in your profile:
   - Gender, age, height, weight
   - Current activity level (sedentary → very active)

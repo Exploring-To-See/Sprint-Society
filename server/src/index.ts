@@ -43,6 +43,7 @@ import adminAuditRoutes from './routes/admin-audit.routes';
 import adminEngineeringRoutes from './routes/admin-engineering.routes';
 import adminModerationRoutes from './routes/admin-moderation.routes';
 import insightsRoutes from './routes/insights.routes';
+import googleAuthRoutes from './routes/google-auth.routes';
 import { startScheduler } from './scheduler';
 
 const app = express();
@@ -54,6 +55,7 @@ app.use(sanitizeInput);
 app.use('/api', generalLimiter);
 
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authLimiter, googleAuthRoutes);
 app.use('/api/auth', authLimiter, passwordRoutes);
 app.use('/api/runs', runsRoutes);
 app.use('/api/coaching', coachingRoutes);

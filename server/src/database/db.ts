@@ -135,6 +135,16 @@ function runMigrations() {
   if (!communityCols.find((c: any) => c.name === 'deleted_at')) {
     db.exec("ALTER TABLE communities ADD COLUMN deleted_at DATETIME");
   }
+
+  // Google OAuth: add google_id column to users
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as any[];
+  if (!userCols.find((c: any) => c.name === 'google_id')) {
+    db.exec("ALTER TABLE users ADD COLUMN google_id TEXT");
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL");
+  }
+
+  // Allow password_hash to be NULL for Google-only users
+  // SQLite can't alter column constraints, but since we use INSERT we just allow NULL in code
 }
 
 function seedAdmin() {

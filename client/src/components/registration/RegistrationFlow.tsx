@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
+import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 
 interface FormData {
   name: string;
@@ -165,6 +166,18 @@ export function RegistrationFlow() {
                 <motion.div variants={fadeUp}>
                   <h2 className="font-heading text-2xl font-bold mb-1">Join the Sprint Society</h2>
                   <p className="text-zinc-500 text-sm">Quick setup — takes 30 seconds</p>
+                </motion.div>
+                <motion.div variants={fadeUp}>
+                  <GoogleSignInButton
+                    text="signup_with"
+                    onSuccess={() => { window.location.href = '/profiling'; }}
+                    onError={(msg) => setError(msg)}
+                  />
+                </motion.div>
+                <motion.div variants={fadeUp} className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-bg-tertiary" />
+                  <span className="text-[11px] text-zinc-600 font-medium">or sign up with email</span>
+                  <div className="flex-1 h-px bg-bg-tertiary" />
                 </motion.div>
                 <motion.div variants={fadeUp} className="space-y-3">
                   <input

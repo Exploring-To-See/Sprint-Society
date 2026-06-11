@@ -80,8 +80,16 @@ Pinned posts always show first. Delete old announcements to keep the feed fresh.
 ### User Journey
 
 ```
-Sign Up → Profile Setup → Connect Strava → Run → Auto-Sync → Tier Calculated → Challenges Generated → XP Earned → Level Up
+Sign Up (Google or Email) → AI Profiling → Set Goal → Training Plan → Run → Auto-Sync → Tier Calculated → Challenges Generated → XP Earned → Level Up
 ```
+
+### Authentication
+
+Two sign-in methods:
+- **Google OAuth2** — "Continue with Google" button using Google Identity Services. Zero password friction. New users get auto-created with Google profile data (name, email, photo). Existing users with matching email get their account linked.
+- **Email/Password** — Traditional registration with bcrypt hashing. Phone number also supported for login.
+
+Backend verifies Google's `id_token` using their public JWKS certs. No third-party auth service (no Firebase, no Auth0). All sessions use our own JWT (7-day expiry).
 
 ### Tier Classification Engine
 
@@ -276,6 +284,8 @@ Client (React + Vite)  →  Server (Express + TypeScript)  →  SQLite DB
 | `DATABASE_URL` | SQLite file path |
 | `CLIENT_URL` | Frontend URL (for CORS) |
 | `ANTHROPIC_API_KEY` | Claude AI coaching (optional — degrades gracefully) |
+| `GOOGLE_CLIENT_ID` | Google OAuth2 client ID (enables "Sign in with Google") |
+| `VITE_GOOGLE_CLIENT_ID` | Same value as GOOGLE_CLIENT_ID (exposed to frontend at build time) |
 
 ### Database
 

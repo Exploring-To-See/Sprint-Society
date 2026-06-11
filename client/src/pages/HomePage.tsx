@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 
 const cards = [
   { title: 'AI Coach', description: 'Your plan adapts after every run.' },
@@ -329,8 +330,19 @@ export function HomePage() {
 
                 {/* CTA */}
                 <div className="pt-4 space-y-2.5">
+                  <GoogleSignInButton
+                    text="continue_with"
+                    onSuccess={(isNew) => { window.location.href = isNew ? '/profiling' : '/dashboard'; }}
+                    onError={(msg) => setError(msg)}
+                  />
+                  {error && <p className="text-red-400 text-[11px] text-center">{error}</p>}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-bg-tertiary" />
+                    <span className="text-[11px] text-zinc-600 font-medium">or</span>
+                    <div className="flex-1 h-px bg-bg-tertiary" />
+                  </div>
                   <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
-                    Join Sprint Society
+                    Join with Email
                   </Button>
                   <button
                     onClick={() => setShowLogin(true)}
@@ -356,6 +368,16 @@ export function HomePage() {
                 <div className="text-center mb-4">
                   <h2 className="font-heading text-xl font-bold text-white">Welcome back</h2>
                   <p className="text-zinc-500 text-sm mt-1">Log in to continue your journey</p>
+                </div>
+                <GoogleSignInButton
+                  text="signin_with"
+                  onSuccess={() => { window.location.href = '/dashboard'; }}
+                  onError={(msg) => setError(msg)}
+                />
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-bg-tertiary" />
+                  <span className="text-[11px] text-zinc-600 font-medium">or</span>
+                  <div className="flex-1 h-px bg-bg-tertiary" />
                 </div>
                 <input type="text" placeholder="Email or phone number" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors" autoFocus />
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />

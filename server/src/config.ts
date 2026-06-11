@@ -34,4 +34,7 @@ export const config = {
   },
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+  },
 };
