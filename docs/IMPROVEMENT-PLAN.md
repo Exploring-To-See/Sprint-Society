@@ -1,4 +1,4 @@
-# Sprint Society — Production Plan v2 (Kendu Coach)
+# Sprint Society — Production Plan v2 (AI Coach)
 
 > Decisions locked 2026-06-12 after founder Q&A. Supersedes v1 sections where they
 > conflict. Execute as Opus 4.6 waves — ready-to-run prompts in §8.
@@ -28,7 +28,7 @@ token system. Problems are execution-level:
 ## 1. Locked product decisions
 
 ### Brand & personas
-- Feature name: **Kendu Coach** ("Kendu = Can Do"). One Kendu, four coaches inside it.
+- Naming: the feature stays the **AI Coach** — no separate brand name. (Kendu remains the in-app currency only.)
 - **4 personas ship verbatim from Ishan-AI-Coach** (`agent/personas.py`) — The
   Scientist, The Energizer, The Warrior, The Sage. Do NOT rewrite their voices.
 - Persona colors **everything**: training plan prose, weekly summaries, pre/post-run
@@ -166,8 +166,8 @@ never hallucinate; the LLM never does math.
 |---|---|---|
 | 1 | (a) tier fix + model-ID fix + gating audit, (b) silent failures + API envelope, (c) N+1 + indexes + timezone column, (d) env validation + feature-flag wiring (kill switch) | Nothing broken for a paying user |
 | 2 | (a) batch endpoints + client adoption, (b) animation/bundle/image budget, (c) WebSocket notifications | Strava feel |
-| 3 | (a) RAG pipeline + corpus import + DB corpus store, (b) memory v2 + guardrails, (c) personas + prompt assembly + persona suggestion + level-name layer | Kendu Coach brain |
-| 4 | (a) agent tool loop + streaming chat endpoint + budget caps, (b) Base generation pipeline (batch jobs), (c) chat UI + voice + chips + languages | Kendu Coach live |
+| 3 | (a) RAG pipeline + corpus import + DB corpus store, (b) memory v2 + guardrails, (c) personas + prompt assembly + persona suggestion + level-name layer | AI Coach brain |
+| 4 | (a) agent tool loop + streaming chat endpoint + budget caps, (b) Base generation pipeline (batch jobs), (c) chat UI + voice + chips + languages | AI Coach live |
 | 5 | (a) proactive nudges + check-ins + event awareness, (b) corpus admin editor + AI enhancement queue, (c) AI Profile page + metrics dashboard | Smart app |
 | 6 | (a) tests + CI, (b) logging + Sentry + backups, (c) Razorpay end-to-end + subscription lifecycle, (d) design polish pass (type scale, icons, skeletons, persona picker) | Production ready |
 | 7 | `/audit` + `/sprint-team` review, fix wave, beta-day flag review | Launch |
@@ -253,7 +253,7 @@ Port the 4 personas VERBATIM from Ishan-AI-Coach agent/personas.py (The Scientis
 The Energizer, The Warrior, The Sage — do not rewrite their voice definitions) into
 server/src/ai/personas.ts. Build promptAssembly.ts producing the layered system
 prompt in CACHE-FRIENDLY order: [cached prefix: base identity ("You are <persona>,
-a Kendu Coach for Sprint Society"), persona voice block + few-shot lines from
+an AI running coach for Sprint Society"), persona voice block + few-shot lines from
 coach_*.md, safety rules, language rule ("mirror the user's language — English,
 Hindi, or Hinglish — and keep technical terms simple")] + cache_control breakpoint +
 [volatile: runner profile, never-forget memories, decayed memories, RAG chunks,

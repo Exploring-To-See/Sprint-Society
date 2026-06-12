@@ -1,47 +1,50 @@
-# Kendu Coach — AI Coach Specification (Authoritative)
+# Sprint Society — AI Coach Specification (Authoritative)
 
 > **Audience:** the engineer building the AI coach.
 > **Status:** This document is the single source of truth for what the AI coach does
-> in Sprint Society. If the Ishan-AI-Coach prototype, the RAG experiments, or your
-> own judgment conflict with this document — **this document wins.** If something
-> here is ambiguous, ask the founder; do not improvise.
+> in Sprint Society — its role, responsibilities, and mechanics for the ₹9 and ₹99
+> tiers. Build capabilities freely; but what the coach *is* and *does* comes from
+> this document. If anything here is ambiguous, ask the founder; do not improvise.
 
 ---
 
-## 0. Read this first — the one rule
+## 0. Read this first — purpose of this document
 
-**Sprint Society is the product. Ishan-AI-Coach is a reference prototype.**
+The AI coach is being developed and enhanced in the **Ishan-AI-Coach repo** — that
+continues. The RAG system, the personas, web scraping, memory, and the other
+capabilities being built there are good work and the right direction. **Keep going.**
 
-The prototype (Python / Streamlit / Groq / FAISS) exists only to prove out
-*techniques*: the RAG retrieval design, the memory decay model, the persona voices,
-the guardrail rules, the tool-calling loop. We port those **patterns** into the
-Sprint Society production app. We do **not** port its stack, its database, its UI,
-its LLM provider, or its progression system.
+What this document fixes is the *target*: every capability must serve **Sprint
+Society's in-app AI coach features** — the responsibilities, tiers, and mechanics
+defined below. The deviation to avoid is building features the app doesn't have or
+systems that conflict with ones the app already has (the second progression ladder
+is the live example — see §3).
 
-The production coach:
+Two simple tests for any piece of work:
 
-- Lives **inside the Sprint Society Express server** — `server/src/ai/` — written in
-  **TypeScript**. It is not a separate app, not a Streamlit service, not a sidecar.
-- Uses **Anthropic models only**: `claude-sonnet-4-6` for live Pro chat,
-  `claude-haiku-4-5` for all background generation. **Never Groq/Llama** — that was
-  prototype-only.
-- Uses the app's **existing database** (better-sqlite3, `users`, `runner_profiles`,
-  `activities`, `ai_profiles`, `ai_usage`, …). No second user table, no `coach.db`.
-- Wraps the app's **existing deterministic engines** (`server/src/engine/`) — it
-  never re-implements them and never does its own training math.
+1. **Does it map to a row in the responsibilities catalog (§5) and a cell in the
+   tier matrix (§4)?** If not, it's a new product feature — ask the founder first.
+2. **Does the app already have a system for this?** (levels, XP, plans, pace math,
+   pace zones, training load…) If yes, the coach *consumes* that system — it never
+   builds a parallel one.
 
-If you find yourself writing Python, calling Groq, creating a new users table, or
-building a new level system — stop, you've deviated.
+**Integration requirements** — when a capability ships into the production app, it
+must: key to the app's existing users/data (no separate user store in production),
+treat the app's engines (`server/src/engine/*`) as the only source of truth for
+numbers, run on Anthropic models in production (`claude-sonnet-4-6` chat,
+`claude-haiku-4-5` background), fit the cost budgets (§9), and respect the privacy
+rules (§10). In the lab, experiment with whatever stack is fastest — these
+requirements apply at the integration boundary.
 
 ---
 
-## 1. What Kendu Coach is
+## 1. What the AI Coach is
 
-**Kendu Coach** ("Kendu = Can Do") is Sprint Society's AI running coach. It is one
-coaching brain with **four selectable personalities**. Its job is to take the
-numbers the app's engines already compute (plans, zones, loads, levels) and turn
-them into **personal, persona-voiced coaching** — and, for paying Pro users, to hold
-an actual two-way conversation about their training.
+The **AI Coach** is Sprint Society's coaching brain with **four selectable
+personalities**. Its job is to take the numbers the app's engines already compute
+(plans, zones, loads, levels) and turn them into **personal, persona-voiced
+coaching** — and, for paying Pro users, to hold an actual two-way conversation
+about their training.
 
 Product principles (these drive every design decision):
 
@@ -92,8 +95,8 @@ Mechanics:
 - Each persona has a browser-TTS voice preset (rate/pitch + ranked voice names, from
   prototype `ui/voice.py`).
 
-Branding: the feature is "Kendu Coach"; the personas keep their archetype names.
-Do not invent names like "Kendu Warrior".
+Naming: the feature is simply the **AI Coach** — no separate brand name. The
+personas keep their archetype names exactly as listed above.
 
 ---
 
@@ -213,7 +216,11 @@ page view), falls back to the current deterministic template when
   Hindi/Hinglish question when calling the `retrieve_knowledge` tool — MiniLM is
   English-centric).
 - Graceful: if the index is missing, the coach works without RAG (`RAG_ENABLED`).
-- No web search tool. Skip it.
+- **Web scraping/search:** a welcome capability to keep developing in the lab
+  (useful for race calendars, weather/AQI, current running knowledge). Before it
+  ships in-app it must be: cost-capped, restricted to an allowlist of sources,
+  latency-bounded in chat, and it can never override engine numbers or guardrails.
+  It feeds the coach context — it does not become a user-facing browsing feature.
 
 ### 6.2 Memory (port the prototype's model, replace the app's keyword matching)
 
@@ -236,7 +243,7 @@ Order matters. Frozen prefix first, `cache_control` breakpoint, volatile after:
 
 ```
 [CACHED PREFIX — byte-stable, no timestamps/IDs]
-1. Base identity: "You are <persona name>, a Kendu Coach for Sprint Society…"
+1. Base identity: "You are <persona name>, an AI running coach for Sprint Society…"
 2. Persona voice block + few-shot lines (from coach_<persona>.md)
 3. Safety rules (§8)
 4. Language rule: "Mirror the user's language and script — English, Hindi, or
@@ -329,24 +336,24 @@ Budget: **Base ≤ ₹3/user/month, Pro ≤ ₹33/user/month.** The design hits 
 
 ---
 
-## 11. DO NOT build (the deviation list)
+## 11. Product rules that must not be violated (the deviation list)
+
+Capabilities are open for enhancement; these product rules are not. Wherever the
+coach is built, it must respect:
 
 | ❌ Deviation | ✅ Instead |
 |---|---|
-| A second progression/level system (10-level cycles, `set_training_level` tool, a `training_level` column) | Persona **rank-name config** over the existing 40-level `classification-engine.ts` (§3) |
-| Groq / Llama / any non-Anthropic LLM | `claude-sonnet-4-6` (chat) + `claude-haiku-4-5` (background) |
-| A standalone app/service (Streamlit, separate API, sidecar) | Code in `server/src/ai/` inside the existing Express server, TypeScript |
-| A separate database (`coach.db`, new users/profiles tables) | The app's existing SQLite schema; new AI tables key to `users.id` |
+| A second progression/level system (10-level cycles, `set_training_level` tool, a `training_level` column) | Persona **rank-name config** over the existing 40-level `classification-engine.ts` (§3) — this is the deviation already observed; undo it |
+| Inventing product features not in §4/§5 (new screens, new mechanics, new user-facing systems) | Ask the founder first; the catalog is the scope |
 | New/rewritten/renamed personas, or persona-specific memory | The 4 personas verbatim; shared memory |
-| Re-implementing pace/VO2max/plan/load math in the coach | Tool calls into `server/src/engine/*` |
+| Re-implementing pace/VO2max/plan/load math in the coach | Consume the app's `server/src/engine/*` outputs (tool calls in production) |
 | The coach directly editing training plans | `propose_plan_change` → user approves → guardrails apply |
-| Per-message memory extraction, full chat history in prompts | Nightly batch extraction; 8-message window + rolling summary |
-| Cloud STT/TTS (Whisper, OpenAI TTS, ElevenLabs), API embeddings | Browser Web Speech API; local MiniLM embeddings |
-| `search_web` tool | Skipped |
+| Synthetic-data ML models (RandomForest/MLP) deciding anything user-facing | VDOT formulas + `adaptiveEngine.ts` heuristics already in the app |
 | Daily chat allowance of 30 | **30/month**, 5/day cap (₹33 budget) |
 | Hardcoded "Coach:" template strings as the Base experience | The full Haiku batch generation pipeline (R3–R10) IS the ₹9 product |
-| Synthetic-data ML models (RandomForest/MLP from the prototype) | VDOT formulas + `adaptiveEngine.ts` heuristics already in the app |
+| Per-message memory extraction, full chat history in prompts (in production) | Nightly batch extraction; 8-message window + rolling summary |
 | Admin-readable conversations | Aggregates only (§10) |
+| **At the production integration boundary:** non-Anthropic models, a separate user database, cloud STT/TTS or API embeddings | `claude-sonnet-4-6` + `claude-haiku-4-5`; app DB keyed to `users.id`; browser Web Speech API + local MiniLM (₹0) — lab experiments with other stacks are fine, production isn't |
 
 ---
 
