@@ -30,7 +30,7 @@ async function getGoogleCerts(): Promise<Record<string, string>> {
   const res = await axios.get('https://www.googleapis.com/oauth2/v1/certs');
   cachedCerts = res.data;
 
-  const cacheControl = res.headers['cache-control'] || '';
+  const cacheControl = String(res.headers['cache-control'] || '');
   const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
   certsExpiry = Date.now() + (maxAgeMatch ? parseInt(maxAgeMatch[1]) * 1000 : 3600000);
 
