@@ -56,6 +56,7 @@ token system. Problems are execution-level:
 | Voice | — | Browser-native STT+TTS, unlimited, ₹0 |
 | Extra Pro roles | — | Injury rehab dialogue, nutrition Q&A, race-day strategy chat |
 | Lapsed sub | Plan stays **view-only**, auto-tracking continues, no adaptation/generation | same |
+
 - Persona selection available on both tiers.
 - Razorpay: wire + test fully end-to-end pre-launch; founder flips live keys (SS-031).
 
