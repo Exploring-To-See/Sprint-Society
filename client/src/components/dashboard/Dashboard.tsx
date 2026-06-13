@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
@@ -47,6 +47,7 @@ function StatCard({ label, value, unit, animate }: { label: string; value: strin
 export function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [showConfetti, setShowConfetti] = useState(false);
   const [levelUpToast, setLevelUpToast] = useState<{ title: string; message: string } | null>(null);
   const lastLevelRef = useRef<number | null>(null);
@@ -62,6 +63,14 @@ export function Dashboard() {
   const challenges = dashboard?.challenges;
   const stats = dashboard?.runStats;
   const profilingStatus = dashboard?.profilingStatus;
+
+  useEffect(() => {
+    if (!dashboard) return;
+    if (dashboard.xp) queryClient.setQueryData(['xp'], dashboard.xp);
+    if (dashboard.tier) queryClient.setQueryData(['tier'], dashboard.tier);
+    if (dashboard.challenges) queryClient.setQueryData(['challenges'], dashboard.challenges);
+    if (dashboard.runStats) queryClient.setQueryData(['run-stats'], dashboard.runStats);
+  }, [dashboard, queryClient]);
 
   useEffect(() => {
     if (!xp?.current_level) return;

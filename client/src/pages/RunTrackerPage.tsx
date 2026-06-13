@@ -1,17 +1,13 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { LatLngExpression } from 'leaflet';
-import { useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
+import { LatLngExpression } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { SplitChart } from '../components/run/SplitChart';
 import { ProgressRing } from '../components/run/ProgressRing';
 import { ZoneBar } from '../components/run/ZoneBar';
 import { useAuth } from '../context/AuthContext';
-
-const MapContainer = lazy(() => import('react-leaflet').then(m => ({ default: m.MapContainer })));
-const TileLayer = lazy(() => import('react-leaflet').then(m => ({ default: m.TileLayer })));
-const Polyline = lazy(() => import('react-leaflet').then(m => ({ default: m.Polyline })));
 
 type TrackingState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FINISHED' | 'ANALYSIS';
 

@@ -1,21 +1,21 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-async function toJpeg(node: HTMLElement, options?: Record<string, any>): Promise<string> {
-  const { toJpeg: fn } = await import('html-to-image');
-  return fn(node, options);
-}
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 import { formatPace, formatDistance, formatDuration, formatDate } from '../lib/formatters';
+import { RouteShape } from '../components/share/RouteShape';
+
+async function toJpeg(node: HTMLElement, options?: Record<string, any>): Promise<string> {
+  const { toJpeg: fn } = await import('html-to-image');
+  return fn(node, options);
+}
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
-
-import { RouteShape } from '../components/share/RouteShape';
 
 type TemplateName = 'dark_minimal' | 'gradient_pace' | 'achievement' | 'streak_fire' | 'race_recap' | 'photo_route' | 'neon_glow' | 'gold_elite' | 'midnight_run';
 
