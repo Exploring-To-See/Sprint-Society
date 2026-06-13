@@ -215,14 +215,11 @@ if (existingCount === 0) {
 // ===== SUBSCRIPTION PLANS =====
 const planCount = (db.prepare('SELECT COUNT(*) as c FROM subscription_plans').get() as any).c;
 if (planCount === 0) {
-  db.prepare("INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES ('free', 'Free', 0, 36500, ?)").run(
-    JSON.stringify(['Track runs', 'Join events', 'Join communities', 'Social feed', 'Basic stats'])
+  db.prepare("INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES ('base', 'Base', 9, 30, ?)").run(
+    JSON.stringify(['Track runs', 'Join events', 'Join communities', 'Social feed', 'Leaderboard', 'AI training plan (auto-adjusts)', 'Pace zones', 'Weekly AI summary', 'HR zones'])
   );
-  db.prepare("INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES ('pro', 'Pro', 19, 30, ?)").run(
-    JSON.stringify(['Everything in Free', 'AI coaching', 'Training plans', 'HR zones', 'Personal records', 'Weekly challenges'])
-  );
-  db.prepare("INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES ('premium', 'Premium', 99, 30, ?)").run(
-    JSON.stringify(['Everything in Pro', 'Adaptive engine', 'Transformation plans', 'Create communities', 'Advanced analytics'])
+  db.prepare("INSERT INTO subscription_plans (key, name, price_inr, duration_days, features) VALUES ('pro', 'Pro', 99, 30, ?)").run(
+    JSON.stringify(['Everything in Base', 'AI chat coach (Sonnet)', 'Pre/post run check-ins', 'AI memory (coach remembers you)', 'Personal records', 'Adaptive training engine', 'Transformation plans', 'Weekly challenges', 'Create communities'])
   );
 }
 

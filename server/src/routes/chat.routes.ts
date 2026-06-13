@@ -43,7 +43,7 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
 
   // Check if user has pro subscription AND API key exists → use Sonnet
   const subscription = db.prepare('SELECT plan_key FROM user_subscriptions WHERE user_id = ? AND status = ?').get(req.userId, 'active') as any;
-  const useAI = config.anthropic.apiKey && (subscription?.plan_key === 'pro' || subscription?.plan_key === 'premium');
+  const useAI = config.anthropic.apiKey && subscription?.plan_key === 'pro';
 
   let response: string;
 

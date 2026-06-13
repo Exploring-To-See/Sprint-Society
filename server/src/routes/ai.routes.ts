@@ -149,7 +149,7 @@ router.get('/usage', (req: AuthRequest, res: Response) => {
     `).get(req.userId!) as any;
 
     const planKey = subscription?.plan_key || 'free';
-    const tier = (planKey === 'pro' || planKey === 'premium') ? 'pro' : 'base';
+    const tier = planKey === 'pro' ? 'pro' : 'base';
     const limits = checkUsageLimit(req.userId!, tier);
 
     res.json({

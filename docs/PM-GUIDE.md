@@ -300,6 +300,33 @@ SQLite via `better-sqlite3`. Key tables:
 - `announcements` — admin posts
 - `strava_tokens` — OAuth credentials
 
+### Subscription System
+
+**Plan hierarchy:** `free` (0) → `base` (1) → `pro` (2)
+
+| Plan | Price | Duration | Key Features |
+|------|-------|----------|--------------|
+| Base | ₹9/mo | 30 days | Plans, summaries, pace/HR zones, events, communities, social, leaderboard |
+| Pro | ₹99/mo | 30 days | Everything in Base + adaptive engine, transformation plans, weekly challenges, PRs, create communities, AI chat coach |
+
+**Access control:**
+- `requirePlan('base')` gates all paid features
+- `requirePlan('pro')` gates AI-specific features (chat coach, adaptive engine, transformation plans, weekly challenges, PRs, community creation)
+- Free (no subscription) = registration + locked previews only
+- Lapsed subscription: plan becomes view-only, auto-tracking continues, no adaptation
+
+**AI usage limits:**
+- Pro: 30 messages/day
+- Base: 5 messages/day (background eval only, no chat)
+
+**Model configuration:** Centralized in `server/src/config.ts` → `config.anthropic.models`
+- Chat: `claude-sonnet-4-6`
+- Background eval: `claude-haiku-4-5-20251001`
+
+**Tables:** `subscription_plans`, `user_subscriptions`
+**Routes:** `/subscription/plans`, `/subscription/status`, `/subscription/create-order`, `/subscription/verify`, `/subscription/cancel`
+**Payment:** Razorpay integration (env: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`)
+
 ### Admin Account Setup
 
 ```bash

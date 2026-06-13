@@ -134,14 +134,14 @@ Create viral shareable run cards with 5 templates:
 - **Achievements** — badges you've earned and ones still locked
 - Logout
 
-### 🤖 AI Coach (Pro/Premium)
+### 🤖 AI Coach (Pro only)
 
 Your personal AI running coach that learns about you over time:
 
 - **Chat** — Ask anything about training, nutrition, recovery, race prep
   - Coach references your actual data (pace, runs, tier, streak)
   - Personalized advice — never generic
-  - 30 messages/day on Pro, unlimited context memory
+  - 30 messages/day on Pro, 5/day on Base, unlimited context memory
 - **AI Profile** — View what your coach knows about you:
   - Health notes (injuries, conditions you've mentioned)
   - Goals (races, targets you're working toward)
@@ -266,6 +266,32 @@ A: From your recent running pace, distance, and age — using standard exercise 
 
 **Q: Can I use this without a running watch?**
 A: Yes — use the built-in GPS Run Tracker on your phone. No external device needed.
+
+---
+
+## Subscription Plans
+
+Sprint Society uses a two-tier paid model. No free tier of features — registration gives locked previews only.
+
+| | **Base** (₹9/mo) | **Pro** (₹99/mo) |
+|---|---|---|
+| Track runs | ✅ | ✅ |
+| Join events | ✅ | ✅ |
+| Join communities | ✅ | ✅ |
+| Social feed & leaderboard | ✅ | ✅ |
+| AI training plans (auto-adjusts) | ✅ | ✅ |
+| Pace & HR zones | ✅ | ✅ |
+| Weekly AI summary | ✅ | ✅ |
+| AI chat coach (Sonnet) | — | ✅ |
+| Pre/post run check-ins | — | ✅ |
+| AI memory (coach remembers you) | — | ✅ |
+| Personal records | — | ✅ |
+| Adaptive training engine | — | ✅ |
+| Transformation plans | — | ✅ |
+| Weekly challenges | — | ✅ |
+| Create communities | — | ✅ |
+
+**If your subscription lapses:** your plan becomes view-only, auto-tracking continues, but no adaptation or new plans are generated.
 
 ---
 

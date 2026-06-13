@@ -31,6 +31,10 @@ export const config = {
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
+    models: {
+      sonnet: 'claude-sonnet-4-6',
+      haiku: 'claude-haiku-4-5-20251001',
+    },
   },
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',

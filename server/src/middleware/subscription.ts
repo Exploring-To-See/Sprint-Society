@@ -2,12 +2,12 @@ import { Response, NextFunction } from 'express';
 import db from '../database/db';
 import { AuthRequest } from './auth';
 
-export type PlanKey = 'free' | 'pro' | 'premium';
+export type PlanKey = 'free' | 'base' | 'pro';
 
 const PLAN_HIERARCHY: Record<PlanKey, number> = {
   free: 0,
-  pro: 1,
-  premium: 2,
+  base: 1,
+  pro: 2,
 };
 
 export function getUserPlan(userId: number): PlanKey {
@@ -17,7 +17,9 @@ export function getUserPlan(userId: number): PlanKey {
     ORDER BY expires_at DESC LIMIT 1
   `).get(userId) as any;
 
-  return (sub?.plan_key as PlanKey) || 'free';
+  if (!sub?.plan_key) return 'free';
+  if (sub.plan_key in PLAN_HIERARCHY) return sub.plan_key as PlanKey;
+  return 'free';
 }
 
 export function requirePlan(minimumPlan: PlanKey) {
@@ -25,6 +27,10 @@ export function requirePlan(minimumPlan: PlanKey) {
     const userPlan = getUserPlan(req.userId!);
     const userLevel = PLAN_HIERARCHY[userPlan];
     const requiredLevel = PLAN_HIERARCHY[minimumPlan];
+
+    if (userLevel === undefined || requiredLevel === undefined) {
+      return res.status(500).json({ error: 'Invalid plan configuration' });
+    }
 
     if (userLevel >= requiredLevel) {
       return next();

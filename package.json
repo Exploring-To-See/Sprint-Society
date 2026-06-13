@@ -12,7 +12,8 @@
     "build": "cd client && npm install --include=dev && npm run build && cd ../server && npm install --include=dev && npm run build",
     "start": "cd server && npm start",
     "setup:admin": "cd server && npx tsx src/setup-admin.ts",
-    "seed": "cd server && npx tsx src/scripts/seed-dummy-data.ts"
+    "seed": "cd server && npx tsx src/scripts/seed-dummy-data.ts",
+    "test": "cd server && npm test"
   },
   "engines": {
     "node": ">=18.0.0"

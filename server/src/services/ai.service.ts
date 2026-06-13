@@ -1,5 +1,6 @@
 import { config } from '../config';
 import db from '../database/db';
+import { getUserPlan } from '../middleware/subscription';
 
 let Anthropic: any = null;
 try {
@@ -185,7 +186,7 @@ export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: config.anthropic.models.haiku,
       max_tokens: 500,
       system: 'You are Sprint Society\'s training intelligence engine. Analyze the runner\'s data and output ONLY valid JSON. No markdown, no explanation.',
       messages: [{
@@ -214,7 +215,9 @@ export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
 export async function chatWithSonnet(userId: number, userMessage: string, recentMessages: Array<{ role: string; content: string }>): Promise<{ response: string; error?: string }> {
   if (!anthropic) return { response: '', error: 'AI coach is not configured yet. Coming soon!' };
 
-  const usageCheck = checkUsageLimit(userId, 'pro');
+  const plan = getUserPlan(userId);
+  const tier = plan === 'pro' ? 'pro' : 'base';
+  const usageCheck = checkUsageLimit(userId, tier);
   if (!usageCheck.allowed) {
     return {
       response: `You've used ${usageCheck.used}/${usageCheck.limit} messages today. Coach is resting — come back tomorrow!`,
@@ -232,7 +235,7 @@ export async function chatWithSonnet(userId: number, userMessage: string, recent
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
+      model: config.anthropic.models.sonnet,
       max_tokens: 600,
       system: `You are Sprint Society's AI running coach. You are warm, knowledgeable, and direct. You know this runner personally:\n\n${context}\n\nRules:\n- Always reference their specific data (pace, VO2max, recent runs) when relevant\n- Never give generic advice — personalize everything\n- Be concise (2-4 sentences unless they ask for detail)\n- If they mention injury/pain, always recommend caution and suggest seeing a professional\n- Use their name occasionally\n- If you notice something in their data (overtraining, improvement, consistency), proactively mention it\n- Keep a supportive but honest tone — celebrate progress, flag concerns`,
       messages: conversationHistory,

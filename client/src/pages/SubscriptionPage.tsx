@@ -13,8 +13,8 @@ declare global {
 
 const PLAN_STYLES: Record<string, { gradient: string; badge: string; icon: string }> = {
   free: { gradient: 'from-zinc-800 to-zinc-900', badge: 'bg-zinc-700 text-zinc-300', icon: '🏃' },
-  pro: { gradient: 'from-accent/20 to-accent/5', badge: 'bg-accent/20 text-accent', icon: '⚡' },
-  premium: { gradient: 'from-accent-gold/20 to-accent-gold/5', badge: 'bg-accent-gold/20 text-accent-gold', icon: '👑' },
+  base: { gradient: 'from-accent/20 to-accent/5', badge: 'bg-accent/20 text-accent', icon: '⚡' },
+  pro: { gradient: 'from-accent-gold/20 to-accent-gold/5', badge: 'bg-accent-gold/20 text-accent-gold', icon: '👑' },
 };
 
 export function SubscriptionPage() {
@@ -137,14 +137,14 @@ export function SubscriptionPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`relative rounded-2xl border overflow-hidden ${
-                    plan.key === 'premium'
+                    plan.key === 'pro'
                       ? 'border-accent-gold/30'
                       : plan.key === 'pro'
                       ? 'border-accent/30'
                       : 'border-bg-tertiary'
                   }`}
                 >
-                  {plan.key === 'premium' && (
+                  {plan.key === 'pro' && (
                     <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent-gold/50 via-accent-gold to-accent-gold/50" />
                   )}
 
@@ -190,7 +190,7 @@ export function SubscriptionPage() {
                         onClick={() => handleSubscribe(plan.key)}
                         disabled={processing === plan.key}
                         className={`w-full py-3 rounded-xl font-semibold text-[14px] active:scale-[0.98] transition-all ${
-                          plan.key === 'premium'
+                          plan.key === 'pro'
                             ? 'bg-gradient-to-r from-accent-gold to-amber-500 text-black'
                             : 'bg-accent text-white'
                         } disabled:opacity-50`}
