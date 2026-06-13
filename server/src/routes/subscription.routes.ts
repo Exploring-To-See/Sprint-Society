@@ -180,4 +180,105 @@ router.post('/cancel', authenticate, (req: AuthRequest, res: Response) => {
   res.json({ success: true, message: 'Auto-renewal cancelled. Your plan remains active until expiry.' });
 });
 
+// POST /subscription/upgrade — upgrade Base → Pro (new billing period)
+router.post('/upgrade', authenticate, async (req: AuthRequest, res: Response) => {
+  const currentSub = db.prepare(
+    "SELECT * FROM user_subscriptions WHERE user_id = ? AND status = 'active' AND expires_at > datetime('now') LIMIT 1"
+  ).get(req.userId) as any;
+
+  if (!currentSub) return res.status(400).json({ error: 'No active subscription to upgrade' });
+  if (currentSub.plan_key === 'pro') return res.status(400).json({ error: 'Already on Pro plan' });
+
+  const proPlan = db.prepare("SELECT * FROM subscription_plans WHERE key = 'pro' AND active = 1").get() as any;
+  if (!proPlan) return res.status(500).json({ error: 'Pro plan not found' });
+
+  if (!config.razorpayKeyId || !config.razorpayKeySecret) {
+    return res.status(503).json({ error: 'Payment system not configured' });
+  }
+
+  try {
+    const auth = Buffer.from(`${config.razorpayKeyId}:${config.razorpayKeySecret}`).toString('base64');
+    const response = await fetch('https://api.razorpay.com/v1/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
+      body: JSON.stringify({
+        amount: proPlan.price_inr * 100,
+        currency: 'INR',
+        receipt: `upgrade_${req.userId}_${Date.now()}`,
+        notes: { user_id: req.userId?.toString(), plan_key: 'pro', upgrade_from: currentSub.plan_key },
+      }),
+    });
+
+    const order = await response.json() as any;
+    if (!response.ok) return res.status(500).json({ error: 'Failed to create upgrade order' });
+
+    db.prepare('INSERT INTO payment_history (user_id, plan_key, amount_inr, status, razorpay_order_id) VALUES (?, ?, ?, ?, ?)')
+      .run(req.userId, 'pro', proPlan.price_inr, 'pending', order.id);
+
+    res.json({ order_id: order.id, amount: order.amount, currency: order.currency, key_id: config.razorpayKeyId, plan_name: proPlan.name });
+  } catch {
+    res.status(500).json({ error: 'Payment service unavailable' });
+  }
+});
+
+// GET /subscription/history — payment history
+router.get('/history', authenticate, (req: AuthRequest, res: Response) => {
+  const payments = db.prepare(`
+    SELECT ph.*, sp.name as plan_name
+    FROM payment_history ph
+    JOIN subscription_plans sp ON ph.plan_key = sp.key
+    WHERE ph.user_id = ?
+    ORDER BY ph.created_at DESC
+    LIMIT 50
+  `).all(req.userId) as any[];
+
+  res.json(payments.map(p => ({
+    id: p.id,
+    plan_key: p.plan_key,
+    plan_name: p.plan_name,
+    amount_inr: p.amount_inr,
+    status: p.status,
+    razorpay_order_id: p.razorpay_order_id,
+    created_at: p.created_at,
+  })));
+});
+
+// POST /subscription/webhook — Razorpay webhook (no auth, verifies signature)
+router.post('/webhook', (req, res: Response) => {
+  const webhookSecret = config.razorpayKeySecret;
+  if (!webhookSecret) return res.status(503).json({ error: 'Not configured' });
+
+  const signature = req.headers['x-razorpay-signature'] as string;
+  if (!signature) return res.status(400).json({ error: 'Missing signature' });
+
+  const body = JSON.stringify(req.body);
+  const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
+
+  if (expectedSignature !== signature) {
+    return res.status(400).json({ error: 'Invalid webhook signature' });
+  }
+
+  const event = req.body.event;
+  const payload = req.body.payload;
+
+  if (event === 'payment.captured') {
+    const payment = payload.payment?.entity;
+    if (payment?.order_id) {
+      const record = db.prepare('SELECT * FROM payment_history WHERE razorpay_order_id = ? AND status = ?').get(payment.order_id, 'pending') as any;
+      if (record) {
+        db.prepare("UPDATE payment_history SET status = 'success', razorpay_payment_id = ? WHERE id = ?").run(payment.id, record.id);
+      }
+    }
+  }
+
+  if (event === 'payment.failed') {
+    const payment = payload.payment?.entity;
+    if (payment?.order_id) {
+      db.prepare("UPDATE payment_history SET status = 'failed' WHERE razorpay_order_id = ? AND status = 'pending'").run(payment.order_id);
+    }
+  }
+
+  res.json({ status: 'ok' });
+});
+
 export default router;

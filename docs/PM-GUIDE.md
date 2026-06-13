@@ -347,6 +347,33 @@ Key indexes for feed/event/admin query performance:
 **Routes:** `/subscription/plans`, `/subscription/status`, `/subscription/create-order`, `/subscription/verify`, `/subscription/cancel`
 **Payment:** Razorpay integration (env: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`)
 
+**Payment endpoints:**
+- `POST /subscription/create-order` — creates Razorpay order, returns order_id + key_id for checkout
+- `POST /subscription/verify` — verifies signature, activates subscription
+- `POST /subscription/upgrade` — upgrade Base→Pro (new billing period)
+- `POST /subscription/cancel` — cancel auto-renewal (plan stays until expiry)
+- `POST /subscription/webhook` — Razorpay server-to-server webhook (signature verified)
+- `GET /subscription/history` — user's payment history
+
+**Subscription lifecycle:**
+1. User picks plan → `create-order` → Razorpay checkout opens
+2. Payment succeeds → client calls `verify` → subscription activated
+3. Razorpay webhook also confirms (redundant safety)
+4. Hourly scheduler job expires subscriptions past `expires_at`
+5. Expired = view-only mode (auto-tracking continues, no adaptation/plans/AI)
+6. Upgrade: creates new Pro order, expires old Base sub on verify
+
+**Launch checklist (for founder):**
+- [ ] Create Razorpay account at https://razorpay.com
+- [ ] Get TEST keys from Dashboard → Settings → API Keys
+- [ ] Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` on Railway (test mode first)
+- [ ] Test: buy Base subscription with test card `4111 1111 1111 1111`
+- [ ] Test: upgrade Base→Pro
+- [ ] Test: verify subscription expires after duration
+- [ ] Switch to LIVE keys when ready to accept real payments
+- [ ] Set webhook URL in Razorpay Dashboard: `https://app.sprintsociety.in/api/subscription/webhook`
+- [ ] Enable events: `payment.captured`, `payment.failed`
+
 ### Feature Flags (Kill Switches)
 
 Server-side feature gate system with admin toggle UI.

@@ -88,6 +88,19 @@ registerJob('streak-decay', 6 * 60 * 60 * 1000, () => {
   }
 });
 
+// --- Job: Subscription expiry (every 1 hour) ---
+// Expire subscriptions past their expires_at date
+registerJob('subscription-expiry', 60 * 60 * 1000, () => {
+  const result = db.prepare(`
+    UPDATE user_subscriptions SET status = 'expired'
+    WHERE status = 'active' AND expires_at <= datetime('now')
+  `).run();
+
+  if (result.changes > 0) {
+    console.log(`[Scheduler] Expired ${result.changes} lapsed subscriptions`);
+  }
+});
+
 // --- Job: Nightly SQLite .backup (every 24 hours) ---
 registerJob('sqlite-backup', 24 * 60 * 60 * 1000, () => {
   const dbPath = process.env.DB_PATH || path.join(__dirname, '../../data/sprint-society.db');
