@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { backendWsUrl } from '../lib/backend';
 import { useAuth } from '../context/AuthContext';
 import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 
@@ -507,9 +508,7 @@ function CommunityChat({ communityId }: { communityId: string }) {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws?token=${token}&community=${communityId}`;
+    const wsUrl = backendWsUrl(`/ws?token=${token}&community=${communityId}`);
 
     try {
       const ws = new WebSocket(wsUrl);

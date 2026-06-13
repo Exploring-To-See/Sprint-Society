@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { API_BASE } from './backend';
 
 export class ApiError extends Error {
   code: string;
@@ -13,7 +14,7 @@ export class ApiError extends Error {
 }
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
