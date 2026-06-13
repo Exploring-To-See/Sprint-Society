@@ -24,6 +24,8 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 28 } },
 };
 
+const viewportOnce = { once: true, margin: '-50px' };
+
 function StatCard({ label, value, unit, animate }: { label: string; value: string | number; unit?: string; animate?: boolean }) {
   const numericValue = typeof value === 'number' ? value : parseInt(value as string, 10);
   const animatedValue = useCountUp(animate && !isNaN(numericValue) ? numericValue : 0, 900);
@@ -86,7 +88,7 @@ export function Dashboard() {
         <CelebrationToast title={levelUpToast.title} message={levelUpToast.message} type="gold" visible={!!levelUpToast} onDismiss={() => setLevelUpToast(null)} />
       )}
 
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4 pb-6">
+      <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={viewportOnce} className="space-y-4 pb-6">
         {/* Tier + Level bar */}
         <motion.div variants={fadeUp}>
           <div className="flex items-center gap-2 mb-1">

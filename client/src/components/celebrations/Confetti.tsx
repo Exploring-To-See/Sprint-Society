@@ -36,7 +36,7 @@ export function Confetti({ active, onComplete }: ConfettiProps) {
 
   useEffect(() => {
     if (active) {
-      setParticles(generateParticles(40));
+      setParticles(generateParticles(12));
       const timeout = setTimeout(() => {
         setParticles([]);
         onComplete?.();

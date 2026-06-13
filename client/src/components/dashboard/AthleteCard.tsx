@@ -56,7 +56,7 @@ export function AthleteCard() {
       {/* Name + Photo */}
       <div className="flex items-center gap-3 mb-5 relative">
         {profileImage ? (
-          <img src={profileImage} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-accent/30" />
+          <img src={profileImage} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-accent/30" loading="lazy" />
         ) : (
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-accent to-accent-gold flex items-center justify-center text-[14px] font-bold text-white border-2 border-accent/30">
             {initials}

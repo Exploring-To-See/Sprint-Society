@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 
 interface EventMapProps {
   events: any[];
@@ -9,31 +7,39 @@ interface EventMapProps {
 
 export function EventMapView({ events, onEventClick }: EventMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<any>(null);
+  const leafletRef = useRef<any>(null);
 
   useEffect(() => {
     if (!mapRef.current || mapInstance) return;
 
-    const map = L.map(mapRef.current, {
-      zoomControl: false,
-      attributionControl: false,
-    }).setView([19.076, 72.8777], 12);
+    import('leaflet').then(L => {
+      import('leaflet/dist/leaflet.css');
+      leafletRef.current = L.default || L;
+      const Leaf = leafletRef.current;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+      const map = Leaf.map(mapRef.current!, {
+        zoomControl: false,
+        attributionControl: false,
+      }).setView([19.076, 72.8777], 12);
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+      Leaf.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
 
-    setMapInstance(map);
+      Leaf.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    return () => { map.remove(); };
+      setMapInstance(map);
+    });
+
+    return () => { mapInstance?.remove(); };
   }, []);
 
   useEffect(() => {
-    if (!mapInstance) return;
+    if (!mapInstance || !leafletRef.current) return;
+    const L = leafletRef.current;
 
-    const bounds: L.LatLngTuple[] = [];
+    const bounds: [number, number][] = [];
 
     events.forEach(event => {
       if (!event.latitude || !event.longitude) return;

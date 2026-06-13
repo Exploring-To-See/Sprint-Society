@@ -1,6 +1,6 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { memo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
 const REACTIONS = ['🙌', '🔥', '💪', '⚡', '🫡'];
@@ -48,7 +48,7 @@ export function FeedTab() {
           <div className="flex items-center gap-2.5 mb-2">
             <button onClick={() => navigate(`/user/${activity.user_id}`)} className="active:scale-95">
               {activity.profile_image_url ? (
-                <img src={activity.profile_image_url} className="w-8 h-8 rounded-full object-cover" alt="" />
+                <img src={activity.profile_image_url} className="w-8 h-8 rounded-full object-cover" alt="" loading="lazy" />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center text-[10px] font-bold text-zinc-500">
                   {activity.user_name?.[0]?.toUpperCase() || '?'}

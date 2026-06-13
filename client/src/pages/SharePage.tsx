@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { toJpeg } from 'html-to-image';
+const toJpeg = (...args: Parameters<typeof import('html-to-image')['toJpeg']>) =>
+  import('html-to-image').then(m => m.toJpeg(...args));
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
