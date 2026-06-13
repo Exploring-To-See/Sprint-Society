@@ -414,3 +414,20 @@ export interface PublicProfile {
   communities: { id: number; name: string; category: string }[];
   recent_achievements: Achievement[];
 }
+
+// ===== API Envelope Types =====
+
+export interface ApiError {
+  code: string;
+  message: string;
+}
+
+export interface ApiSuccessResponse<T = unknown> {
+  data: T;
+}
+
+export interface ApiErrorResponse {
+  error: ApiError;
+}
+
+export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;

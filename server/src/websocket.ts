@@ -93,7 +93,9 @@ export function initWebSocket(server: HttpServer) {
             }
           });
         }
-      } catch {}
+      } catch (err: any) {
+        console.error(`[WebSocket] Message handling error (user=${ws.userId}, community=${communityId}):`, err.message || err);
+      }
     });
 
     ws.on('close', () => {

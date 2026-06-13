@@ -370,6 +370,23 @@ Server-side feature gate system with admin toggle UI.
 
 **Kill switch process:** Admin panel → Flags tab → toggle OFF → feature returns 503 immediately. No deploy needed.
 
+### API Envelope Format
+
+All API responses follow a standard envelope:
+- **Success:** `{ data: <payload> }`
+- **Error:** `{ error: { code: "ERROR_CODE", message: "Human-friendly message" } }`
+
+Client-side (`client/src/lib/api.ts`) auto-unwraps the envelope:
+- Success: `response.data` is the inner payload directly
+- Error: throws `ApiError` with `.code`, `.message`, `.status`
+- Global error toast fires automatically on any non-401 API error
+
+**Error UI components:**
+- `<ErrorToast />` — global toast (mounted in App root), auto-dismisses after 4s
+- `<QueryError message="..." onRetry={refetch} />` — inline error state with retry button
+
+No raw error text is ever shown to users.
+
 **Env validation (production):**
 - `JWT_SECRET` missing or <32 chars → server refuses to start (exit 1)
 - `CLIENT_URL` missing → server refuses to start

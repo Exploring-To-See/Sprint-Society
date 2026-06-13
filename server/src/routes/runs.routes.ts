@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { executeRunCascade } from '../engine/runCascade';
+import { safeJsonParse } from '../utils/response';
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
   const total = db.prepare('SELECT COUNT(*) as count FROM activities WHERE user_id = ? AND deleted_at IS NULL').get(req.userId) as any;
 
-  res.json({ runs: runs.map(parseRun), total: total.count, page, limit });
+  res.json({ data: { runs: runs.map(parseRun), total: total.count, page, limit } });
 });
 
 router.get('/stats', authenticate, (req: AuthRequest, res: Response) => {
@@ -127,15 +128,13 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
   if (avgSpeedKmh > 45) anomalies.push('speed_exceeds_human_limit');
 
   if (splits) {
-    try {
-      const parsed = typeof splits === 'string' ? JSON.parse(splits) : splits;
-      if (Array.isArray(parsed)) {
-        for (const split of parsed) {
-          if (split.time_seconds && split.time_seconds < 90) anomalies.push('split_faster_than_world_record');
-          if (split.time_seconds && split.time_seconds > 1200) anomalies.push('split_unrealistically_slow');
-        }
+    const parsed = typeof splits === 'string' ? safeJsonParse(splits, null) : splits;
+    if (Array.isArray(parsed)) {
+      for (const split of parsed) {
+        if (split.time_seconds && split.time_seconds < 90) anomalies.push('split_faster_than_world_record');
+        if (split.time_seconds && split.time_seconds > 1200) anomalies.push('split_unrealistically_slow');
       }
-    } catch {}
+    }
   }
 
   if (anomalies.length > 0 && anomalies.includes('speed_exceeds_human_limit')) {
@@ -187,9 +186,9 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
 function parseRun(run: any) {
   return {
     ...run,
-    start_latlng: run.start_latlng ? JSON.parse(run.start_latlng) : null,
-    end_latlng: run.end_latlng ? JSON.parse(run.end_latlng) : null,
-    splits: run.splits ? JSON.parse(run.splits) : [],
+    start_latlng: safeJsonParse(run.start_latlng, null),
+    end_latlng: safeJsonParse(run.end_latlng, null),
+    splits: safeJsonParse(run.splits, []),
   };
 }
 

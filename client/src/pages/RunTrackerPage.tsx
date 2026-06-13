@@ -112,15 +112,15 @@ export function RunTrackerPage() {
       (pos) => { setUserLocation([pos.coords.latitude, pos.coords.longitude]); setLocating(false); },
       () => { setLocating(false); setGpsError('Could not determine location'); }
     );
-    // Fetch pace zones for zone bar
+    // Fetch pace zones for zone bar (non-critical, silent fallback to defaults)
     fetch('/api/training/paces', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data.easy_pace) {
+        if (data?.easy_pace) {
           setPaceZones({ easy_min: data.easy_pace - 15, easy_max: data.easy_pace + 15 });
         }
       })
-      .catch(() => {});
+      .catch(() => { /* non-critical: pace zones use defaults */ });
   }, []);
 
   // Timer
