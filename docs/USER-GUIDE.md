@@ -250,7 +250,7 @@ A: Every time you visit the Coaching tab. It recalculates from your latest data.
 A: Streaks count consecutive active days. If you haven't synced a run recently, it resets.
 
 **Q: Can I change my profile info after signup?**
-A: Yes — go to Profile and update your details. Your pace zones and tier will recalculate.
+A: Yes — go to Profile and update your details (name, age, weight, height, fitness level, running experience, timezone). Your pace zones and tier will recalculate.
 
 **Q: How do weekly challenges reset?**
 A: New challenges generate every Monday. Uncompleted challenges from last week disappear.

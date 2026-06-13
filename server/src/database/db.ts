@@ -145,6 +145,19 @@ function runMigrations() {
 
   // Allow password_hash to be NULL for Google-only users
   // SQLite can't alter column constraints, but since we use INSERT we just allow NULL in code
+
+  // N+1 fix indexes
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_user_date ON ai_usage(user_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_community_chat_messages_community_date ON community_chat_messages(community_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_kendu_transactions_user_date ON kendu_transactions(user_id, created_at DESC);
+  `);
+
+  // Timezone column
+  const userColsTz = db.prepare("PRAGMA table_info(users)").all() as any[];
+  if (!userColsTz.find((c: any) => c.name === 'timezone')) {
+    db.exec("ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT 'Asia/Kolkata'");
+  }
 }
 
 function seedAdmin() {

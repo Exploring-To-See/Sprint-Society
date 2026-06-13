@@ -32,11 +32,14 @@ router.get('/runners', (req: AuthRequest, res: Response) => {
     runners = db.prepare(`
       SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
         ux.total_xp, ux.current_level, ux.current_streak_days,
-        (SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1) as current_tier,
-        (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs,
-        (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance,
-        (SELECT COALESCE(AVG(average_pace_per_km), 0) FROM activities WHERE user_id = u.id) as avg_pace
-      FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id
+        th.tier as current_tier,
+        COALESCE(ast.total_runs, 0) as total_runs,
+        COALESCE(ast.total_distance, 0) as total_distance,
+        COALESCE(ast.avg_pace, 0) as avg_pace
+      FROM users u
+      LEFT JOIN user_xp ux ON u.id = ux.user_id
+      LEFT JOIN (SELECT user_id, tier, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY calculated_at DESC) as rn FROM tier_history) th ON th.user_id = u.id AND th.rn = 1
+      LEFT JOIN (SELECT user_id, COUNT(*) as total_runs, SUM(distance_meters) as total_distance, AVG(average_pace_per_km) as avg_pace FROM activities GROUP BY user_id) ast ON ast.user_id = u.id
       WHERE u.role = 'runner' AND (u.name LIKE ? OR u.email LIKE ?)
       ORDER BY ux.total_xp DESC LIMIT ? OFFSET ?
     `).all(like, like, limit, offset);
@@ -45,11 +48,14 @@ router.get('/runners', (req: AuthRequest, res: Response) => {
     runners = db.prepare(`
       SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
         ux.total_xp, ux.current_level, ux.current_streak_days,
-        (SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1) as current_tier,
-        (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs,
-        (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance,
-        (SELECT COALESCE(AVG(average_pace_per_km), 0) FROM activities WHERE user_id = u.id) as avg_pace
-      FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id
+        th.tier as current_tier,
+        COALESCE(ast.total_runs, 0) as total_runs,
+        COALESCE(ast.total_distance, 0) as total_distance,
+        COALESCE(ast.avg_pace, 0) as avg_pace
+      FROM users u
+      LEFT JOIN user_xp ux ON u.id = ux.user_id
+      LEFT JOIN (SELECT user_id, tier, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY calculated_at DESC) as rn FROM tier_history) th ON th.user_id = u.id AND th.rn = 1
+      LEFT JOIN (SELECT user_id, COUNT(*) as total_runs, SUM(distance_meters) as total_distance, AVG(average_pace_per_km) as avg_pace FROM activities GROUP BY user_id) ast ON ast.user_id = u.id
       WHERE u.role = 'runner'
       ORDER BY ux.total_xp DESC LIMIT ? OFFSET ?
     `).all(limit, offset);

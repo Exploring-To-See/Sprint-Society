@@ -22,16 +22,19 @@ router.get('/feed', (req: AuthRequest, res: Response) => {
 
   const activities = db.prepare(`
     SELECT a.*, u.name as user_name, u.profile_image_url,
-      (SELECT COUNT(*) FROM kudos WHERE activity_id = a.id) as kudos_count,
-      (SELECT COUNT(*) FROM comments WHERE activity_id = a.id) as comments_count,
-      (SELECT COUNT(*) FROM kudos WHERE activity_id = a.id AND user_id = ?) as user_gave_kudos,
-      (SELECT reaction_type FROM kudos WHERE activity_id = a.id AND user_id = ? LIMIT 1) as user_reaction_type
+      COALESCE(k.kudos_count, 0) as kudos_count,
+      COALESCE(c.comments_count, 0) as comments_count,
+      COALESCE(uk.user_gave_kudos, 0) as user_gave_kudos,
+      uk.reaction_type as user_reaction_type
     FROM activities a
     JOIN users u ON a.user_id = u.id
+    LEFT JOIN (SELECT activity_id, COUNT(*) as kudos_count FROM kudos GROUP BY activity_id) k ON k.activity_id = a.id
+    LEFT JOIN (SELECT activity_id, COUNT(*) as comments_count FROM comments GROUP BY activity_id) c ON c.activity_id = a.id
+    LEFT JOIN (SELECT activity_id, 1 as user_gave_kudos, reaction_type FROM kudos WHERE user_id = ?) uk ON uk.activity_id = a.id
     WHERE a.user_id IN (${placeholders})
     ORDER BY a.start_date DESC
     LIMIT ? OFFSET ?
-  `).all(req.userId, req.userId, ...followingIds, limit, offset) as any[];
+  `).all(req.userId, ...followingIds, limit, offset) as any[];
 
   const EMOJIS: Record<string, string> = { high_five: '🙌', fire: '🔥', impressive: '💪', respect: '🫡', lets_go: '⚡' };
 

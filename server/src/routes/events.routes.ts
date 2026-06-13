@@ -53,18 +53,31 @@ router.get('/', (req: AuthRequest, res: Response) => {
     LIMIT ? OFFSET ?
   `).all(req.userId, ...params, limitNum, offset) as any[];
 
-  const friendsGoingStmt = db.prepare(`
-    SELECT u.id, u.name, u.profile_image_url
-    FROM event_rsvps er
-    JOIN users u ON er.user_id = u.id
-    JOIN follows f ON f.following_id = er.user_id AND f.follower_id = ?
-    WHERE er.event_id = ? AND er.status = 'going'
-    LIMIT 5
-  `);
+  // Batch fetch friends going for all events in one query
+  const eventIds = events.map((e: any) => e.id);
+  let friendsMap: Record<number, any[]> = {};
+
+  if (eventIds.length > 0) {
+    const ePlaceholders = eventIds.map(() => '?').join(',');
+    const friendsGoing = db.prepare(`
+      SELECT er.event_id, u.id, u.name, u.profile_image_url
+      FROM event_rsvps er
+      JOIN users u ON er.user_id = u.id
+      JOIN follows f ON f.following_id = er.user_id AND f.follower_id = ?
+      WHERE er.event_id IN (${ePlaceholders}) AND er.status = 'going'
+    `).all(req.userId, ...eventIds) as any[];
+
+    for (const f of friendsGoing) {
+      if (!friendsMap[f.event_id]) friendsMap[f.event_id] = [];
+      if (friendsMap[f.event_id].length < 5) {
+        friendsMap[f.event_id].push({ id: f.id, name: f.name, profile_image_url: f.profile_image_url });
+      }
+    }
+  }
 
   res.json({
     events: events.map(e => {
-      const friends_going = friendsGoingStmt.all(req.userId, e.id) as any[];
+      const friends_going = friendsMap[e.id] || [];
       return {
         ...e,
         is_recurring: !!e.is_recurring,

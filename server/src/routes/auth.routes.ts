@@ -132,7 +132,7 @@ router.post('/login', async (req, res: Response) => {
 
 router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
   const user = db.prepare(`
-    SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, created_at
+    SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, timezone, created_at
     FROM users WHERE id = ?
   `).get(req.userId) as any;
 
@@ -146,7 +146,7 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
 
 router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
   const updates = req.body;
-  const allowed = ['name', 'age', 'height_cm', 'weight_kg', 'fitness_level', 'running_experience', 'injury_history'];
+  const allowed = ['name', 'age', 'height_cm', 'weight_kg', 'fitness_level', 'running_experience', 'injury_history', 'timezone'];
   const numericFields: Record<string, { min: number; max: number }> = {
     age: { min: 13, max: 100 },
     height_cm: { min: 100, max: 250 },

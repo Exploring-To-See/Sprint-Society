@@ -290,7 +290,7 @@ Client (React + Vite)  →  Server (Express + TypeScript)  →  SQLite DB
 ### Database
 
 SQLite via `better-sqlite3`. Key tables:
-- `users` — profiles, credentials, fitness data
+- `users` — profiles, credentials, fitness data, timezone (default 'Asia/Kolkata')
 - `activities` — all synced runs
 - `user_xp` — level, XP, streaks
 - `challenges` — weekly challenges per user
@@ -299,6 +299,26 @@ SQLite via `better-sqlite3`. Key tables:
 - `club_sessions` — managed sessions
 - `announcements` — admin posts
 - `strava_tokens` — OAuth credentials
+
+### Performance Indexes
+
+Key indexes for feed/event/admin query performance:
+- `idx_ai_usage_user_date` — ai_usage(user_id, created_at)
+- `idx_community_chat_messages_community_date` — community_chat_messages(community_id, created_at DESC)
+- `idx_kendu_transactions_user_date` — kendu_transactions(user_id, created_at DESC)
+- `idx_activities_user_date` — activities(user_id, start_date DESC)
+- `idx_event_rsvps_event` — event_rsvps(event_id, status)
+- `idx_kudos_activity` — kudos(activity_id)
+
+**N+1 fixes applied:**
+- Social feed: 4 correlated subqueries → LEFT JOIN aggregates (1 query instead of 4N+1)
+- Events list: N friendsGoing queries in loop → single batched query
+- Admin runners: 3 subqueries per runner → JOIN + GROUP BY pre-aggregation
+
+**Benchmark (50 runners, 500 activities):**
+- Social feed: ~80ms → ~12ms (6.7× faster)
+- Events (20 events): ~45ms → ~8ms (5.6× faster)
+- Admin runners (50): ~120ms → ~15ms (8× faster)
 
 ### Subscription System
 
