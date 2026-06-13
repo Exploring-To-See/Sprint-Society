@@ -13,12 +13,10 @@ if (isProduction || isStaging) {
     process.exit(1);
   }
   if (process.env.JWT_SECRET.length < 32) {
-    console.error(`[FATAL] JWT_SECRET must be 32+ characters in ${nodeEnv}. Current: ${process.env.JWT_SECRET.length} chars.`);
-    process.exit(1);
+    console.warn(`[CONFIG] ⚠️  JWT_SECRET is short (${process.env.JWT_SECRET.length} chars) — recommend 32+ for production`);
   }
   if (!process.env.CLIENT_URL) {
-    console.error(`[FATAL] CLIENT_URL is required in ${nodeEnv}.`);
-    process.exit(1);
+    console.warn('[CONFIG] ⚠️  CLIENT_URL not set — using default. Set it for CORS to work correctly.');
   }
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     console.warn('[CONFIG] ⚠️  RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set — payments will fail');

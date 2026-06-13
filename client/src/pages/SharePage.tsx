@@ -1,8 +1,10 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-const toJpeg = (...args: Parameters<typeof import('html-to-image')['toJpeg']>) =>
-  import('html-to-image').then(m => m.toJpeg(...args));
+async function toJpeg(node: HTMLElement, options?: Record<string, any>): Promise<string> {
+  const { toJpeg: fn } = await import('html-to-image');
+  return fn(node, options);
+}
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';

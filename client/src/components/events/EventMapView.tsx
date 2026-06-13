@@ -14,7 +14,6 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
     if (!mapRef.current || mapInstance) return;
 
     import('leaflet').then(L => {
-      import('leaflet/dist/leaflet.css');
       leafletRef.current = L.default || L;
       const Leaf = leafletRef.current;
 
