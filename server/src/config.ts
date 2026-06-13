@@ -47,6 +47,8 @@ export const config = {
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
   google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    // Trim to survive trailing spaces/newlines pasted into the Railway env editor —
+    // a stray whitespace char silently breaks the id_token audience check.
+    clientId: (process.env.GOOGLE_CLIENT_ID || '').trim(),
   },
 };

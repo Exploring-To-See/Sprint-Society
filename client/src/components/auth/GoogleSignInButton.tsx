@@ -75,7 +75,10 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'continue_with' 
       const result = await googleLogin(response.credential);
       onSuccess?.(!!result.isNew);
     } catch (err: any) {
-      const msg = err.response?.data?.error || 'Google sign-in failed';
+      // `api` throws an ApiError carrying the server's real message — surface it so the
+      // user (and the console) sees *why* it failed instead of a silent dead end.
+      console.error('[GoogleSignIn] sign-in failed:', err);
+      const msg = err?.message || err?.response?.data?.error?.message || 'Google sign-in failed';
       onError?.(msg);
     } finally {
       setLoading(false);

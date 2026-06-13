@@ -33,13 +33,16 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError<{ error?: { code?: string; message?: string } }>) => {
+  (error: AxiosError<{ error?: { code?: string; message?: string } | string }>) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('sprint_society_token');
       window.dispatchEvent(new CustomEvent('sprint:session-expired'));
     }
 
-    const apiErr = error.response?.data?.error;
+    // Server errors come back as either { error: { code, message } } or a plain
+    // { error: "string" } (older routes). Normalize both so the real reason reaches the UI.
+    const rawErr = error.response?.data?.error;
+    const apiErr = typeof rawErr === 'string' ? { code: undefined, message: rawErr } : rawErr;
     const status = error.response?.status || 0;
     const code = apiErr?.code || `HTTP_${status}`;
     const message = apiErr?.message || 'Something went wrong. Please try again.';

@@ -47,8 +47,17 @@ async function verifyGoogleToken(idToken: string): Promise<GoogleTokenPayload> {
 
   const payload = jwt.verify(idToken, cert, { algorithms: ['RS256'] }) as GoogleTokenPayload;
 
-  if (payload.aud !== config.google.clientId) {
-    throw new Error('Token audience mismatch');
+  // The token's `aud` is the client_id the frontend used (VITE_GOOGLE_CLIENT_ID).
+  // It must match the server's GOOGLE_CLIENT_ID. Mismatch here is the #1 cause of a
+  // popup that signs in but never completes — usually the two env vars hold different
+  // IDs, or one has stray whitespace. Trim both sides and report the real values.
+  const expected = config.google.clientId.trim();
+  const got = String(payload.aud || '').trim();
+  if (got !== expected) {
+    throw new Error(
+      `Token audience mismatch: token aud="${got}" but server GOOGLE_CLIENT_ID="${expected}". ` +
+      'Make sure VITE_GOOGLE_CLIENT_ID (frontend build) and GOOGLE_CLIENT_ID (server) are the SAME client ID.'
+    );
   }
 
   if (!['accounts.google.com', 'https://accounts.google.com'].includes(payload.iss)) {
@@ -66,11 +75,11 @@ router.post('/google', async (req: Request, res: Response) => {
   try {
     const { credential } = req.body;
     if (!credential) {
-      return res.status(400).json({ error: 'Google credential required' });
+      return res.status(400).json({ error: { code: 'GOOGLE_NO_CREDENTIAL', message: 'Google credential required' } });
     }
 
     if (!config.google.clientId) {
-      return res.status(500).json({ error: 'Google auth not configured' });
+      return res.status(500).json({ error: { code: 'GOOGLE_NOT_CONFIGURED', message: 'Google sign-in is not configured on the server (GOOGLE_CLIENT_ID missing).' } });
     }
 
     const payload = await verifyGoogleToken(credential);
@@ -94,36 +103,43 @@ router.post('/google', async (req: Request, res: Response) => {
       return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     }
 
-    // New user — create account without password
-    const result = db.prepare(`
-      INSERT INTO users (name, email, phone, password_hash, google_id, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url)
-      VALUES (?, ?, '', '', ?, 'male', 25, 170, 70, 'active', 'beginner', '[]', ?)
-    `).run(name, email, googleId, picture || null);
+    // New user — create account without password. Wrap every write in a single
+    // transaction so a half-created user can never be persisted: either the whole
+    // signup lands atomically, or nothing does.
+    const createNewUser = db.transaction(() => {
+      const result = db.prepare(`
+        INSERT INTO users (name, email, phone, password_hash, google_id, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url)
+        VALUES (?, ?, '', '', ?, 'male', 25, 170, 70, 'active', 'beginner', '[]', ?)
+      `).run(name, email, googleId, picture || null);
 
-    const userId = result.lastInsertRowid as number;
+      const newId = result.lastInsertRowid as number;
 
-    // Initialize XP
-    db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
+      db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(newId);
 
-    // Auto-join Sprint Social Club
-    const socialClub = db.prepare("SELECT id FROM communities WHERE name = 'Sprint Social Club'").get() as any;
-    if (socialClub) {
-      db.prepare('INSERT OR IGNORE INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(socialClub.id, userId, 'member');
-      db.prepare('UPDATE communities SET member_count = member_count + 1 WHERE id = ?').run(socialClub.id);
-    }
+      const socialClub = db.prepare("SELECT id FROM communities WHERE name = 'Sprint Social Club'").get() as any;
+      if (socialClub) {
+        db.prepare('INSERT OR IGNORE INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(socialClub.id, newId, 'member');
+        db.prepare('UPDATE communities SET member_count = member_count + 1 WHERE id = ?').run(socialClub.id);
+      }
 
-    // Welcome bonus
-    awardWelcomeBonus(userId);
-    createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+      awardWelcomeBonus(newId);
+      createNotification(newId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+
+      return newId;
+    });
+
+    const userId = createNewUser();
 
     const token = signToken(userId);
-    res.status(201).json({ token, user: { id: userId, name, email }, isNew: true });
+    res.status(201).json({ token, user: { id: userId, name, email, role: 'runner' }, isNew: true });
   } catch (err: any) {
-    console.error('[Google Auth]', err.message);
-    if (err.message.includes('audience') || err.message.includes('issuer') || err.message.includes('Invalid token')) {
-      return res.status(401).json({ error: 'Invalid Google credential' });
+    // Log the full reason server-side (never the raw token) so Railway logs pinpoint the cause.
+    console.error('[Google Auth] failed:', err?.message, err?.code || '');
+    const msg: string = err?.message || '';
+    if (msg.includes('audience') || msg.includes('issuer') || msg.includes('Invalid token') || msg.includes('not verified')) {
+      return res.status(401).json({ error: { code: 'GOOGLE_AUTH_INVALID', message: msg || 'Invalid Google credential' } });
     }
-    res.status(500).json({ error: 'Google authentication failed' });
+    res.status(500).json({ error: { code: 'GOOGLE_AUTH_FAILED', message: 'Google authentication failed. Please try again.' } });
   }
 });
 
