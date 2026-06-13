@@ -129,4 +129,10 @@ export function createNotification(
     INSERT INTO user_notifications (user_id, type, title, body, actor_id, target_type, target_id)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(userId, type, title, body || null, actorId || null, targetType || null, targetId || null);
+
+  // Push via WebSocket
+  try {
+    const { pushToUser } = require('../websocket');
+    pushToUser(userId, { type: 'notification', notification: { type, title, body } });
+  } catch {}
 }

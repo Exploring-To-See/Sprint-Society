@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BottomNav } from './BottomNav';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useNotificationSocket } from '../../hooks/useNotificationSocket';
 
 interface AppShellProps {
   children: ReactNode;
@@ -14,13 +15,14 @@ export function AppShell({ children, hideNav }: AppShellProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
+  const wsConnected = useNotificationSocket(!!user && !isAdmin);
 
   const { data: unread } = useQuery({
     queryKey: ['notifications-unread'],
     queryFn: () => api.get('/notifications/unread-count').then(r => r.data),
     enabled: !!user && !isAdmin,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: wsConnected ? 5 * 60_000 : 60_000,
+    refetchInterval: wsConnected ? false : 5 * 60_000,
   });
 
   const unreadCount = unread?.count || 0;

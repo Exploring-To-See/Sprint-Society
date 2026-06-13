@@ -9,7 +9,7 @@ export function ChatFAB() {
   const { data: suggestions } = useQuery({
     queryKey: ['chat-suggestions'],
     queryFn: () => api.get('/chat/suggestions').then(r => r.data).catch(() => null),
-    refetchInterval: 60000,
+    staleTime: 5 * 60_000,
   });
 
   const hasContextualSuggestion = suggestions?.suggestions?.some((s: any) => s.priority <= 2);

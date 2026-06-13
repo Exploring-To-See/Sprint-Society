@@ -11,6 +11,18 @@ interface AuthenticatedSocket extends WebSocket {
 }
 
 const communities = new Map<number, Set<AuthenticatedSocket>>();
+const userSockets = new Map<number, Set<AuthenticatedSocket>>();
+
+export function pushToUser(userId: number, event: { type: string; [key: string]: any }) {
+  const sockets = userSockets.get(userId);
+  if (!sockets) return;
+  const msg = JSON.stringify(event);
+  for (const ws of sockets) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(msg);
+    }
+  }
+}
 
 export function initWebSocket(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: '/ws' });
@@ -20,8 +32,8 @@ export function initWebSocket(server: HttpServer) {
     const token = url.searchParams.get('token');
     const communityId = parseInt(url.searchParams.get('community') || '0');
 
-    if (!token || !communityId) {
-      ws.close(4001, 'Missing token or community');
+    if (!token) {
+      ws.close(4001, 'Missing token');
       return;
     }
 
@@ -35,6 +47,23 @@ export function initWebSocket(server: HttpServer) {
       ws.userName = user?.name || 'Anonymous';
     } catch {
       ws.close(4003, 'Invalid token');
+      return;
+    }
+
+    // Register for push notifications (all authenticated connections)
+    if (ws.userId) {
+      if (!userSockets.has(ws.userId)) userSockets.set(ws.userId, new Set());
+      userSockets.get(ws.userId)!.add(ws);
+    }
+
+    // If no community specified, this is a notification-only connection
+    if (!communityId) {
+      ws.on('close', () => {
+        if (ws.userId) {
+          userSockets.get(ws.userId)?.delete(ws);
+          if (userSockets.get(ws.userId)?.size === 0) userSockets.delete(ws.userId);
+        }
+      });
       return;
     }
 
@@ -102,6 +131,10 @@ export function initWebSocket(server: HttpServer) {
       communities.get(communityId)?.delete(ws);
       if (communities.get(communityId)?.size === 0) {
         communities.delete(communityId);
+      }
+      if (ws.userId) {
+        userSockets.get(ws.userId)?.delete(ws);
+        if (userSockets.get(ws.userId)?.size === 0) userSockets.delete(ws.userId);
       }
     });
   });

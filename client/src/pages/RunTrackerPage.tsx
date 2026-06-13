@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LatLngExpression } from 'leaflet';
+import { useMap } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { SplitChart } from '../components/run/SplitChart';

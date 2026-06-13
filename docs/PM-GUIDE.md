@@ -397,6 +397,22 @@ Two batch endpoints collapse multiple round-trips into one:
 
 Client uses `staleTime: 2 minutes` to avoid re-fetching on tab switches. Query keys: `dashboard-batch` and `coach-insights-batch`.
 
+### WebSocket Notifications (Real-time Push)
+
+Notifications are pushed in real-time via the existing `/ws` WebSocket server.
+
+**How it works:**
+- `createNotification()` inserts into DB then calls `pushToUser(userId, event)` via WebSocket
+- Client connects to `/ws?token=<jwt>` (no community param = notification-only connection)
+- On receiving `{ type: 'notification' }`, client invalidates `['notifications-unread']` query
+- Fallback: 5-minute polling when WebSocket is disconnected
+- Old 30s/60s `refetchInterval` removed — saves ~120 HTTP requests/hour per user
+
+**Connection lifecycle:**
+- Opens on login, reconnects on close (5s backoff)
+- Supports both notification-only and community-chat connections simultaneously
+- Cleaned up on logout/close
+
 **Env validation (production):**
 - `JWT_SECRET` missing or <32 chars → server refuses to start (exit 1)
 - `CLIENT_URL` missing → server refuses to start
