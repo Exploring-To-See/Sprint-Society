@@ -177,16 +177,20 @@ function runMigrations() {
 }
 
 function seedAdmin() {
-  const existing = db.prepare("SELECT id FROM users WHERE email = 'admin@sprintsociety.com'").get() as any;
-  if (existing) return;
-
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminPassword) {
-    console.warn('[SEED] ADMIN_PASSWORD env var not set — skipping admin seed. Run: ADMIN_PASSWORD=yourpass npm run setup:admin');
+    console.warn('[SEED] ADMIN_PASSWORD env var not set — skipping admin seed.');
     return;
   }
 
   const hash = bcrypt.hashSync(adminPassword, 10);
+  const existing = db.prepare("SELECT id FROM users WHERE email = 'admin@sprintsociety.com'").get() as any;
+
+  if (existing) {
+    db.prepare('UPDATE users SET password_hash = ?, role = ? WHERE id = ?').run(hash, 'admin', existing.id);
+    return;
+  }
+
   db.prepare(`
     INSERT INTO users (name, email, phone, password_hash, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history)
     VALUES (?, ?, ?, ?, 'admin', 'male', 28, 178, 72, 'very_active', 'advanced', '[]')
