@@ -8,13 +8,23 @@ const isProduction = nodeEnv === 'production';
 const isStaging = nodeEnv === 'staging';
 
 if (isProduction || isStaging) {
-  const required = ['JWT_SECRET', 'CLIENT_URL'];
-  const missing = required.filter(key => !process.env[key]);
-  if (missing.length > 0) {
-    console.warn(`[CONFIG] Missing env vars for ${nodeEnv}: ${missing.join(', ')} — using defaults`);
+  if (!process.env.JWT_SECRET) {
+    console.error(`[FATAL] JWT_SECRET is required in ${nodeEnv}. Server cannot start without it.`);
+    process.exit(1);
   }
-  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
-    console.warn('[CONFIG] JWT_SECRET is short — recommend 32+ characters for production');
+  if (process.env.JWT_SECRET.length < 32) {
+    console.error(`[FATAL] JWT_SECRET must be 32+ characters in ${nodeEnv}. Current: ${process.env.JWT_SECRET.length} chars.`);
+    process.exit(1);
+  }
+  if (!process.env.CLIENT_URL) {
+    console.error(`[FATAL] CLIENT_URL is required in ${nodeEnv}.`);
+    process.exit(1);
+  }
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.warn('[CONFIG] ⚠️  RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set — payments will fail');
+  }
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    console.warn('[CONFIG] ⚠️  GOOGLE_CLIENT_ID not set — Google sign-in disabled');
   }
 }
 

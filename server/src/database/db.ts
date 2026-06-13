@@ -158,6 +158,22 @@ function runMigrations() {
   if (!userColsTz.find((c: any) => c.name === 'timezone')) {
     db.exec("ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT 'Asia/Kolkata'");
   }
+
+  // Seed feature flags (idempotent)
+  const flagsToSeed = [
+    { key: 'ai_chat', name: 'AI Chat Coach', description: 'Sonnet-powered chat coaching (Pro only)', enabled: 0 },
+    { key: 'ai_voice', name: 'AI Voice Coach', description: 'Voice-based run coaching (future)', enabled: 0 },
+    { key: 'ai_generation', name: 'AI Plan Generation', description: 'AI-generated training plans (future)', enabled: 0 },
+    { key: 'social_feed', name: 'Social Feed', description: 'Activity feed with kudos and comments', enabled: 1 },
+    { key: 'live_events', name: 'Live Events', description: 'Event creation and RSVPs', enabled: 1 },
+    { key: 'communities', name: 'Communities', description: 'Community creation and chat', enabled: 1 },
+    { key: 'razorpay_payments', name: 'Razorpay Payments', description: 'Subscription payment processing', enabled: 1 },
+    { key: 'strava_sync', name: 'Strava Sync', description: 'Strava OAuth + webhook sync', enabled: 1 },
+  ];
+  const insertFlag = db.prepare('INSERT OR IGNORE INTO feature_flags (key, name, description, enabled, rollout_percentage) VALUES (?, ?, ?, ?, 100)');
+  for (const f of flagsToSeed) {
+    insertFlag.run(f.key, f.name, f.description, f.enabled);
+  }
 }
 
 function seedAdmin() {

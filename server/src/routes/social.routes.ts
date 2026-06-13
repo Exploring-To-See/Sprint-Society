@@ -2,12 +2,17 @@ import { Router, Response } from 'express';
 import db from '../database/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications.routes';
+import { isFlagEnabled } from '../utils/featureFlags';
 
 const router = Router();
 router.use(authenticate);
 
 // GET /social/feed — Activity feed from people you follow (+ your own)
 router.get('/feed', (req: AuthRequest, res: Response) => {
+  if (!isFlagEnabled('social_feed', req.userId!)) {
+    return res.status(503).json({ error: 'Social feed is temporarily unavailable', flag: 'social_feed' });
+  }
+
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
   const offset = (page - 1) * limit;

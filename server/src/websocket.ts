@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import jwt from 'jsonwebtoken';
 import db from './database/db';
+import { config } from './config';
 
 interface AuthenticatedSocket extends WebSocket {
   userId?: number;
@@ -25,7 +26,7 @@ export function initWebSocket(server: HttpServer) {
     }
 
     try {
-      const secret = process.env.JWT_SECRET || 'sprint-society-dev-secret';
+      const secret = config.jwtSecret;
       const decoded = jwt.verify(token, secret) as any;
       ws.userId = decoded.userId || decoded.id;
       ws.communityId = communityId;

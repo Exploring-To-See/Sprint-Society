@@ -347,6 +347,35 @@ Key indexes for feed/event/admin query performance:
 **Routes:** `/subscription/plans`, `/subscription/status`, `/subscription/create-order`, `/subscription/verify`, `/subscription/cancel`
 **Payment:** Razorpay integration (env: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`)
 
+### Feature Flags (Kill Switches)
+
+Server-side feature gate system with admin toggle UI.
+
+**How it works:**
+- `isFlagEnabled(key, userId?)` — server-side check, returns boolean
+- `GET /api/flags` — client-facing endpoint, returns all flags evaluated for the current user
+- Admin panel: `/admin/flags` — toggle flags on/off, set rollout %, per-user overrides
+
+**Active flags:**
+| Key | Purpose | Default |
+|-----|---------|---------|
+| `social_feed` | Activity feed with kudos | ON |
+| `live_events` | Event creation/RSVPs | ON |
+| `communities` | Community chat/creation | ON |
+| `razorpay_payments` | Payment processing | ON |
+| `strava_sync` | Strava OAuth + webhooks | ON |
+| `ai_chat` | Sonnet chat coach (Pro) | OFF (reserved) |
+| `ai_voice` | Voice coaching (future) | OFF (reserved) |
+| `ai_generation` | AI plan generation (future) | OFF (reserved) |
+
+**Kill switch process:** Admin panel → Flags tab → toggle OFF → feature returns 503 immediately. No deploy needed.
+
+**Env validation (production):**
+- `JWT_SECRET` missing or <32 chars → server refuses to start (exit 1)
+- `CLIENT_URL` missing → server refuses to start
+- `RAZORPAY_*` missing → loud warning, payments disabled
+- `GOOGLE_CLIENT_ID` missing → loud warning, Google sign-in disabled
+
 ### Admin Account Setup
 
 ```bash
