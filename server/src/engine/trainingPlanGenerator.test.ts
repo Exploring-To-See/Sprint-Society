@@ -45,8 +45,8 @@ describe('trainingPlanGenerator', () => {
       expect(paces).toHaveProperty('easy_max');
       expect(paces).toHaveProperty('tempo');
       expect(paces).toHaveProperty('interval');
-      expect(paces).toHaveProperty('long');
-      expect(paces).toHaveProperty('recovery');
+      expect(paces).toHaveProperty('long_run');
+      expect(paces).toHaveProperty('marathon');
     });
 
     it('faster paces for higher VDOT', () => {

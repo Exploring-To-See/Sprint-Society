@@ -159,6 +159,40 @@ function runMigrations() {
     db.exec("ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT 'Asia/Kolkata'");
   }
 
+  // Add 'welcome' to user_notifications.type CHECK constraint (sent on register).
+  // SQLite can't ALTER a CHECK, so rebuild the table when the old constraint is present.
+  const notifDDL = db.prepare(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='user_notifications'"
+  ).get() as { sql?: string } | undefined;
+  if (notifDDL?.sql && !notifDDL.sql.includes("'welcome'")) {
+    db.pragma('foreign_keys = OFF');
+    db.exec(`
+      BEGIN;
+      CREATE TABLE user_notifications_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('welcome', 'kudos', 'comment', 'follow', 'event_reminder', 'event_rsvp', 'community_post', 'community_join', 'achievement', 'level_up', 'xp_award', 'ai_insight')),
+        title TEXT NOT NULL,
+        body TEXT,
+        actor_id INTEGER,
+        target_type TEXT,
+        target_id INTEGER,
+        read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+      );
+      INSERT INTO user_notifications_new
+        SELECT id, user_id, type, title, body, actor_id, target_type, target_id, read, created_at
+        FROM user_notifications;
+      DROP TABLE user_notifications;
+      ALTER TABLE user_notifications_new RENAME TO user_notifications;
+      CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, read, created_at DESC);
+      COMMIT;
+    `);
+    db.pragma('foreign_keys = ON');
+  }
+
   // Seed feature flags (idempotent)
   const flagsToSeed = [
     { key: 'ai_chat', name: 'AI Chat Coach', description: 'Sonnet-powered chat coaching (Pro only)', enabled: 0 },

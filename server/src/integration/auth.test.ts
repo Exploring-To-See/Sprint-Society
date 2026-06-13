@@ -1,28 +1,14 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+// DB_PATH + JWT_SECRET are set in src/test-setup.ts before any import, so the
+// db connection opens against a per-worker temp DB (not the real one).
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
-import path from 'path';
-import fs from 'fs';
-
-const TEST_DB_PATH = path.join(__dirname, '../../data/test-auth.db');
-
-// Set env before importing anything that reads DB_PATH
-process.env.DB_PATH = TEST_DB_PATH;
-process.env.JWT_SECRET = 'test-secret-key-for-ci';
-
 import { initializeDatabase } from '../database/db';
 import { createApp } from '../app';
 
 const app = createApp();
 
 beforeAll(() => {
-  if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH);
   initializeDatabase();
-});
-
-afterAll(() => {
-  if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH);
-  if (fs.existsSync(TEST_DB_PATH + '-wal')) fs.unlinkSync(TEST_DB_PATH + '-wal');
-  if (fs.existsSync(TEST_DB_PATH + '-shm')) fs.unlinkSync(TEST_DB_PATH + '-shm');
 });
 
 describe('Auth flow: register → login → me', () => {
