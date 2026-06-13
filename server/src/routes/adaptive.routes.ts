@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { calculateTrainingLoad, analyzeWeekPerformance, adaptNextWeek, trackVDOTProgression, detectDetraining, calculateRunningEconomy } from '../engine/adaptiveEngine';
 import { getTrainingPaces } from '../engine/trainingPlanGenerator';
@@ -8,14 +8,15 @@ const router = Router();
 router.use(authenticate);
 
 // GET /adaptive/load — Training load metrics (ATL, CTL, TSB, injury risk)
-router.get('/load', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT max_heartrate FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/load', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT max_heartrate FROM users WHERE id = $1', [req.userId]) as any;
 
-  const activities = db.prepare(
+  const activities = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_heartrate, start_date
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-35 days')
-     ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '35 days'
+     ORDER BY start_date DESC`,
+    [req.userId]
+  ) as any[];
 
   if (activities.length === 0) {
     return res.json({
@@ -39,14 +40,15 @@ router.get('/load', (req: AuthRequest, res: Response) => {
 });
 
 // GET /adaptive/this-week — Adapted training for current week (reacts to last week)
-router.get('/this-week', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/this-week', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   // Get the current plan
-  const existingPlan = db.prepare(
-    `SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
-  ).get(req.userId) as any;
+  const existingPlan = await db.queryOne(
+    `SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = $1 ORDER BY generated_at DESC LIMIT 1`,
+    [req.userId]
+  ) as any;
 
   if (!existingPlan) {
     return res.json({ adapted: false, message: 'No active plan. Generate one first via /training/plan.' });
@@ -59,18 +61,20 @@ router.get('/this-week', (req: AuthRequest, res: Response) => {
   const plannedWeek = plan.weeks[currentWeekIndex];
 
   // Get last week's activities to analyze performance
-  const lastWeekActivities = db.prepare(
+  const lastWeekActivities = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, max_heartrate, start_date
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-14 days') AND start_date <= datetime('now', '-7 days')
-     ORDER BY start_date ASC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '14 days' AND start_date <= NOW() - INTERVAL '7 days'
+     ORDER BY start_date ASC`,
+    [req.userId]
+  ) as any[];
 
   // Get all recent activities for load calculation
-  const recentActivities = db.prepare(
+  const recentActivities = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_heartrate, start_date
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-35 days')
-     ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '35 days'
+     ORDER BY start_date DESC`,
+    [req.userId]
+  ) as any[];
 
   // If no last-week data, return the plan as-is
   if (lastWeekActivities.length === 0) {
@@ -154,12 +158,13 @@ router.get('/this-week', (req: AuthRequest, res: Response) => {
 });
 
 // GET /adaptive/vdot-progression — VDOT evolution over time
-router.get('/vdot-progression', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/vdot-progression', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? AND distance_meters >= 1500
-     ORDER BY start_date DESC LIMIT 100`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND distance_meters >= 1500
+     ORDER BY start_date DESC LIMIT 100`,
+    [req.userId]
+  ) as any[];
 
   if (runs.length < 3) {
     return res.json({ message: 'Need at least 3 qualifying runs (1.5km+) to track VDOT progression.' });
@@ -180,14 +185,15 @@ router.get('/vdot-progression', (req: AuthRequest, res: Response) => {
 });
 
 // GET /adaptive/summary — Quick overview for dashboard
-router.get('/summary', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT max_heartrate FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/summary', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT max_heartrate FROM users WHERE id = $1', [req.userId]) as any;
 
-  const activities = db.prepare(
+  const activities = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_heartrate, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-35 days')
-     ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '35 days'
+     ORDER BY start_date DESC`,
+    [req.userId]
+  ) as any[];
 
   if (activities.length === 0) {
     return res.json({

@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
 
@@ -9,48 +9,48 @@ router.use(authenticate);
 router.use(requireAdmin);
 
 // GET /dashboard — key metrics snapshot
-router.get('/dashboard', (req: AuthRequest, res: Response) => {
+router.get('/dashboard', async (req: AuthRequest, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
 
-  const dau = (db.prepare(`
+  const dau = (await db.queryOne(`
     SELECT COUNT(DISTINCT user_id) as count FROM activities
-    WHERE date(start_date) = date('now')
-  `).get() as any).count;
+    WHERE date(start_date) = CURRENT_DATE
+  `, []) as any).count;
 
-  const mau = (db.prepare(`
+  const mau = (await db.queryOne(`
     SELECT COUNT(DISTINCT user_id) as count FROM activities
-    WHERE start_date >= datetime('now', '-30 days')
-  `).get() as any).count;
+    WHERE start_date >= NOW() - INTERVAL '30 days'
+  `, []) as any).count;
 
-  const newUsersToday = (db.prepare(`
+  const newUsersToday = (await db.queryOne(`
     SELECT COUNT(*) as count FROM users
-    WHERE date(created_at) = date('now') AND role = 'runner'
-  `).get() as any).count;
+    WHERE date(created_at) = CURRENT_DATE AND role = 'runner'
+  `, []) as any).count;
 
-  const newUsersWeek = (db.prepare(`
+  const newUsersWeek = (await db.queryOne(`
     SELECT COUNT(*) as count FROM users
-    WHERE created_at >= datetime('now', '-7 days') AND role = 'runner'
-  `).get() as any).count;
+    WHERE created_at >= NOW() - INTERVAL '7 days' AND role = 'runner'
+  `, []) as any).count;
 
-  const activeRunnersToday = (db.prepare(`
+  const activeRunnersToday = (await db.queryOne(`
     SELECT COUNT(DISTINCT user_id) as count FROM activities
-    WHERE date(start_date) = date('now')
-  `).get() as any).count;
+    WHERE date(start_date) = CURRENT_DATE
+  `, []) as any).count;
 
-  const totalRunsToday = (db.prepare(`
+  const totalRunsToday = (await db.queryOne(`
     SELECT COUNT(*) as count FROM activities
-    WHERE date(start_date) = date('now')
-  `).get() as any).count;
+    WHERE date(start_date) = CURRENT_DATE
+  `, []) as any).count;
 
-  const totalDistanceToday = (db.prepare(`
+  const totalDistanceToday = (await db.queryOne(`
     SELECT COALESCE(SUM(distance_meters), 0) as total FROM activities
-    WHERE date(start_date) = date('now')
-  `).get() as any).total;
+    WHERE date(start_date) = CURRENT_DATE
+  `, []) as any).total;
 
-  const avgSessionDuration = (db.prepare(`
+  const avgSessionDuration = (await db.queryOne(`
     SELECT COALESCE(AVG(elapsed_time_seconds), 0) as avg_duration FROM activities
-    WHERE date(start_date) = date('now')
-  `).get() as any).avg_duration;
+    WHERE date(start_date) = CURRENT_DATE
+  `, []) as any).avg_duration;
 
   res.json({
     date: today,
@@ -66,87 +66,87 @@ router.get('/dashboard', (req: AuthRequest, res: Response) => {
 });
 
 // GET /metrics — last 30 days from daily_metrics table
-router.get('/metrics', (req: AuthRequest, res: Response) => {
-  const metrics = db.prepare(`
+router.get('/metrics', async (req: AuthRequest, res: Response) => {
+  const metrics = await db.query(`
     SELECT * FROM daily_metrics
     ORDER BY date DESC
     LIMIT 30
-  `).all();
+  `, []);
 
   res.json(metrics);
 });
 
 // GET /events — recent analytics_events (last 100), with optional ?event_type filter
-router.get('/events', (req: AuthRequest, res: Response) => {
+router.get('/events', async (req: AuthRequest, res: Response) => {
   const { event_type } = req.query;
 
   let events;
   if (event_type) {
-    events = db.prepare(`
+    events = await db.query(`
       SELECT ae.*, u.name as user_name
       FROM analytics_events ae
       LEFT JOIN users u ON ae.user_id = u.id
-      WHERE ae.event_type = ?
+      WHERE ae.event_type = $1
       ORDER BY ae.created_at DESC
       LIMIT 100
-    `).all(event_type);
+    `, [event_type]);
   } else {
-    events = db.prepare(`
+    events = await db.query(`
       SELECT ae.*, u.name as user_name
       FROM analytics_events ae
       LEFT JOIN users u ON ae.user_id = u.id
       ORDER BY ae.created_at DESC
       LIMIT 100
-    `).all();
+    `, []);
   }
 
   res.json(events);
 });
 
 // POST /track — insert into analytics_events (admin-triggered events)
-router.post('/track', (req: AuthRequest, res: Response) => {
+router.post('/track', async (req: AuthRequest, res: Response) => {
   const { event_type, event_name, properties, user_id, session_id } = req.body;
   if (!event_type || !event_name) {
     return res.status(400).json({ error: 'event_type and event_name are required' });
   }
 
-  const result = db.prepare(`
+  const result = await db.execute(`
     INSERT INTO analytics_events (user_id, event_type, event_name, properties, session_id)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(
+    VALUES ($1, $2, $3, $4, $5) RETURNING id
+  `, [
     user_id || null,
     event_type,
     event_name,
     properties ? JSON.stringify(properties) : '{}',
     session_id || null
-  );
+  ]);
 
-  res.status(201).json({ id: result.lastInsertRowid, success: true });
+  res.status(201).json({ id: result.rows[0]?.id, success: true });
 });
 
 // GET /engagement — engagement metrics for P2 features
-router.get('/engagement', (req: AuthRequest, res: Response) => {
-  const totalBadgesEarned = (db.prepare('SELECT COUNT(*) as count FROM user_achievements').get() as any).count;
-  const uniqueBadgeHolders = (db.prepare('SELECT COUNT(DISTINCT user_id) as count FROM user_achievements').get() as any).count;
-  const totalReactions = (db.prepare('SELECT COUNT(*) as count FROM kudos').get() as any).count;
+router.get('/engagement', async (req: AuthRequest, res: Response) => {
+  const totalBadgesEarned = (await db.queryOne('SELECT COUNT(*) as count FROM user_achievements', []) as any).count;
+  const uniqueBadgeHolders = (await db.queryOne('SELECT COUNT(DISTINCT user_id) as count FROM user_achievements', []) as any).count;
+  const totalReactions = (await db.queryOne('SELECT COUNT(*) as count FROM kudos', []) as any).count;
 
-  const reactionBreakdown = db.prepare(`
+  const reactionBreakdown = await db.query(`
     SELECT COALESCE(reaction_type, 'high_five') as type, COUNT(*) as count
     FROM kudos GROUP BY reaction_type ORDER BY count DESC
-  `).all() as any[];
+  `, []) as any[];
 
-  const topStreaks = db.prepare(`
+  const topStreaks = await db.query(`
     SELECT u.name, ux.current_streak_days as streak
     FROM user_xp ux JOIN users u ON u.id = ux.user_id
     WHERE ux.current_streak_days > 0
     ORDER BY ux.current_streak_days DESC LIMIT 5
-  `).all() as any[];
+  `, []) as any[];
 
-  const communitiesWithActivity = (db.prepare(`
+  const communitiesWithActivity = (await db.queryOne(`
     SELECT COUNT(DISTINCT cm.community_id) as count
     FROM community_members cm
-    JOIN activities a ON a.user_id = cm.user_id AND a.start_date > datetime('now', '-7 days')
-  `).get() as any).count;
+    JOIN activities a ON a.user_id = cm.user_id AND a.start_date > NOW() - INTERVAL '7 days'
+  `, []) as any).count;
 
   res.json({
     badges: { total_earned: totalBadgesEarned, unique_holders: uniqueBadgeHolders },

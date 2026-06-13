@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { estimateVDOT, getTrainingPaces, calculateReadiness } from '../engine/trainingPlanGenerator';
 import { calculateTrainingLoad } from '../engine/adaptiveEngine';
@@ -25,24 +25,25 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
     return res.status(400).json({ error: 'Message cannot be empty' });
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   // Gather runner context for the AI
-  const context = buildRunnerContext(req.userId!, user);
+  const context = await buildRunnerContext(req.userId!, user);
 
   // Save user message
-  db.prepare('INSERT INTO chat_messages (user_id, role, content, context) VALUES (?, ?, ?, ?)').run(
+  await db.execute('INSERT INTO chat_messages (user_id, role, content, context) VALUES ($1, $2, $3, $4)', [
     req.userId, 'user', message.trim(), JSON.stringify(context)
-  );
+  ]);
 
   // Get conversation history (last 10 messages for context)
-  const history = db.prepare(
-    `SELECT role, content FROM chat_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`
-  ).all(req.userId) as any[];
+  const history = await db.query(
+    `SELECT role, content FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
+    [req.userId]
+  ) as any[];
 
   // Check if user has pro subscription AND API key exists → use Sonnet
-  const subscription = db.prepare('SELECT plan_key FROM user_subscriptions WHERE user_id = ? AND status = ?').get(req.userId, 'active') as any;
+  const subscription = await db.queryOne('SELECT plan_key FROM user_subscriptions WHERE user_id = $1 AND status = $2', [req.userId, 'active']) as any;
   const useAI = config.anthropic.apiKey && subscription?.plan_key === 'pro';
 
   let response: string;
@@ -59,9 +60,9 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
   }
 
   // Save assistant message
-  db.prepare('INSERT INTO chat_messages (user_id, role, content) VALUES (?, ?, ?)').run(
+  await db.execute('INSERT INTO chat_messages (user_id, role, content) VALUES ($1, $2, $3)', [
     req.userId, 'assistant', response
-  );
+  ]);
 
   res.json({
     message: response,
@@ -75,39 +76,41 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
 });
 
 // GET /chat/history — Get chat history
-router.get('/history', (req: AuthRequest, res: Response) => {
+router.get('/history', async (req: AuthRequest, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 50;
 
-  const messages = db.prepare(
-    `SELECT id, role, content, created_at FROM chat_messages WHERE user_id = ? ORDER BY created_at ASC LIMIT ?`
-  ).all(req.userId, limit);
+  const messages = await db.query(
+    `SELECT id, role, content, created_at FROM chat_messages WHERE user_id = $1 ORDER BY created_at ASC LIMIT $2`,
+    [req.userId, limit]
+  );
 
   res.json(messages);
 });
 
 // DELETE /chat/history — Clear chat history
-router.delete('/history', (req: AuthRequest, res: Response) => {
-  db.prepare('DELETE FROM chat_messages WHERE user_id = ?').run(req.userId);
+router.delete('/history', async (req: AuthRequest, res: Response) => {
+  await db.execute('DELETE FROM chat_messages WHERE user_id = $1', [req.userId]);
   res.json({ success: true });
 });
 
 // GET /chat/suggestions — dynamic contextual prompts based on user state
-router.get('/suggestions', (req: AuthRequest, res: Response) => {
+router.get('/suggestions', async (req: AuthRequest, res: Response) => {
   const suggestions: { label: string; icon: string; priority: number }[] = [];
 
-  const lastRun = db.prepare(
-    `SELECT start_date FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 1`
-  ).get(req.userId) as any;
+  const lastRun = await db.queryOne(
+    `SELECT start_date FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 1`,
+    [req.userId]
+  ) as any;
 
-  const xp = db.prepare('SELECT current_streak_days FROM user_xp WHERE user_id = ?').get(req.userId) as any;
+  const xp = await db.queryOne('SELECT current_streak_days FROM user_xp WHERE user_id = $1', [req.userId]) as any;
   const streak = xp?.current_streak_days || 0;
 
-  const upcomingEvent = db.prepare(`
+  const upcomingEvent = await db.queryOne(`
     SELECT e.title FROM events e
     JOIN event_rsvps er ON er.event_id = e.id
-    WHERE er.user_id = ? AND er.status = 'going' AND e.date >= date('now') AND e.date <= date('now', '+2 days')
+    WHERE er.user_id = $1 AND er.status = 'going' AND e.date >= CURRENT_DATE AND e.date <= CURRENT_DATE + INTERVAL '2 days'
     LIMIT 1
-  `).get(req.userId) as any;
+  `, [req.userId]) as any;
 
   if (lastRun) {
     const daysSinceRun = Math.floor((Date.now() - new Date(lastRun.start_date).getTime()) / 86400000);
@@ -138,32 +141,35 @@ router.get('/suggestions', (req: AuthRequest, res: Response) => {
 
 // ===== Context Builder =====
 
-function buildRunnerContext(userId: number, user: any) {
-  const recentRuns = db.prepare(
+async function buildRunnerContext(userId: number, user: any) {
+  const recentRuns = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date, activity_type
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 20`
-  ).all(userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 20`,
+    [userId]
+  ) as any[];
 
-  const stats = db.prepare(`
+  const stats = await db.queryOne(`
     SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_distance,
     COALESCE(AVG(average_pace_per_km), 0) as avg_pace
-    FROM activities WHERE user_id = ?
-  `).get(userId) as any;
+    FROM activities WHERE user_id = $1
+  `, [userId]) as any;
 
-  const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(userId) as any;
+  const xp = await db.queryOne('SELECT * FROM user_xp WHERE user_id = $1', [userId]) as any;
   const vdot = recentRuns.length > 0 ? estimateVDOT(recentRuns) : 30;
   const paces = getTrainingPaces(vdot);
   const readiness = calculateReadiness(recentRuns);
 
-  const loadActivities = db.prepare(
+  const loadActivities = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_heartrate, start_date, activity_type
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-35 days')`
-  ).all(userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '35 days'`,
+    [userId]
+  ) as any[];
   const load = calculateTrainingLoad(loadActivities, user.max_heartrate);
 
-  const plan = db.prepare(
-    `SELECT plan_data FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
-  ).get(userId) as any;
+  const plan = await db.queryOne(
+    `SELECT plan_data FROM transformation_plans WHERE user_id = $1 ORDER BY generated_at DESC LIMIT 1`,
+    [userId]
+  ) as any;
 
   const currentWeek = plan ? (() => {
     const planData = JSON.parse(plan.plan_data);
@@ -183,7 +189,7 @@ function buildRunnerContext(userId: number, user: any) {
     readiness: readiness.label,
     readinessScore: readiness.score,
     recentRuns: recentRuns.length,
-    totalRuns: stats.total_runs,
+    totalRuns: parseInt(stats.total_runs),
     totalDistanceKm: Math.round(stats.total_distance / 1000),
     avgPace: stats.avg_pace ? formatPace(stats.avg_pace) : null,
     currentLevel: xp?.current_level || 1,

@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import db from '../database/db';
+import db from '../database/pg';
 import { signToken } from '../utils/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { awardWelcomeBonus } from '../engine/kenduEngine';
@@ -32,9 +32,10 @@ router.post('/register', async (req, res: Response) => {
     // Validate invite code (optional — used for referral tracking)
     let code: any = null;
     if (data.invite_code) {
-      code = db.prepare(`
-        SELECT * FROM invite_codes WHERE code = ? AND active = 1
-      `).get(data.invite_code.toUpperCase().trim()) as any;
+      code = await db.queryOne(
+        `SELECT * FROM invite_codes WHERE code = $1 AND active = true`,
+        [data.invite_code.toUpperCase().trim()]
+      );
 
       if (code) {
         if (code.expires_at && new Date(code.expires_at) < new Date()) {
@@ -45,41 +46,42 @@ router.post('/register', async (req, res: Response) => {
       }
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
+    const existing = await db.queryOne('SELECT id FROM users WHERE email = $1', [data.email]);
     if (existing) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const result = db.prepare(`
+    const result = await db.queryOne(`
       INSERT INTO users (name, email, phone, password_hash, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, invite_code_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id
+    `, [
       data.name, data.email, data.phone, passwordHash,
       data.gender || 'male', data.age || 25,
       data.height_cm || 170, data.weight_kg || 70,
       data.fitness_level || 'active', data.running_experience || 'beginner',
       JSON.stringify(data.injury_history), code?.id || null
-    );
+    ]);
 
-    const userId = result.lastInsertRowid as number;
+    const userId = result.id as number;
 
     if (data.profile_photo && data.profile_photo.startsWith('data:image/')) {
-      db.prepare('UPDATE users SET profile_image_url = ? WHERE id = ?').run(data.profile_photo, userId);
+      await db.execute('UPDATE users SET profile_image_url = $1 WHERE id = $2', [data.profile_photo, userId]);
     }
 
     if (code) {
-      db.prepare('UPDATE invite_codes SET used_count = used_count + 1 WHERE id = ?').run(code.id);
-      db.prepare('INSERT INTO invite_code_usage (code_id, user_id) VALUES (?, ?)').run(code.id, userId);
+      await db.execute('UPDATE invite_codes SET used_count = used_count + 1 WHERE id = $1', [code.id]);
+      await db.execute('INSERT INTO invite_code_usage (code_id, user_id) VALUES ($1, $2)', [code.id, userId]);
     }
 
-    db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(userId);
+    await db.execute('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES ($1, 0, 1)', [userId]);
 
     // Auto-join Sprint Social Club (mandatory community)
-    const socialClub = db.prepare("SELECT id FROM communities WHERE name = 'Sprint Social Club'").get() as any;
+    const socialClub = await db.queryOne("SELECT id FROM communities WHERE name = 'Sprint Social Club'", []);
     if (socialClub) {
-      db.prepare('INSERT OR IGNORE INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(socialClub.id, userId, 'member');
-      db.prepare('UPDATE communities SET member_count = member_count + 1 WHERE id = ?').run(socialClub.id);
+      await db.execute('INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [socialClub.id, userId, 'member']);
+      await db.execute('UPDATE communities SET member_count = member_count + 1 WHERE id = $1', [socialClub.id]);
     }
 
     // Award 25 starter Kendu + welcome notification
@@ -114,8 +116,8 @@ router.post('/login', async (req, res: Response) => {
   const cleanPhone = identifier.replace(/[\s+\-]/g, '').replace(/^(\+91|91)/, '');
 
   const user = isPhone
-    ? db.prepare('SELECT id, name, email, role, password_hash FROM users WHERE phone = ? OR phone = ?').get(cleanPhone, `+91${cleanPhone}`) as any
-    : db.prepare('SELECT id, name, email, role, password_hash FROM users WHERE email = ?').get(identifier) as any;
+    ? await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE phone = $1 OR phone = $2', [cleanPhone, `+91${cleanPhone}`])
+    : await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE email = $1', [identifier]);
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
@@ -130,11 +132,11 @@ router.post('/login', async (req, res: Response) => {
   res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 });
 
-router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
-  const user = db.prepare(`
+router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne(`
     SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, timezone, created_at
-    FROM users WHERE id = ?
-  `).get(req.userId) as any;
+    FROM users WHERE id = $1
+  `, [req.userId]);
 
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
@@ -144,7 +146,7 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
   res.json(user);
 });
 
-router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
+router.put('/profile', authenticate, async (req: AuthRequest, res: Response) => {
   const updates = req.body;
   const allowed = ['name', 'age', 'height_cm', 'weight_kg', 'fitness_level', 'running_experience', 'injury_history', 'timezone'];
   const numericFields: Record<string, { min: number; max: number }> = {
@@ -154,6 +156,7 @@ router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
   };
   const fields: string[] = [];
   const values: any[] = [];
+  let paramIndex = 1;
 
   for (const key of allowed) {
     if (updates[key] !== undefined) {
@@ -163,20 +166,20 @@ router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
         if (isNaN(num) || num < min || num > max) {
           return res.status(400).json({ error: `${key} must be a number between ${min} and ${max}` });
         }
-        fields.push(`${key} = ?`);
+        fields.push(`${key} = $${paramIndex++}`);
         values.push(Math.round(key === 'weight_kg' ? num * 10 : num) / (key === 'weight_kg' ? 10 : 1));
       } else if (key === 'injury_history') {
-        fields.push(`${key} = ?`);
+        fields.push(`${key} = $${paramIndex++}`);
         values.push(JSON.stringify(updates[key]));
       } else if (key === 'name') {
         const name = String(updates[key]).trim();
         if (name.length < 2 || name.length > 100) {
           return res.status(400).json({ error: 'Name must be 2-100 characters' });
         }
-        fields.push(`${key} = ?`);
+        fields.push(`${key} = $${paramIndex++}`);
         values.push(name);
       } else {
-        fields.push(`${key} = ?`);
+        fields.push(`${key} = $${paramIndex++}`);
         values.push(String(updates[key]).slice(0, 100));
       }
     }
@@ -187,7 +190,7 @@ router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
   }
 
   values.push(req.userId);
-  db.prepare(`UPDATE users SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(...values);
+  await db.execute(`UPDATE users SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`, values);
   res.json({ success: true });
 });
 

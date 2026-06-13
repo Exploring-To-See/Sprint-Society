@@ -1,27 +1,27 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { executeRunCascade } from '../engine/runCascade';
 import { safeJsonParse } from '../utils/response';
 
 const router = Router();
 
-router.get('/', authenticate, (req: AuthRequest, res: Response) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
   const offset = (page - 1) * limit;
 
-  const runs = db.prepare(`
-    SELECT * FROM activities WHERE user_id = ? AND deleted_at IS NULL ORDER BY start_date DESC LIMIT ? OFFSET ?
-  `).all(req.userId, limit, offset);
+  const runs = await db.query(`
+    SELECT * FROM activities WHERE user_id = $1 AND deleted_at IS NULL ORDER BY start_date DESC LIMIT $2 OFFSET $3
+  `, [req.userId, limit, offset]);
 
-  const total = db.prepare('SELECT COUNT(*) as count FROM activities WHERE user_id = ? AND deleted_at IS NULL').get(req.userId) as any;
+  const total = await db.queryOne('SELECT COUNT(*) as count FROM activities WHERE user_id = $1 AND deleted_at IS NULL', [req.userId]);
 
   res.json({ data: { runs: runs.map(parseRun), total: total.count, page, limit } });
 });
 
-router.get('/stats', authenticate, (req: AuthRequest, res: Response) => {
-  const stats = db.prepare(`
+router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
+  const stats = await db.queryOne(`
     SELECT
       COUNT(*) as total_runs,
       COALESCE(SUM(distance_meters), 0) as total_distance,
@@ -30,26 +30,26 @@ router.get('/stats', authenticate, (req: AuthRequest, res: Response) => {
       COALESCE(MIN(average_pace_per_km), 0) as best_pace,
       COALESCE(MAX(distance_meters), 0) as longest_run,
       COALESCE(SUM(elevation_gain), 0) as total_elevation
-    FROM activities WHERE user_id = ?
-  `).get(req.userId);
+    FROM activities WHERE user_id = $1
+  `, [req.userId]);
 
   res.json(stats);
 });
 
-router.get('/chart-data', authenticate, (req: AuthRequest, res: Response) => {
+router.get('/chart-data', authenticate, async (req: AuthRequest, res: Response) => {
   const weeks = parseInt(req.query.weeks as string) || 12;
   const since = new Date();
   since.setDate(since.getDate() - weeks * 7);
 
-  const runs = db.prepare(`
+  const runs = await db.query(`
     SELECT start_date, distance_meters, moving_time_seconds, average_pace_per_km
-    FROM activities WHERE user_id = ? AND start_date >= ? ORDER BY start_date ASC
-  `).all(req.userId, since.toISOString());
+    FROM activities WHERE user_id = $1 AND start_date >= $2 ORDER BY start_date ASC
+  `, [req.userId, since.toISOString()]);
 
   res.json(runs);
 });
 
-router.get('/weekly-summary', authenticate, (req: AuthRequest, res: Response) => {
+router.get('/weekly-summary', authenticate, async (req: AuthRequest, res: Response) => {
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - now.getDay());
@@ -58,16 +58,16 @@ router.get('/weekly-summary', authenticate, (req: AuthRequest, res: Response) =>
   const prevWeekStart = new Date(weekStart);
   prevWeekStart.setDate(prevWeekStart.getDate() - 7);
 
-  const thisWeek = db.prepare(`
+  const thisWeek = await db.queryOne(`
     SELECT COUNT(*) as runs, COALESCE(SUM(distance_meters), 0) as distance,
     COALESCE(SUM(moving_time_seconds), 0) as time, COALESCE(AVG(average_pace_per_km), 0) as avg_pace
-    FROM activities WHERE user_id = ? AND start_date >= ?
-  `).get(req.userId, weekStart.toISOString()) as any;
+    FROM activities WHERE user_id = $1 AND start_date >= $2
+  `, [req.userId, weekStart.toISOString()]);
 
-  const lastWeek = db.prepare(`
+  const lastWeek = await db.queryOne(`
     SELECT COALESCE(AVG(average_pace_per_km), 0) as avg_pace
-    FROM activities WHERE user_id = ? AND start_date >= ? AND start_date < ?
-  `).get(req.userId, prevWeekStart.toISOString(), weekStart.toISOString()) as any;
+    FROM activities WHERE user_id = $1 AND start_date >= $2 AND start_date < $3
+  `, [req.userId, prevWeekStart.toISOString(), weekStart.toISOString()]);
 
   const improvement = lastWeek.avg_pace > 0 && thisWeek.avg_pace > 0
     ? ((lastWeek.avg_pace - thisWeek.avg_pace) / lastWeek.avg_pace) * 100
@@ -83,7 +83,7 @@ router.get('/weekly-summary', authenticate, (req: AuthRequest, res: Response) =>
 });
 
 // GET /runs/trends — weekly volume + consistency for last 8 weeks
-router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
+router.get('/trends', authenticate, async (req: AuthRequest, res: Response) => {
   const weeks = [];
   for (let i = 7; i >= 0; i--) {
     const weekEnd = new Date();
@@ -93,11 +93,11 @@ router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
     weekStart.setDate(weekStart.getDate() - 6);
     weekStart.setHours(0, 0, 0, 0);
 
-    const data = db.prepare(`
+    const data = await db.queryOne(`
       SELECT COUNT(*) as runs, COALESCE(SUM(distance_meters), 0) as distance,
-        COUNT(DISTINCT date(start_date)) as days_run
-      FROM activities WHERE user_id = ? AND start_date >= ? AND start_date <= ?
-    `).get(req.userId, weekStart.toISOString(), weekEnd.toISOString()) as any;
+        COUNT(DISTINCT DATE(start_date)) as days_run
+      FROM activities WHERE user_id = $1 AND start_date >= $2 AND start_date <= $3
+    `, [req.userId, weekStart.toISOString(), weekEnd.toISOString()]);
 
     weeks.push({
       week_start: weekStart.toISOString().split('T')[0],
@@ -110,7 +110,7 @@ router.get('/trends', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // POST /runs/log — Run completion with full cascade (XP + Kendu + achievements + notifications)
-router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
+router.post('/log', authenticate, async (req: AuthRequest, res: Response) => {
   const { distance_meters, moving_time_seconds, start_date, elevation_gain, splits, rpe } = req.body;
 
   if (!distance_meters || !moving_time_seconds) {
@@ -143,10 +143,11 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
 
   const { map_polyline } = req.body;
 
-  const result = db.prepare(`
+  const result = await db.queryOne(`
     INSERT INTO activities (user_id, distance_meters, moving_time_seconds, elapsed_time_seconds, average_pace_per_km, start_date, activity_type, elevation_gain, splits, rpe, map_polyline)
-    VALUES (?, ?, ?, ?, ?, ?, 'Run', ?, ?, ?, ?)
-  `).run(
+    VALUES ($1, $2, $3, $4, $5, $6, 'Run', $7, $8, $9, $10)
+    RETURNING id
+  `, [
     req.userId,
     distance_meters,
     moving_time_seconds,
@@ -157,11 +158,11 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
     splits || null,
     rpe || null,
     map_polyline || null
-  );
+  ]);
 
   const cascade = executeRunCascade({
     userId: req.userId!,
-    activityId: result.lastInsertRowid as number,
+    activityId: result.id as number,
     distanceMeters: distance_meters,
     movingTimeSeconds: moving_time_seconds,
     pacePerKm,
@@ -170,15 +171,15 @@ router.post('/log', authenticate, (req: AuthRequest, res: Response) => {
   });
 
   res.status(201).json({
-    id: result.lastInsertRowid,
+    id: result.id,
     message: 'Run saved!',
     cascade,
     ...(anomalies.length > 0 ? { warnings: anomalies } : {}),
   });
 });
 
-router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
-  const run = db.prepare('SELECT * FROM activities WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  const run = await db.queryOne('SELECT * FROM activities WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
   if (!run) return res.status(404).json({ error: 'Run not found' });
   res.json(parseRun(run));
 });

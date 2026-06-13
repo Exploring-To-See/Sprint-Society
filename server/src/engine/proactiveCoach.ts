@@ -5,7 +5,7 @@
  * Pure rule-based logic using activity data, streaks, and pace trends.
  */
 
-import db from '../database/db';
+import db from '../database/pg';
 
 export interface Insight {
   type: 'warning' | 'encouragement' | 'tip' | 'milestone';
@@ -30,27 +30,27 @@ interface XpRow {
   last_activity_date: string | null;
 }
 
-export function generateInsights(userId: number): Insight[] {
+export async function generateInsights(userId: number): Promise<Insight[]> {
   const insights: Insight[] = [];
 
   // Fetch recent activities (last 14 days)
-  const recentActivities = db.prepare(`
+  const recentActivities = await db.query(`
     SELECT id, user_id, distance_meters, moving_time_seconds, average_pace_per_km, start_date
     FROM activities
-    WHERE user_id = ? AND start_date >= datetime('now', '-14 days')
+    WHERE user_id = $1 AND start_date >= NOW() - INTERVAL '14 days'
     ORDER BY start_date DESC
-  `).all(userId) as ActivityRow[];
+  `, [userId]) as ActivityRow[];
 
   // Fetch XP/streak data
-  const xpData = db.prepare(
-    'SELECT current_streak_days, longest_streak_days, last_activity_date FROM user_xp WHERE user_id = ?'
-  ).get(userId) as XpRow | undefined;
+  const xpData = await db.queryOne(
+    'SELECT current_streak_days, longest_streak_days, last_activity_date FROM user_xp WHERE user_id = $1', [userId]
+  ) as XpRow | undefined;
 
   // Fetch all-time stats
-  const allTimeStats = db.prepare(`
+  const allTimeStats = await db.queryOne(`
     SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_distance
-    FROM activities WHERE user_id = ?
-  `).get(userId) as { total_runs: number; total_distance: number };
+    FROM activities WHERE user_id = $1
+  `, [userId]) as { total_runs: number; total_distance: number };
 
   // Rule 1: Overtraining warning
   const overtrain = checkOvertraining(recentActivities);
@@ -249,7 +249,6 @@ function checkRestDaySuggestion(activities: ActivityRow[]): Insight | null {
 
   // Check consecutive days from today backward
   let consecutiveDays = 0;
-  const today = new Date().toISOString().split('T')[0];
 
   for (let i = 0; i < dates.length && i < 10; i++) {
     const expectedDate = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];

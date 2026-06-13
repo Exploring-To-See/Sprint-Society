@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
 
@@ -9,17 +9,17 @@ router.use(authenticate);
 router.use(requireAdmin);
 
 // GET / — list all notifications
-router.get('/', (req: AuthRequest, res: Response) => {
-  const notifications = db.prepare(`
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const notifications = await db.query(`
     SELECT * FROM notifications
     ORDER BY created_at DESC
-  `).all();
+  `, []);
 
   res.json(notifications);
 });
 
 // POST / — create notification
-router.post('/', (req: AuthRequest, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   const { title, body, target_type, target_id, scheduled_at } = req.body;
   if (!title || !body || !target_type) {
     return res.status(400).json({ error: 'title, body, and target_type are required' });
@@ -27,17 +27,17 @@ router.post('/', (req: AuthRequest, res: Response) => {
 
   const status = scheduled_at ? 'scheduled' : 'draft';
 
-  const result = db.prepare(`
+  const result = await db.execute(`
     INSERT INTO notifications (title, body, target_type, target_id, scheduled_at, status)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(title, body, target_type, target_id || null, scheduled_at || null, status);
+    VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+  `, [title, body, target_type, target_id || null, scheduled_at || null, status]);
 
-  res.status(201).json({ id: result.lastInsertRowid, success: true });
+  res.status(201).json({ id: result.rows[0]?.id, success: true });
 });
 
 // POST /:id/send — mark notification as sent
-router.post('/:id/send', (req: AuthRequest, res: Response) => {
-  const notification = db.prepare('SELECT * FROM notifications WHERE id = ?').get(req.params.id) as any;
+router.post('/:id/send', async (req: AuthRequest, res: Response) => {
+  const notification = await db.queryOne('SELECT * FROM notifications WHERE id = $1', [req.params.id]) as any;
   if (!notification) return res.status(404).json({ error: 'Notification not found' });
 
   if (notification.status === 'sent') {
@@ -47,43 +47,43 @@ router.post('/:id/send', (req: AuthRequest, res: Response) => {
   // Count target recipients for sent_count
   let sentCount = 0;
   if (notification.target_type === 'all') {
-    const result = (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'runner'").get() as any);
+    const result = await db.queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'runner'", []) as any;
     sentCount = result.count;
   } else if (notification.target_type === 'segment' && notification.target_id) {
-    const result = (db.prepare('SELECT COUNT(*) as count FROM segment_members WHERE segment_id = ?').get(notification.target_id) as any);
+    const result = await db.queryOne('SELECT COUNT(*) as count FROM segment_members WHERE segment_id = $1', [notification.target_id]) as any;
     sentCount = result.count;
   } else if (notification.target_type === 'user') {
     sentCount = 1;
   }
 
-  db.prepare(`
+  await db.execute(`
     UPDATE notifications SET
       sent_at = CURRENT_TIMESTAMP,
       status = 'sent',
-      sent_count = ?
-    WHERE id = ?
-  `).run(sentCount, req.params.id);
+      sent_count = $1
+    WHERE id = $2
+  `, [sentCount, req.params.id]);
 
   res.json({ success: true, sent_count: sentCount });
 });
 
 // DELETE /:id — delete draft notification
-router.delete('/:id', (req: AuthRequest, res: Response) => {
-  const notification = db.prepare('SELECT status FROM notifications WHERE id = ?').get(req.params.id) as any;
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
+  const notification = await db.queryOne('SELECT status FROM notifications WHERE id = $1', [req.params.id]) as any;
   if (!notification) return res.status(404).json({ error: 'Notification not found' });
 
   if (notification.status === 'sent') {
     return res.status(400).json({ error: 'Cannot delete a sent notification' });
   }
 
-  db.prepare('DELETE FROM notifications WHERE id = ?').run(req.params.id);
+  await db.execute('DELETE FROM notifications WHERE id = $1', [req.params.id]);
   res.json({ success: true });
 });
 
 // GET /subscriptions — list push_subscriptions count
-router.get('/subscriptions', (req: AuthRequest, res: Response) => {
-  const total = (db.prepare('SELECT COUNT(*) as count FROM push_subscriptions').get() as any).count;
-  const byUser = (db.prepare('SELECT COUNT(DISTINCT user_id) as count FROM push_subscriptions').get() as any).count;
+router.get('/subscriptions', async (req: AuthRequest, res: Response) => {
+  const total = (await db.queryOne('SELECT COUNT(*) as count FROM push_subscriptions', []) as any).count;
+  const byUser = (await db.queryOne('SELECT COUNT(DISTINCT user_id) as count FROM push_subscriptions', []) as any).count;
 
   res.json({ total_subscriptions: total, unique_users: byUser });
 });

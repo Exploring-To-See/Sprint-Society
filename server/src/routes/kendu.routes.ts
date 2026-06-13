@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import {
   calculateKenduForRun,
@@ -34,8 +34,8 @@ router.use(authenticate);
 // user_skins table is created by schema.sql during initializeDatabase()
 
 // POST /kendu/earn — Award Kendu after a run (admin only — normal earning happens via runCascade)
-router.post('/earn', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.post('/earn', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (!user || user.role !== 'admin') {
     return res.status(403).json({ error: 'Kendu earning is handled automatically. This endpoint is admin-only.' });
   }
@@ -103,20 +103,20 @@ router.get('/balance/:userId', (req: AuthRequest, res: Response) => {
 });
 
 // GET /kendu/history — Paginated transaction log
-router.get('/history', (req: AuthRequest, res: Response) => {
+router.get('/history', async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
   const offset = (page - 1) * limit;
 
-  const transactions = db.prepare(`
+  const transactions = await db.query(`
     SELECT id, amount, source, metadata, created_at
     FROM kendu_transactions
-    WHERE user_id = ?
+    WHERE user_id = $1
     ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `).all(req.userId, limit, offset);
+    LIMIT $2 OFFSET $3
+  `, [req.userId, limit, offset]);
 
-  const total = db.prepare('SELECT COUNT(*) as count FROM kendu_transactions WHERE user_id = ?').get(req.userId) as { count: number };
+  const total = await db.queryOne('SELECT COUNT(*) as count FROM kendu_transactions WHERE user_id = $1', [req.userId]) as { count: number };
 
   res.json({
     transactions: transactions.map((t: any) => ({
@@ -131,27 +131,29 @@ router.get('/history', (req: AuthRequest, res: Response) => {
 });
 
 // GET /kendu/offers — List active offers
-router.get('/offers', (req: AuthRequest, res: Response) => {
+router.get('/offers', async (req: AuthRequest, res: Response) => {
   const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : null;
 
   let query = `
     SELECT * FROM kendu_offers
-    WHERE active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))
+    WHERE active = 1 AND (expires_at IS NULL OR expires_at > NOW())
   `;
   const params: any[] = [];
+  let paramIndex = 1;
 
   if (eventId) {
-    query += ' AND event_id = ?';
+    query += ` AND event_id = $${paramIndex}`;
     params.push(eventId);
+    paramIndex++;
   }
 
   query += ' ORDER BY kendu_cost ASC';
 
-  const offers = db.prepare(query).all(...params);
+  const offers = await db.query(query, params);
 
-  const userRedemptions = db.prepare(`
-    SELECT offer_id, COUNT(*) as count FROM kendu_redemptions WHERE user_id = ? GROUP BY offer_id
-  `).all(req.userId) as { offer_id: number; count: number }[];
+  const userRedemptions = await db.query(`
+    SELECT offer_id, COUNT(*) as count FROM kendu_redemptions WHERE user_id = $1 GROUP BY offer_id
+  `, [req.userId]) as { offer_id: number; count: number }[];
 
   const redemptionMap = new Map(userRedemptions.map(r => [r.offer_id, r.count]));
 
@@ -177,30 +179,30 @@ router.post('/redeem', (req: AuthRequest, res: Response) => {
 });
 
 // GET /kendu/leaderboard — Top earners
-router.get('/leaderboard', (req: AuthRequest, res: Response) => {
+router.get('/leaderboard', async (req: AuthRequest, res: Response) => {
   const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : null;
   const limit = parseInt(req.query.limit as string) || 10;
 
   let leaders;
 
   if (eventId) {
-    leaders = db.prepare(`
+    leaders = await db.query(`
       SELECT kt.user_id, u.name, u.profile_image_url, SUM(kt.amount) as total_earned
       FROM kendu_transactions kt
       JOIN users u ON u.id = kt.user_id
-      WHERE kt.amount > 0 AND kt.metadata LIKE ?
-      GROUP BY kt.user_id
+      WHERE kt.amount > 0 AND kt.metadata LIKE $1
+      GROUP BY kt.user_id, u.name, u.profile_image_url
       ORDER BY total_earned DESC
-      LIMIT ?
-    `).all(`%"eventId":${eventId}%`, limit);
+      LIMIT $2
+    `, [`%"eventId":${eventId}%`, limit]);
   } else {
-    leaders = db.prepare(`
+    leaders = await db.query(`
       SELECT kb.user_id, u.name, u.profile_image_url, kb.lifetime_earned as total_earned, kb.current_streak_days
       FROM kendu_balances kb
       JOIN users u ON u.id = kb.user_id
       ORDER BY kb.lifetime_earned DESC
-      LIMIT ?
-    `).all(limit);
+      LIMIT $1
+    `, [limit]);
   }
 
   res.json(leaders.map((l: any, i: number) => ({
@@ -217,8 +219,8 @@ router.get('/leaderboard', (req: AuthRequest, res: Response) => {
 // ===== ADMIN ENDPOINTS =====
 
 // POST /kendu/admin/offers — Create a new offer
-router.post('/admin/offers', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.post('/admin/offers', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const { brand_name, offer_title, description, kendu_cost, rupee_value, total_quantity, expires_at, event_id, max_per_user } = req.body;
@@ -227,31 +229,32 @@ router.post('/admin/offers', (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'brand_name, offer_title, kendu_cost, and total_quantity are required' });
   }
 
-  const result = db.prepare(`
+  const result = await db.execute(`
     INSERT INTO kendu_offers (brand_name, offer_title, description, kendu_cost, rupee_value, total_quantity, remaining_quantity, expires_at, event_id, max_per_user)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(brand_name, offer_title, description || null, kendu_cost, rupee_value || null, total_quantity, total_quantity, expires_at || null, event_id || null, max_per_user || 1);
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    RETURNING id
+  `, [brand_name, offer_title, description || null, kendu_cost, rupee_value || null, total_quantity, total_quantity, expires_at || null, event_id || null, max_per_user || 1]);
 
-  res.status(201).json({ id: result.lastInsertRowid, message: 'Offer created' });
+  res.status(201).json({ id: result.rows[0]?.id, message: 'Offer created' });
 });
 
 // PUT /kendu/admin/offers/:id — Update an offer
-router.put('/admin/offers/:id', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.put('/admin/offers/:id', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const offerId = parseInt(req.params.id);
   const { brand_name, offer_title, description, kendu_cost, rupee_value, total_quantity, remaining_quantity, active, expires_at, event_id, max_per_user } = req.body;
 
-  const existing = db.prepare('SELECT * FROM kendu_offers WHERE id = ?').get(offerId) as any;
+  const existing = await db.queryOne('SELECT * FROM kendu_offers WHERE id = $1', [offerId]) as any;
   if (!existing) return res.status(404).json({ error: 'Offer not found' });
 
-  db.prepare(`
+  await db.execute(`
     UPDATE kendu_offers SET
-      brand_name = ?, offer_title = ?, description = ?, kendu_cost = ?, rupee_value = ?,
-      total_quantity = ?, remaining_quantity = ?, active = ?, expires_at = ?, event_id = ?, max_per_user = ?
-    WHERE id = ?
-  `).run(
+      brand_name = $1, offer_title = $2, description = $3, kendu_cost = $4, rupee_value = $5,
+      total_quantity = $6, remaining_quantity = $7, active = $8, expires_at = $9, event_id = $10, max_per_user = $11
+    WHERE id = $12
+  `, [
     brand_name ?? existing.brand_name,
     offer_title ?? existing.offer_title,
     description ?? existing.description,
@@ -264,24 +267,24 @@ router.put('/admin/offers/:id', (req: AuthRequest, res: Response) => {
     event_id ?? existing.event_id,
     max_per_user ?? existing.max_per_user,
     offerId
-  );
+  ]);
 
   res.json({ message: 'Offer updated' });
 });
 
 // DELETE /kendu/admin/offers/:id — Deactivate an offer
-router.delete('/admin/offers/:id', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.delete('/admin/offers/:id', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const offerId = parseInt(req.params.id);
-  db.prepare('UPDATE kendu_offers SET active = 0 WHERE id = ?').run(offerId);
+  await db.execute('UPDATE kendu_offers SET active = 0 WHERE id = $1', [offerId]);
   res.json({ message: 'Offer deactivated' });
 });
 
 // POST /kendu/admin/offers/:id/codes — Bulk upload coupon codes
-router.post('/admin/offers/:id/codes', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.post('/admin/offers/:id/codes', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const offerId = parseInt(req.params.id);
@@ -291,39 +294,34 @@ router.post('/admin/offers/:id/codes', (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'codes array is required' });
   }
 
-  const offer = db.prepare('SELECT id FROM kendu_offers WHERE id = ?').get(offerId);
+  const offer = await db.queryOne('SELECT id FROM kendu_offers WHERE id = $1', [offerId]);
   if (!offer) return res.status(404).json({ error: 'Offer not found' });
 
-  const stmt = db.prepare('INSERT INTO kendu_coupon_codes (offer_id, code) VALUES (?, ?)');
-  const insertMany = db.transaction((codeList: string[]) => {
-    for (const code of codeList) {
-      stmt.run(offerId, code.trim());
-    }
-  });
+  for (const code of codes) {
+    await db.execute('INSERT INTO kendu_coupon_codes (offer_id, code) VALUES ($1, $2)', [offerId, code.trim()]);
+  }
 
-  insertMany(codes);
-
-  db.prepare('UPDATE kendu_offers SET total_quantity = total_quantity + ?, remaining_quantity = remaining_quantity + ? WHERE id = ?')
-    .run(codes.length, codes.length, offerId);
+  await db.execute('UPDATE kendu_offers SET total_quantity = total_quantity + $1, remaining_quantity = remaining_quantity + $2 WHERE id = $3',
+    [codes.length, codes.length, offerId]);
 
   res.json({ message: `${codes.length} codes uploaded`, offerId });
 });
 
 // GET /kendu/admin/stats — Dashboard stats
-router.get('/admin/stats', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/admin/stats', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
-  const totalInCirculation = db.prepare('SELECT COALESCE(SUM(spendable_balance), 0) as total FROM kendu_balances').get() as { total: number };
-  const totalLifetimeEarned = db.prepare('SELECT COALESCE(SUM(lifetime_earned), 0) as total FROM kendu_balances').get() as { total: number };
-  const totalRedemptions = db.prepare('SELECT COUNT(*) as count FROM kendu_redemptions').get() as { count: number };
-  const totalKenduSpent = db.prepare('SELECT COALESCE(SUM(kendu_spent), 0) as total FROM kendu_redemptions').get() as { total: number };
-  const activeOffers = db.prepare("SELECT COUNT(*) as count FROM kendu_offers WHERE active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))").get() as { count: number };
-  const topEarner = db.prepare(`
+  const totalInCirculation = await db.queryOne('SELECT COALESCE(SUM(spendable_balance), 0) as total FROM kendu_balances') as { total: number };
+  const totalLifetimeEarned = await db.queryOne('SELECT COALESCE(SUM(lifetime_earned), 0) as total FROM kendu_balances') as { total: number };
+  const totalRedemptions = await db.queryOne('SELECT COUNT(*) as count FROM kendu_redemptions') as { count: number };
+  const totalKenduSpent = await db.queryOne('SELECT COALESCE(SUM(kendu_spent), 0) as total FROM kendu_redemptions') as { total: number };
+  const activeOffers = await db.queryOne("SELECT COUNT(*) as count FROM kendu_offers WHERE active = 1 AND (expires_at IS NULL OR expires_at > NOW())") as { count: number };
+  const topEarner = await db.queryOne(`
     SELECT kb.user_id, u.name, kb.lifetime_earned
     FROM kendu_balances kb JOIN users u ON u.id = kb.user_id
     ORDER BY kb.lifetime_earned DESC LIMIT 1
-  `).get() as any;
+  `) as any;
 
   res.json({
     total_in_circulation: totalInCirculation.total,
@@ -336,52 +334,52 @@ router.get('/admin/stats', (req: AuthRequest, res: Response) => {
 });
 
 // GET /kendu/admin/redemptions — All redemptions
-router.get('/admin/redemptions', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/admin/redemptions', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 50;
   const offset = (page - 1) * limit;
 
-  const redemptions = db.prepare(`
+  const redemptions = await db.query(`
     SELECT kr.*, u.name as user_name, ko.offer_title, ko.brand_name
     FROM kendu_redemptions kr
     JOIN users u ON u.id = kr.user_id
     JOIN kendu_offers ko ON ko.id = kr.offer_id
     ORDER BY kr.redeemed_at DESC
-    LIMIT ? OFFSET ?
-  `).all(limit, offset);
+    LIMIT $1 OFFSET $2
+  `, [limit, offset]);
 
-  const total = db.prepare('SELECT COUNT(*) as count FROM kendu_redemptions').get() as { count: number };
+  const total = await db.queryOne('SELECT COUNT(*) as count FROM kendu_redemptions') as { count: number };
 
   res.json({ redemptions, page, limit, total: total.count });
 });
 
 // GET /kendu/admin/economy — Economy health metrics
-router.get('/admin/economy', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/admin/economy', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const stats = getEconomyStats();
 
-  const weeklyEarned = db.prepare(`
+  const weeklyEarned = await db.queryOne(`
     SELECT COALESCE(SUM(amount), 0) as total FROM kendu_transactions
-    WHERE amount > 0 AND created_at >= datetime('now', '-7 days')
-  `).get() as { total: number };
+    WHERE amount > 0 AND created_at >= NOW() - INTERVAL '7 days'
+  `) as { total: number };
 
-  const weeklySpent = db.prepare(`
+  const weeklySpent = await db.queryOne(`
     SELECT COALESCE(SUM(ABS(amount)), 0) as total FROM kendu_transactions
-    WHERE amount < 0 AND created_at >= datetime('now', '-7 days')
-  `).get() as { total: number };
+    WHERE amount < 0 AND created_at >= NOW() - INTERVAL '7 days'
+  `) as { total: number };
 
-  const activeChallenges = db.prepare(`
+  const activeChallenges = await db.queryOne(`
     SELECT COUNT(*) as count FROM kendu_challenges WHERE status IN ('pending', 'accepted', 'active')
-  `).get() as { count: number };
+  `) as { count: number };
 
-  const totalPotValue = db.prepare(`
+  const totalPotValue = await db.queryOne(`
     SELECT COALESCE(SUM(stake_amount * 2), 0) as total FROM kendu_challenges WHERE status IN ('accepted', 'active')
-  `).get() as { total: number };
+  `) as { total: number };
 
   res.json({
     ...stats,
@@ -394,8 +392,8 @@ router.get('/admin/economy', (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/admin/process-upkeep — Manually trigger upkeep processing
-router.post('/admin/process-upkeep', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.post('/admin/process-upkeep', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const result = checkAllUpkeepDue();
@@ -403,8 +401,8 @@ router.post('/admin/process-upkeep', (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/admin/resolve-challenges — Manually trigger challenge resolution
-router.post('/admin/resolve-challenges', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId) as any;
+router.post('/admin/resolve-challenges', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
   const result = resolveExpiredChallenges();
@@ -434,7 +432,7 @@ router.post('/spend/event', (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/spend/challenge — Stake Kendu for a 1v1 challenge
-router.post('/spend/challenge', (req: AuthRequest, res: Response) => {
+router.post('/spend/challenge', async (req: AuthRequest, res: Response) => {
   const { opponentId, stakeAmount, metric, deadline } = req.body;
   if (!opponentId || !stakeAmount || !metric || !deadline) {
     return res.status(400).json({ error: 'opponentId, stakeAmount, metric, deadline required' });
@@ -443,74 +441,75 @@ router.post('/spend/challenge', (req: AuthRequest, res: Response) => {
   const stakeResult = spendForChallenge(req.userId!, stakeAmount, 0);
   if (!stakeResult.success) return res.status(402).json({ error: stakeResult.error });
 
-  const challenge = db.prepare(`
+  const challenge = await db.execute(`
     INSERT INTO kendu_challenges (challenger_id, opponent_id, stake_amount, metric, deadline)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(req.userId, opponentId, stakeAmount, metric, deadline);
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id
+  `, [req.userId, opponentId, stakeAmount, metric, deadline]);
 
   res.status(201).json({
-    challengeId: challenge.lastInsertRowid,
+    challengeId: challenge.rows[0]?.id,
     staked: stakeAmount,
     newBalance: stakeResult.newBalance,
   });
 });
 
 // POST /kendu/challenge/accept — Accept a challenge (stake deducted)
-router.post('/challenge/accept', (req: AuthRequest, res: Response) => {
+router.post('/challenge/accept', async (req: AuthRequest, res: Response) => {
   const { challengeId } = req.body;
   if (!challengeId) return res.status(400).json({ error: 'challengeId required' });
 
-  const challenge = db.prepare(`
-    SELECT * FROM kendu_challenges WHERE id = ? AND opponent_id = ? AND status = 'pending'
-  `).get(challengeId, req.userId) as any;
+  const challenge = await db.queryOne(`
+    SELECT * FROM kendu_challenges WHERE id = $1 AND opponent_id = $2 AND status = 'pending'
+  `, [challengeId, req.userId]) as any;
 
   if (!challenge) return res.status(404).json({ error: 'Challenge not found or not pending' });
 
   const stakeResult = spendForChallenge(req.userId!, challenge.stake_amount, challengeId);
   if (!stakeResult.success) return res.status(402).json({ error: stakeResult.error });
 
-  db.prepare("UPDATE kendu_challenges SET status = 'active' WHERE id = ?").run(challengeId);
+  await db.execute("UPDATE kendu_challenges SET status = 'active' WHERE id = $1", [challengeId]);
 
   res.json({ message: 'Challenge accepted', staked: challenge.stake_amount, newBalance: stakeResult.newBalance });
 });
 
 // POST /kendu/challenge/decline — Decline a challenge (challenger refunded)
-router.post('/challenge/decline', (req: AuthRequest, res: Response) => {
+router.post('/challenge/decline', async (req: AuthRequest, res: Response) => {
   const { challengeId } = req.body;
   if (!challengeId) return res.status(400).json({ error: 'challengeId required' });
 
-  const challenge = db.prepare(`
-    SELECT * FROM kendu_challenges WHERE id = ? AND opponent_id = ? AND status = 'pending'
-  `).get(challengeId, req.userId) as any;
+  const challenge = await db.queryOne(`
+    SELECT * FROM kendu_challenges WHERE id = $1 AND opponent_id = $2 AND status = 'pending'
+  `, [challengeId, req.userId]) as any;
 
   if (!challenge) return res.status(404).json({ error: 'Challenge not found or not pending' });
 
   // Refund challenger
-  db.prepare('UPDATE kendu_balances SET spendable_balance = spendable_balance + ? WHERE user_id = ?')
-    .run(challenge.stake_amount, challenge.challenger_id);
-  db.prepare('INSERT INTO kendu_transactions (user_id, amount, source, metadata) VALUES (?, ?, ?, ?)')
-    .run(challenge.challenger_id, challenge.stake_amount, 'challenge_refund', JSON.stringify({ challengeId }));
+  await db.execute('UPDATE kendu_balances SET spendable_balance = spendable_balance + $1 WHERE user_id = $2',
+    [challenge.stake_amount, challenge.challenger_id]);
+  await db.execute('INSERT INTO kendu_transactions (user_id, amount, source, metadata) VALUES ($1, $2, $3, $4)',
+    [challenge.challenger_id, challenge.stake_amount, 'challenge_refund', JSON.stringify({ challengeId })]);
 
-  db.prepare("UPDATE kendu_challenges SET status = 'declined' WHERE id = ?").run(challengeId);
+  await db.execute("UPDATE kendu_challenges SET status = 'declined' WHERE id = $1", [challengeId]);
 
   res.json({ message: 'Challenge declined, challenger refunded' });
 });
 
 // GET /kendu/challenges — My active/pending challenges
-router.get('/challenges', (req: AuthRequest, res: Response) => {
+router.get('/challenges', async (req: AuthRequest, res: Response) => {
 
-  const challenges = db.prepare(`
+  const challenges = await db.query(`
     SELECT kc.*,
       u1.name as challenger_name, u1.profile_image_url as challenger_image,
       u2.name as opponent_name, u2.profile_image_url as opponent_image
     FROM kendu_challenges kc
     JOIN users u1 ON u1.id = kc.challenger_id
     JOIN users u2 ON u2.id = kc.opponent_id
-    WHERE (kc.challenger_id = ? OR kc.opponent_id = ?)
+    WHERE (kc.challenger_id = $1 OR kc.opponent_id = $2)
       AND kc.status IN ('pending', 'accepted', 'active', 'completed', 'expired')
     ORDER BY kc.created_at DESC
     LIMIT 20
-  `).all(req.userId, req.userId);
+  `, [req.userId, req.userId]);
 
   res.json(challenges);
 });
@@ -536,38 +535,38 @@ router.post('/spend/gift', (req: AuthRequest, res: Response) => {
 });
 
 // GET /kendu/skins — Get user's owned premium skins
-router.get('/skins', (req: AuthRequest, res: Response) => {
-  const skins = db.prepare('SELECT skin_id FROM user_skins WHERE user_id = ?').all(req.userId) as { skin_id: string }[];
+router.get('/skins', async (req: AuthRequest, res: Response) => {
+  const skins = await db.query('SELECT skin_id FROM user_skins WHERE user_id = $1', [req.userId]) as { skin_id: string }[];
   res.json(skins.map(s => s.skin_id));
 });
 
 // POST /kendu/spend/card-skin — Unlock a premium card skin
-router.post('/spend/card-skin', (req: AuthRequest, res: Response) => {
+router.post('/spend/card-skin', async (req: AuthRequest, res: Response) => {
   const { skinId } = req.body;
   if (!skinId) return res.status(400).json({ error: 'skinId required' });
 
-  const existing = db.prepare('SELECT id FROM user_skins WHERE user_id = ? AND skin_id = ?').get(req.userId, skinId);
+  const existing = await db.queryOne('SELECT id FROM user_skins WHERE user_id = $1 AND skin_id = $2', [req.userId, skinId]);
   if (existing) return res.status(400).json({ error: 'Skin already owned' });
 
   const result = spendForCardSkin(req.userId!, skinId);
   if (!result.success) return res.status(402).json({ error: result.error });
 
-  db.prepare('INSERT INTO user_skins (user_id, skin_id) VALUES (?, ?)').run(req.userId, skinId);
+  await db.execute('INSERT INTO user_skins (user_id, skin_id) VALUES ($1, $2)', [req.userId, skinId]);
   res.json(result);
 });
 
 // POST /kendu/spend/boost-post — Boost a community post (pins for 24h)
-router.post('/spend/boost-post', (req: AuthRequest, res: Response) => {
+router.post('/spend/boost-post', async (req: AuthRequest, res: Response) => {
   const { postId } = req.body;
   if (!postId) return res.status(400).json({ error: 'postId required' });
 
-  const post = db.prepare('SELECT * FROM community_posts WHERE id = ? AND user_id = ?').get(postId, req.userId) as any;
+  const post = await db.queryOne('SELECT * FROM community_posts WHERE id = $1 AND user_id = $2', [postId, req.userId]) as any;
   if (!post) return res.status(404).json({ error: 'Post not found or not yours' });
 
   const result = spendToBoostPost(req.userId!, postId);
   if (!result.success) return res.status(402).json({ error: result.error });
 
-  db.prepare('UPDATE community_posts SET pinned = 1 WHERE id = ?').run(postId);
+  await db.execute('UPDATE community_posts SET pinned = 1 WHERE id = $1', [postId]);
 
   res.json(result);
 });
@@ -600,14 +599,14 @@ router.post('/spend/sponsor', (req: AuthRequest, res: Response) => {
 });
 
 // GET /kendu/subscriptions — My active subscriptions
-router.get('/subscriptions', (req: AuthRequest, res: Response) => {
-  const subs = db.prepare(`
+router.get('/subscriptions', async (req: AuthRequest, res: Response) => {
+  const subs = await db.query(`
     SELECT ks.*, c.name as community_name
     FROM kendu_subscriptions ks
     LEFT JOIN communities c ON c.id = ks.entity_id AND ks.entity_type = 'community'
-    WHERE ks.user_id = ?
+    WHERE ks.user_id = $1
     ORDER BY ks.is_active DESC, ks.next_due_at ASC
-  `).all(req.userId);
+  `, [req.userId]);
 
   res.json(subs);
 });

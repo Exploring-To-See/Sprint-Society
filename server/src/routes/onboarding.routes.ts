@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { detectRunnerProfile } from '../engine/autoDetection';
 
@@ -8,13 +8,13 @@ const router = Router();
 router.use(authenticate);
 
 // GET /onboarding/status — Smart status that tells frontend exactly what to show
-router.get('/status', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/status', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const runCount = (db.prepare('SELECT COUNT(*) as c FROM activities WHERE user_id = ?').get(req.userId) as any).c;
-  const profile = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(req.userId) as any;
-  const hasPlan = !!db.prepare('SELECT id FROM transformation_plans WHERE user_id = ? LIMIT 1').get(req.userId);
+  const runCount = (await db.queryOne('SELECT COUNT(*) as c FROM activities WHERE user_id = $1', [req.userId]) as any).c;
+  const profile = await db.queryOne('SELECT * FROM user_profiles WHERE user_id = $1', [req.userId]) as any;
+  const hasPlan = !!(await db.queryOne('SELECT id FROM transformation_plans WHERE user_id = $1 LIMIT 1', [req.userId]));
 
   // Determine what step the user is at
   let step: 'track_run' | 'analyzing' | 'smart_questions' | 'generating_plan' | 'complete';
@@ -32,10 +32,11 @@ router.get('/status', (req: AuthRequest, res: Response) => {
   // Auto-detect runner profile from existing data
   let detectedProfile = null;
   if (runCount > 0) {
-    const runs = db.prepare(
+    const runs = await db.query(
       `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
-       FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 50`
-    ).all(req.userId) as any[];
+       FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 50`,
+      [req.userId]
+    ) as any[];
     detectedProfile = detectRunnerProfile(runs);
   }
 
@@ -49,11 +50,12 @@ router.get('/status', (req: AuthRequest, res: Response) => {
 });
 
 // GET /onboarding/detect — Auto-detect runner profile from activity data
-router.get('/detect', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/detect', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT id, user_id, distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, max_heartrate, elevation_gain, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 100`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 100`,
+    [req.userId]
+  ) as any[];
 
   if (runs.length === 0) {
     return res.json({
@@ -97,12 +99,12 @@ const smartProfileSchema = z.object({
   sleep_hours: z.number().min(3).max(12).optional(),
 });
 
-router.post('/smart-profile', (req: AuthRequest, res: Response) => {
+router.post('/smart-profile', async (req: AuthRequest, res: Response) => {
   const parsed = smartProfileSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid data', details: parsed.error.issues });
 
   const data = parsed.data;
-  const existing = db.prepare('SELECT user_id FROM user_profiles WHERE user_id = ?').get(req.userId);
+  const existing = await db.queryOne('SELECT user_id FROM user_profiles WHERE user_id = $1', [req.userId]);
 
   const fields: Record<string, any> = {
     primary_goal: data.primary_goal,
@@ -116,32 +118,32 @@ router.post('/smart-profile', (req: AuthRequest, res: Response) => {
   };
 
   if (existing) {
-    const updates = Object.entries(fields)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k]) => `${k} = ?`).join(', ');
-    const values = Object.entries(fields)
-      .filter(([_, v]) => v !== undefined)
-      .map(([_, v]) => v);
-    db.prepare(`UPDATE user_profiles SET ${updates}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`)
-      .run(...values, req.userId);
+    const definedEntries = Object.entries(fields).filter(([_, v]) => v !== undefined);
+    const setClauses = definedEntries.map(([k], i) => `${k} = $${i + 1}`).join(', ');
+    const values = definedEntries.map(([_, v]) => v);
+    await db.execute(
+      `UPDATE user_profiles SET ${setClauses}, updated_at = CURRENT_TIMESTAMP WHERE user_id = $${values.length + 1}`,
+      [...values, req.userId]
+    );
   } else {
     const definedFields = Object.entries(fields).filter(([_, v]) => v !== undefined);
     const cols = ['user_id', ...definedFields.map(([k]) => k)].join(', ');
-    const placeholders = ['?', ...definedFields.map(() => '?')].join(', ');
+    const placeholders = Array.from({ length: definedFields.length + 1 }, (_, i) => `$${i + 1}`).join(', ');
     const values = [req.userId, ...definedFields.map(([_, v]) => v)];
-    db.prepare(`INSERT INTO user_profiles (${cols}) VALUES (${placeholders})`).run(...values);
+    await db.execute(`INSERT INTO user_profiles (${cols}) VALUES (${placeholders})`, values);
   }
 
   // Auto-update user's running_experience based on detected profile
-  const runs = db.prepare(
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 50`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 50`,
+    [req.userId]
+  ) as any[];
 
   if (runs.length > 0) {
     const detected = detectRunnerProfile(runs);
     if (detected.estimated_level !== 'none') {
-      db.prepare('UPDATE users SET running_experience = ? WHERE id = ?').run(detected.estimated_level, req.userId);
+      await db.execute('UPDATE users SET running_experience = $1 WHERE id = $2', [detected.estimated_level, req.userId]);
     }
   }
 
@@ -149,8 +151,8 @@ router.post('/smart-profile', (req: AuthRequest, res: Response) => {
 });
 
 // Legacy endpoint kept for backward compatibility
-router.get('/profile', (req: AuthRequest, res: Response) => {
-  const profile = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(req.userId) as any;
+router.get('/profile', async (req: AuthRequest, res: Response) => {
+  const profile = await db.queryOne('SELECT * FROM user_profiles WHERE user_id = $1', [req.userId]) as any;
   if (!profile) return res.json({});
   if (profile.medical_conditions) profile.medical_conditions = JSON.parse(profile.medical_conditions);
   if (profile.previous_sports) profile.previous_sports = JSON.parse(profile.previous_sports);

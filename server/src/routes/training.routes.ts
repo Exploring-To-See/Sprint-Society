@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateTrainingPlan, estimateVDOT, getTrainingPaces, predictRaceTime, calculateReadiness } from '../engine/trainingPlanGenerator';
 
@@ -7,14 +7,15 @@ const router = Router();
 router.use(authenticate);
 
 // GET /training/plan — Generate or fetch current training plan
-router.get('/plan', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/plan', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   // Check for existing active plan
-  const existingPlan = db.prepare(
-    `SELECT * FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
-  ).get(req.userId) as any;
+  const existingPlan = await db.queryOne(
+    `SELECT * FROM transformation_plans WHERE user_id = $1 ORDER BY generated_at DESC LIMIT 1`,
+    [req.userId]
+  );
 
   if (existingPlan) {
     const planData = JSON.parse(existingPlan.plan_data || '{}');
@@ -26,10 +27,11 @@ router.get('/plan', (req: AuthRequest, res: Response) => {
   }
 
   // No plan exists — generate a default one
-  const runs = db.prepare(
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 30`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 30`,
+    [req.userId]
+  );
 
   const defaultGoal = {
     distance_meters: user.running_experience === 'advanced' ? 21100 : user.running_experience === 'intermediate' ? 10000 : 5000,
@@ -38,61 +40,65 @@ router.get('/plan', (req: AuthRequest, res: Response) => {
   const plan = generateTrainingPlan(user, runs, defaultGoal);
 
   // Save to DB
-  db.prepare(
+  await db.execute(
     `INSERT INTO transformation_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    req.userId,
-    plan.training_paces.tempo,
-    plan.training_paces.tempo * 0.9,
-    user.running_experience || 'beginner',
-    'intermediate',
-    plan.total_weeks,
-    JSON.stringify(plan)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      req.userId,
+      plan.training_paces.tempo,
+      plan.training_paces.tempo * 0.9,
+      user.running_experience || 'beginner',
+      'intermediate',
+      plan.total_weeks,
+      JSON.stringify(plan)
+    ]
   );
 
   res.json(plan);
 });
 
 // POST /training/plan — Generate plan with specific race goal
-router.post('/plan', (req: AuthRequest, res: Response) => {
+router.post('/plan', async (req: AuthRequest, res: Response) => {
   const { distance_meters, target_time_seconds, race_date, race_name } = req.body;
 
   if (!distance_meters) return res.status(400).json({ error: 'distance_meters required' });
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const runs = db.prepare(
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 30`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 30`,
+    [req.userId]
+  );
 
   const goal = { distance_meters, target_time_seconds, race_date, race_name };
   const plan = generateTrainingPlan(user, runs, goal);
 
   // Save
-  db.prepare(
+  await db.execute(
     `INSERT INTO transformation_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    req.userId,
-    plan.training_paces.tempo,
-    plan.training_paces.tempo * 0.9,
-    user.running_experience || 'beginner',
-    'intermediate',
-    plan.total_weeks,
-    JSON.stringify(plan)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      req.userId,
+      plan.training_paces.tempo,
+      plan.training_paces.tempo * 0.9,
+      user.running_experience || 'beginner',
+      'intermediate',
+      plan.total_weeks,
+      JSON.stringify(plan)
+    ]
   );
 
   res.json(plan);
 });
 
 // GET /training/week — Get this week's sessions
-router.get('/week', (req: AuthRequest, res: Response) => {
-  const existingPlan = db.prepare(
-    `SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1`
-  ).get(req.userId) as any;
+router.get('/week', async (req: AuthRequest, res: Response) => {
+  const existingPlan = await db.queryOne(
+    `SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = $1 ORDER BY generated_at DESC LIMIT 1`,
+    [req.userId]
+  );
 
   if (!existingPlan) return res.json({ week: null, message: 'No active plan. Generate one first.' });
 
@@ -103,9 +109,10 @@ router.get('/week', (req: AuthRequest, res: Response) => {
 
   // Wellness-adjusted intensity
   const today = new Date().toISOString().split('T')[0];
-  const wellness = db.prepare(
-    'SELECT sleep_hours, stress_level, energy_level FROM daily_wellness WHERE user_id = ? AND date = ?'
-  ).get(req.userId, today) as any;
+  const wellness = await db.queryOne(
+    'SELECT sleep_hours, stress_level, energy_level FROM daily_wellness WHERE user_id = $1 AND date = $2',
+    [req.userId, today]
+  );
 
   let recoveryFactor = 1.0;
   if (wellness) {
@@ -127,23 +134,25 @@ router.get('/week', (req: AuthRequest, res: Response) => {
 });
 
 // GET /training/readiness — Daily readiness score
-router.get('/readiness', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/readiness', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date, activity_type
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-7 days')
-     ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '7 days'
+     ORDER BY start_date DESC`,
+    [req.userId]
+  );
 
   const readiness = calculateReadiness(runs);
   res.json(readiness);
 });
 
 // GET /training/paces — Get current VDOT-based training paces
-router.get('/paces', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/paces', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 20`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 20`,
+    [req.userId]
+  );
 
   const vdot = estimateVDOT(runs);
   const paces = getTrainingPaces(vdot);
@@ -152,13 +161,14 @@ router.get('/paces', (req: AuthRequest, res: Response) => {
 });
 
 // GET /training/predict — Race time prediction
-router.get('/predict', (req: AuthRequest, res: Response) => {
+router.get('/predict', async (req: AuthRequest, res: Response) => {
   const distance = Number(req.query.distance) || 5000;
 
-  const runs = db.prepare(
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 20`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 20`,
+    [req.userId]
+  );
 
   const vdot = estimateVDOT(runs);
   const predictedSeconds = predictRaceTime(vdot, distance);
@@ -179,24 +189,24 @@ router.get('/predict', (req: AuthRequest, res: Response) => {
 });
 
 // POST /training/complete-session — Mark a planned session as done
-router.post('/complete-session', (req: AuthRequest, res: Response) => {
+router.post('/complete-session', async (req: AuthRequest, res: Response) => {
   const { week_number, day, activity_id } = req.body;
 
   // Award XP for completing planned training
-  const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(req.userId) as any;
+  const xp = await db.queryOne('SELECT * FROM user_xp WHERE user_id = $1', [req.userId]);
   if (xp) {
     const xpReward = 30;
-    db.prepare('UPDATE user_xp SET total_xp = total_xp + ? WHERE user_id = ?').run(xpReward, req.userId);
-    db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)').run(
+    await db.execute('UPDATE user_xp SET total_xp = total_xp + $1 WHERE user_id = $2', [xpReward, req.userId]);
+    await db.execute('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES ($1, $2, $3, $4)', [
       req.userId, xpReward, 'training_session', `Completed Week ${week_number} Day ${day} session`
-    );
+    ]);
   }
 
   res.json({ message: 'Session completed', xp_awarded: 30 });
 });
 
 // POST /training/lt-test — Save lactate threshold test result
-router.post('/lt-test', (req: AuthRequest, res: Response) => {
+router.post('/lt-test', async (req: AuthRequest, res: Response) => {
   const { avg_pace_per_km, avg_heartrate, duration_seconds, notes } = req.body;
 
   if (!avg_pace_per_km || !duration_seconds) {
@@ -209,10 +219,10 @@ router.post('/lt-test', (req: AuthRequest, res: Response) => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  db.prepare(`
+  await db.execute(`
     INSERT INTO lt_tests (user_id, test_date, avg_pace_per_km, avg_heartrate, duration_seconds, notes)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(req.userId, today, avg_pace_per_km, avg_heartrate || null, duration_seconds, notes || null);
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [req.userId, today, avg_pace_per_km, avg_heartrate || null, duration_seconds, notes || null]);
 
   res.json({
     message: 'LT test saved',
@@ -223,10 +233,10 @@ router.post('/lt-test', (req: AuthRequest, res: Response) => {
 });
 
 // GET /training/lt-test — Get latest LT test result
-router.get('/lt-test', (req: AuthRequest, res: Response) => {
-  const test = db.prepare(`
-    SELECT * FROM lt_tests WHERE user_id = ? ORDER BY test_date DESC LIMIT 1
-  `).get(req.userId) as any;
+router.get('/lt-test', async (req: AuthRequest, res: Response) => {
+  const test = await db.queryOne(`
+    SELECT * FROM lt_tests WHERE user_id = $1 ORDER BY test_date DESC LIMIT 1
+  `, [req.userId]);
 
   if (!test) {
     return res.json({ has_test: false, message: 'No LT test recorded. Take a 20-min threshold test for personalized training paces.' });

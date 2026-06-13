@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
 
@@ -9,37 +9,37 @@ router.use(authenticate);
 router.use(requireAdmin);
 
 // GET /sprints — list sprint_history entries
-router.get('/sprints', (req: AuthRequest, res: Response) => {
-  const sprints = db.prepare(`
+router.get('/sprints', async (req: AuthRequest, res: Response) => {
+  const sprints = await db.query(`
     SELECT * FROM sprint_history ORDER BY sprint_date DESC
-  `).all();
+  `, []);
 
   res.json(sprints);
 });
 
 // POST /sprints — record a sprint
-router.post('/sprints', (req: AuthRequest, res: Response) => {
+router.post('/sprints', async (req: AuthRequest, res: Response) => {
   const { sprint_date, proposed, built, auto_fixed, status } = req.body;
   if (!sprint_date || !proposed) {
     return res.status(400).json({ error: 'sprint_date and proposed are required' });
   }
 
-  const result = db.prepare(`
+  const result = await db.execute(`
     INSERT INTO sprint_history (sprint_date, proposed, built, auto_fixed, status)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(
+    VALUES ($1, $2, $3, $4, $5) RETURNING id
+  `, [
     sprint_date,
     proposed,
     built || null,
     auto_fixed || null,
     status || 'proposed'
-  );
+  ]);
 
-  res.status(201).json({ id: result.lastInsertRowid, success: true });
+  res.status(201).json({ id: result.rows[0]?.id, success: true });
 });
 
 // GET /git-log — return last 20 commits (placeholder)
-router.get('/git-log', (req: AuthRequest, res: Response) => {
+router.get('/git-log', async (req: AuthRequest, res: Response) => {
   // Cannot run git on Railway without exec, returning placeholder
   const placeholder = [
     { hash: 'placeholder', message: 'Git log not available in production', date: new Date().toISOString() },
@@ -49,7 +49,7 @@ router.get('/git-log', (req: AuthRequest, res: Response) => {
 });
 
 // GET /backlog — return static summary of TASKS.md items
-router.get('/backlog', (req: AuthRequest, res: Response) => {
+router.get('/backlog', async (req: AuthRequest, res: Response) => {
   const backlog = [
     { id: 'TASK-001', title: 'Web push notifications', status: 'planned' },
     { id: 'TASK-002', title: 'Run-to-Earn brand collabs', status: 'planned' },

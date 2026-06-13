@@ -1,55 +1,58 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
 // GET /profile/:id — public profile of another user
-router.get('/:id', (req: AuthRequest, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   const userId = parseInt(req.params.id);
 
-  const user = db.prepare(`
+  const user = await db.queryOne(`
     SELECT u.id, u.name, u.profile_image_url, u.running_experience, u.created_at as joined_at,
       ux.current_level, ux.total_xp, ux.current_streak_days
     FROM users u
     LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE u.id = ? AND u.role != 'disabled'
-  `).get(userId) as any;
+    WHERE u.id = $1 AND u.role != 'disabled'
+  `, [userId]);
 
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   // Tier
-  const tierRow = db.prepare('SELECT tier FROM tier_history WHERE user_id = ? ORDER BY calculated_at DESC LIMIT 1').get(userId) as any;
+  const tierRow = await db.queryOne('SELECT tier FROM tier_history WHERE user_id = $1 ORDER BY calculated_at DESC LIMIT 1', [userId]);
 
   // Stats
-  const stats = db.prepare(`
+  const stats = await db.queryOne(`
     SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_distance
-    FROM activities WHERE user_id = ?
-  `).get(userId) as any;
+    FROM activities WHERE user_id = $1
+  `, [userId]);
 
   // Follow status
-  const isFollowing = !!(db.prepare('SELECT id FROM follows WHERE follower_id = ? AND following_id = ?').get(req.userId, userId) as any);
-  const followersCount = (db.prepare('SELECT COUNT(*) as c FROM follows WHERE following_id = ?').get(userId) as any).c;
-  const followingCount = (db.prepare('SELECT COUNT(*) as c FROM follows WHERE follower_id = ?').get(userId) as any).c;
+  const isFollowingRow = await db.queryOne('SELECT id FROM follows WHERE follower_id = $1 AND following_id = $2', [req.userId, userId]);
+  const isFollowing = !!isFollowingRow;
+  const followersCountRow = await db.queryOne('SELECT COUNT(*) as c FROM follows WHERE following_id = $1', [userId]);
+  const followersCount = followersCountRow.c;
+  const followingCountRow = await db.queryOne('SELECT COUNT(*) as c FROM follows WHERE follower_id = $1', [userId]);
+  const followingCount = followingCountRow.c;
 
   // Communities
-  const communities = db.prepare(`
+  const communities = await db.query(`
     SELECT c.id, c.name, c.category FROM community_members cm
     JOIN communities c ON cm.community_id = c.id
-    WHERE cm.user_id = ?
+    WHERE cm.user_id = $1
     LIMIT 5
-  `).all(userId) as any[];
+  `, [userId]);
 
   // Recent achievements
-  const achievements = db.prepare(`
+  const achievements = await db.query(`
     SELECT a.name, a.description, a.icon, a.category, ua.earned_at
     FROM user_achievements ua
     JOIN achievements a ON ua.achievement_id = a.id
-    WHERE ua.user_id = ?
+    WHERE ua.user_id = $1
     ORDER BY ua.earned_at DESC
     LIMIT 6
-  `).all(userId) as any[];
+  `, [userId]);
 
   res.json({
     id: user.id,
@@ -72,7 +75,7 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /profile/photo — update profile photo
-router.patch('/photo', (req: AuthRequest, res: Response) => {
+router.patch('/photo', async (req: AuthRequest, res: Response) => {
   const { photo } = req.body;
   if (!photo || !photo.startsWith('data:image/')) {
     return res.status(400).json({ error: 'Valid base64 image required' });
@@ -80,7 +83,7 @@ router.patch('/photo', (req: AuthRequest, res: Response) => {
   if (photo.length > 2_000_000) {
     return res.status(413).json({ error: 'Image too large (max ~1.5MB)' });
   }
-  db.prepare('UPDATE users SET profile_image_url = ? WHERE id = ?').run(photo, req.userId);
+  await db.execute('UPDATE users SET profile_image_url = $1 WHERE id = $2', [photo, req.userId]);
   res.json({ success: true });
 });
 

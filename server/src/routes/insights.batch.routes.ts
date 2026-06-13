@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { calculateTrainingLoad, trackVDOTProgression, detectDetraining } from '../engine/adaptiveEngine';
 import { classifyTier } from '../engine/tierClassifier';
@@ -9,16 +9,16 @@ import { calculateAllPRs, getPRSummary } from '../engine/personalRecords';
 const router = Router();
 router.use(authenticate);
 
-router.get('/', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
 
   // Shared: recent activities (used by load, summary, vdot, predictions)
-  const activities = db.prepare(
+  const activities = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_heartrate, average_pace_per_km, start_date, elevation_gain, max_heartrate, id
-     FROM activities WHERE user_id = ? AND start_date > datetime('now', '-90 days')
-     ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND start_date > NOW() - INTERVAL '90 days'
+     ORDER BY start_date DESC`, [req.userId]
+  ) as any[];
 
   // 1. Adaptive load
   const recentActivities = activities.filter((a: any) => {
@@ -48,15 +48,15 @@ router.get('/', (req: AuthRequest, res: Response) => {
   }
 
   // 4. Tier
-  const tierRuns = db.prepare(
-    'SELECT distance_meters, moving_time_seconds, start_date FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 30'
-  ).all(req.userId) as any[];
+  const tierRuns = await db.query(
+    'SELECT distance_meters, moving_time_seconds, start_date FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 30', [req.userId]
+  ) as any[];
   const tier = classifyTier(user, tierRuns);
 
   // 5. Race predictions
-  const predRuns = db.prepare(
-    'SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 20'
-  ).all(req.userId) as any[];
+  const predRuns = await db.query(
+    'SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 20', [req.userId]
+  ) as any[];
   const vdot = estimateVDOT(predRuns);
 
   function predict(distance: number) {
@@ -83,19 +83,19 @@ router.get('/', (req: AuthRequest, res: Response) => {
   };
 
   // 6. Run stats
-  const stats = db.prepare(`
+  const stats = await db.queryOne(`
     SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_distance,
       COALESCE(SUM(moving_time_seconds), 0) as total_time, COALESCE(AVG(average_pace_per_km), 0) as avg_pace,
       COALESCE(MIN(average_pace_per_km), 0) as best_pace, COALESCE(MAX(distance_meters), 0) as longest_run,
       COALESCE(SUM(elevation_gain), 0) as total_elevation
-    FROM activities WHERE user_id = ?
-  `).get(req.userId);
+    FROM activities WHERE user_id = $1
+  `, [req.userId]);
 
   // 7. Records
-  const allActivities = db.prepare(
+  const allActivities = await db.query(
     `SELECT id, distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, max_heartrate, elevation_gain, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC`, [req.userId]
+  ) as any[];
   const records = allActivities.length > 0 ? getPRSummary(calculateAllPRs(allActivities)) : { race_prs: [], effort_prs: [], total_count: 0 };
 
   res.json({ data: { adaptive: load, summary, vdotProgression, tier, predictions, stats, records } });

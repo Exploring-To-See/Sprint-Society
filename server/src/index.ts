@@ -4,7 +4,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import { config } from './config';
-import { initializeDatabase } from './database/db';
+import { initializeDatabase } from './database/pg';
+import db from './database/pg';
 import { errorHandler } from './middleware/errorHandler';
 import { generalLimiter, authLimiter, aiLimiter, chatLimiter } from './middleware/rateLimiter';
 import { sanitizeInput } from './middleware/sanitize';
@@ -101,9 +102,8 @@ app.use('/api/dashboard', dashboardBatchRoutes);
 app.use('/api/coach/insights', insightsBatchRoutes);
 
 // GET /api/flags — client-facing feature flags (authenticated)
-app.get('/api/flags', (req, res) => {
+app.get('/api/flags', async (req, res) => {
   try {
-    const { authenticate } = require('./middleware/auth');
     const authHeader = req.headers.authorization;
     let userId: number | undefined;
     if (authHeader?.startsWith('Bearer ')) {
@@ -114,7 +114,8 @@ app.get('/api/flags', (req, res) => {
       } catch {}
     }
     const { getAllFlags } = require('./utils/featureFlags');
-    res.json(getAllFlags(userId));
+    const flags = await getAllFlags(userId);
+    res.json(flags);
   } catch (err) {
     res.json({});
   }
@@ -125,14 +126,13 @@ app.get('/api/health', (req, res) => {
 });
 
 // Public announcements endpoint (runners see these on their dashboard)
-app.get('/api/announcements', (req, res) => {
+app.get('/api/announcements', async (req, res) => {
   try {
-    const db = require('./database/db').default;
-    const announcements = db.prepare(`
+    const announcements = await db.query(`
       SELECT a.id, a.title, a.body, a.pinned, a.created_at, COALESCE(u.name, 'System') as author_name
       FROM announcements a LEFT JOIN users u ON a.admin_id = u.id
       ORDER BY a.pinned DESC, a.created_at DESC LIMIT 10
-    `).all();
+    `, []);
     res.json(announcements);
   } catch (err) {
     console.error('[Announcements] Error:', err);
@@ -150,32 +150,36 @@ if (config.nodeEnv === 'production') {
 
 app.use(errorHandler);
 
-try {
-  initializeDatabase();
-  console.log('  Database initialized');
-} catch (err) {
-  console.error('  WARNING: Database initialization error (non-fatal):', err);
-}
-
 const server = createServer(app);
 
-try {
-  const { initWebSocket } = require('./websocket');
-  initWebSocket(server);
-  console.log('  WebSocket server attached at /ws');
-} catch (e) {
-  console.log('  WebSocket skipped (ws package not installed)');
+async function start() {
+  try {
+    await initializeDatabase();
+    console.log('  Database initialized');
+  } catch (err) {
+    console.error('  WARNING: Database initialization error (non-fatal):', err);
+  }
+
+  try {
+    const { initWebSocket } = require('./websocket');
+    initWebSocket(server);
+    console.log('  WebSocket server attached at /ws');
+  } catch (e) {
+    console.log('  WebSocket skipped (ws package not installed)');
+  }
+
+  server.listen(config.port, '0.0.0.0', () => {
+    console.log(`\n  Sprint Society API running on http://localhost:${config.port}`);
+    console.log(`  Environment: ${config.nodeEnv}\n`);
+    try {
+      startScheduler();
+    } catch (err) {
+      console.error('  Scheduler failed to start:', err);
+    }
+  });
 }
 
-server.listen(config.port, '0.0.0.0', () => {
-  console.log(`\n  Sprint Society API running on http://localhost:${config.port}`);
-  console.log(`  Environment: ${config.nodeEnv}\n`);
-  try {
-    startScheduler();
-  } catch (err) {
-    console.error('  Scheduler failed to start:', err);
-  }
-});
+start().catch(console.error);
 
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION:', err);

@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateProgressReport } from '../engine/progressTracker';
 
@@ -7,44 +7,48 @@ const router = Router();
 router.use(authenticate);
 
 // GET /progress/weekly — This week vs last week
-router.get('/weekly', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/weekly', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 100`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 100`,
+    [req.userId]
+  ) as any[];
 
   const report = generateProgressReport(runs, 'weekly');
   res.json(report);
 });
 
 // GET /progress/monthly — This month vs last month
-router.get('/monthly', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/monthly', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 200`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 200`,
+    [req.userId]
+  ) as any[];
 
   const report = generateProgressReport(runs, 'monthly');
   res.json(report);
 });
 
 // GET /progress/all-time — Full history
-router.get('/all-time', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/all-time', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC`,
+    [req.userId]
+  ) as any[];
 
   const report = generateProgressReport(runs, 'all_time');
   res.json(report);
 });
 
 // GET /progress/improvement — "You were HERE, now you're HERE" visualization data
-router.get('/improvement', (req: AuthRequest, res: Response) => {
-  const runs = db.prepare(
+router.get('/improvement', async (req: AuthRequest, res: Response) => {
+  const runs = await db.query(
     `SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date ASC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date ASC`,
+    [req.userId]
+  ) as any[];
 
   if (runs.length < 2) {
     return res.json({ has_data: false, message: 'Complete more runs to see your improvement' });
@@ -106,13 +110,14 @@ router.get('/improvement', (req: AuthRequest, res: Response) => {
 });
 
 // GET /progress/journey — milestone timeline
-router.get('/journey', (req: AuthRequest, res: Response) => {
+router.get('/journey', async (req: AuthRequest, res: Response) => {
   const milestones: { date: string; type: string; title: string; detail: string; icon: string }[] = [];
 
   // Tier changes
-  const tierChanges = db.prepare(
-    `SELECT tier, calculated_at FROM tier_history WHERE user_id = ? ORDER BY calculated_at ASC`
-  ).all(req.userId) as any[];
+  const tierChanges = await db.query(
+    `SELECT tier, calculated_at FROM tier_history WHERE user_id = $1 ORDER BY calculated_at ASC`,
+    [req.userId]
+  ) as any[];
 
   tierChanges.forEach((t, i) => {
     if (i === 0) {
@@ -123,16 +128,16 @@ router.get('/journey', (req: AuthRequest, res: Response) => {
   });
 
   // Distance milestones (50km, 100km, 250km, 500km)
-  const totalDist = (db.prepare('SELECT COALESCE(SUM(distance_meters), 0) as total FROM activities WHERE user_id = ?').get(req.userId) as any).total / 1000;
+  const totalDist = (await db.queryOne('SELECT COALESCE(SUM(distance_meters), 0) as total FROM activities WHERE user_id = $1', [req.userId]) as any).total / 1000;
   const distMilestones = [50, 100, 250, 500, 1000];
   for (const km of distMilestones) {
     if (totalDist >= km) {
-      const milestone = db.prepare(`
+      const milestone = await db.queryOne(`
         SELECT start_date FROM (
           SELECT start_date, SUM(distance_meters / 1000.0) OVER (ORDER BY start_date) as running_total
-          FROM activities WHERE user_id = ?
-        ) WHERE running_total >= ? LIMIT 1
-      `).get(req.userId, km) as any;
+          FROM activities WHERE user_id = $1
+        ) sub WHERE running_total >= $2 LIMIT 1
+      `, [req.userId, km]) as any;
       if (milestone) {
         milestones.push({ date: milestone.start_date, type: 'distance', title: `${km}km Total`, detail: 'Distance milestone reached', icon: '🗺️' });
       }
@@ -140,16 +145,17 @@ router.get('/journey', (req: AuthRequest, res: Response) => {
   }
 
   // Achievements earned
-  const achievements = db.prepare(
-    `SELECT a.name, a.icon, ua.earned_at FROM user_achievements ua JOIN achievements a ON a.id = ua.achievement_id WHERE ua.user_id = ? ORDER BY ua.earned_at ASC`
-  ).all(req.userId) as any[];
+  const achievements = await db.query(
+    `SELECT a.name, a.icon, ua.earned_at FROM user_achievements ua JOIN achievements a ON a.id = ua.achievement_id WHERE ua.user_id = $1 ORDER BY ua.earned_at ASC`,
+    [req.userId]
+  ) as any[];
 
   achievements.forEach(a => {
     milestones.push({ date: a.earned_at, type: 'achievement', title: a.name, detail: 'Achievement unlocked', icon: a.icon });
   });
 
   // First run
-  const firstRun = db.prepare('SELECT start_date, distance_meters FROM activities WHERE user_id = ? ORDER BY start_date ASC LIMIT 1').get(req.userId) as any;
+  const firstRun = await db.queryOne('SELECT start_date, distance_meters FROM activities WHERE user_id = $1 ORDER BY start_date ASC LIMIT 1', [req.userId]) as any;
   if (firstRun) {
     milestones.push({ date: firstRun.start_date, type: 'first', title: 'First Run', detail: `${(firstRun.distance_meters / 1000).toFixed(1)}km`, icon: '🎯' });
   }

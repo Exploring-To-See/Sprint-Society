@@ -5,7 +5,7 @@
  * just computes patterns from the activities table over time.
  */
 
-import db from '../database/db';
+import db from '../database/pg';
 
 export interface AthleteProfile {
   preferredRunTime: 'morning' | 'afternoon' | 'evening' | 'varies';
@@ -25,26 +25,26 @@ interface ActivityRow {
   start_date: string;
 }
 
-export function getAthleteProfile(userId: number): AthleteProfile {
+export async function getAthleteProfile(userId: number): Promise<AthleteProfile> {
   // All activities for this user
-  const allActivities = db.prepare(`
+  const allActivities = await db.query(`
     SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-    FROM activities WHERE user_id = ?
+    FROM activities WHERE user_id = $1
     ORDER BY start_date DESC
-  `).all(userId) as ActivityRow[];
+  `, [userId]) as ActivityRow[];
 
   // Last 30 days for trajectory
-  const last30Days = db.prepare(`
+  const last30Days = await db.query(`
     SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
     FROM activities
-    WHERE user_id = ? AND start_date >= datetime('now', '-30 days')
+    WHERE user_id = $1 AND start_date >= NOW() - INTERVAL '30 days'
     ORDER BY start_date DESC
-  `).all(userId) as ActivityRow[];
+  `, [userId]) as ActivityRow[];
 
   // XP data for streak reliability
-  const xpData = db.prepare(
-    'SELECT current_streak_days, longest_streak_days, last_activity_date FROM user_xp WHERE user_id = ?'
-  ).get(userId) as { current_streak_days: number; longest_streak_days: number; last_activity_date: string | null } | undefined;
+  const xpData = await db.queryOne(
+    'SELECT current_streak_days, longest_streak_days, last_activity_date FROM user_xp WHERE user_id = $1', [userId]
+  ) as { current_streak_days: number; longest_streak_days: number; last_activity_date: string | null } | undefined;
 
   return {
     preferredRunTime: computePreferredTime(allActivities),

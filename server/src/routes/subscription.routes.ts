@@ -1,27 +1,27 @@
 import { Router, Response } from 'express';
 import crypto from 'crypto';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { config } from '../config';
 
 const router = Router();
 
 // GET /subscription/plans — list all plans (public)
-router.get('/plans', (req, res: Response) => {
-  const plans = db.prepare('SELECT * FROM subscription_plans WHERE active = 1 ORDER BY price_inr ASC').all() as any[];
+router.get('/plans', async (req, res: Response) => {
+  const plans = await db.query('SELECT * FROM subscription_plans WHERE active = 1 ORDER BY price_inr ASC') as any[];
   res.json(plans.map(p => ({ ...p, features: JSON.parse(p.features || '[]') })));
 });
 
 // GET /subscription/status — current user's subscription
-router.get('/status', authenticate, (req: AuthRequest, res: Response) => {
-  const sub = db.prepare(`
+router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
+  const sub = await db.queryOne(`
     SELECT us.*, sp.name as plan_name
     FROM user_subscriptions us
     JOIN subscription_plans sp ON us.plan_key = sp.key
-    WHERE us.user_id = ? AND us.status = 'active' AND us.expires_at > datetime('now')
+    WHERE us.user_id = $1 AND us.status = 'active' AND us.expires_at > NOW()
     ORDER BY us.expires_at DESC
     LIMIT 1
-  `).get(req.userId) as any;
+  `, [req.userId]) as any;
 
   if (!sub) {
     return res.json({
@@ -52,7 +52,7 @@ router.get('/status', authenticate, (req: AuthRequest, res: Response) => {
 router.post('/create-order', authenticate, async (req: AuthRequest, res: Response) => {
   const { plan_key } = req.body;
 
-  const plan = db.prepare('SELECT * FROM subscription_plans WHERE key = ? AND active = 1').get(plan_key) as any;
+  const plan = await db.queryOne('SELECT * FROM subscription_plans WHERE key = $1 AND active = 1', [plan_key]) as any;
   if (!plan) return res.status(400).json({ error: 'Invalid plan' });
   if (plan.price_inr === 0) return res.status(400).json({ error: 'Cannot purchase free plan' });
 
@@ -91,10 +91,10 @@ router.post('/create-order', authenticate, async (req: AuthRequest, res: Respons
     }
 
     // Store pending payment
-    db.prepare(`
+    await db.execute(`
       INSERT INTO payment_history (user_id, plan_key, amount_inr, status, razorpay_order_id)
-      VALUES (?, ?, ?, 'pending', ?)
-    `).run(req.userId, plan_key, plan.price_inr, order.id);
+      VALUES ($1, $2, $3, 'pending', $4)
+    `, [req.userId, plan_key, plan.price_inr, order.id]);
 
     res.json({
       order_id: order.id,
@@ -110,7 +110,7 @@ router.post('/create-order', authenticate, async (req: AuthRequest, res: Respons
 });
 
 // POST /subscription/verify — verify Razorpay payment and activate subscription
-router.post('/verify', authenticate, (req: AuthRequest, res: Response) => {
+router.post('/verify', authenticate, async (req: AuthRequest, res: Response) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -133,32 +133,33 @@ router.post('/verify', authenticate, (req: AuthRequest, res: Response) => {
   }
 
   // Find the pending payment
-  const payment = db.prepare(
-    'SELECT * FROM payment_history WHERE razorpay_order_id = ? AND user_id = ? AND status = ?'
-  ).get(razorpay_order_id, req.userId, 'pending') as any;
+  const payment = await db.queryOne(
+    'SELECT * FROM payment_history WHERE razorpay_order_id = $1 AND user_id = $2 AND status = $3',
+    [razorpay_order_id, req.userId, 'pending']
+  ) as any;
 
   if (!payment) return res.status(404).json({ error: 'Payment not found' });
 
   // Get plan duration
-  const plan = db.prepare('SELECT * FROM subscription_plans WHERE key = ?').get(payment.plan_key) as any;
+  const plan = await db.queryOne('SELECT * FROM subscription_plans WHERE key = $1', [payment.plan_key]) as any;
   const expiresAt = new Date(Date.now() + plan.duration_days * 86400000).toISOString();
 
   // Update payment record
-  db.prepare(`
-    UPDATE payment_history SET status = 'success', razorpay_payment_id = ?, razorpay_signature = ?
-    WHERE id = ?
-  `).run(razorpay_payment_id, razorpay_signature, payment.id);
+  await db.execute(`
+    UPDATE payment_history SET status = 'success', razorpay_payment_id = $1, razorpay_signature = $2
+    WHERE id = $3
+  `, [razorpay_payment_id, razorpay_signature, payment.id]);
 
   // Expire any existing active subscription
-  db.prepare(`
-    UPDATE user_subscriptions SET status = 'expired' WHERE user_id = ? AND status = 'active'
-  `).run(req.userId);
+  await db.execute(`
+    UPDATE user_subscriptions SET status = 'expired' WHERE user_id = $1 AND status = 'active'
+  `, [req.userId]);
 
   // Create new subscription
-  db.prepare(`
+  await db.execute(`
     INSERT INTO user_subscriptions (user_id, plan_key, status, expires_at, razorpay_subscription_id, razorpay_payment_id)
-    VALUES (?, ?, 'active', ?, ?, ?)
-  `).run(req.userId, payment.plan_key, expiresAt, razorpay_order_id, razorpay_payment_id);
+    VALUES ($1, $2, 'active', $3, $4, $5)
+  `, [req.userId, payment.plan_key, expiresAt, razorpay_order_id, razorpay_payment_id]);
 
   res.json({
     success: true,
@@ -169,27 +170,29 @@ router.post('/verify', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // POST /subscription/cancel — cancel auto-renewal
-router.post('/cancel', authenticate, (req: AuthRequest, res: Response) => {
-  const sub = db.prepare(
-    "SELECT * FROM user_subscriptions WHERE user_id = ? AND status = 'active' ORDER BY expires_at DESC LIMIT 1"
-  ).get(req.userId) as any;
+router.post('/cancel', authenticate, async (req: AuthRequest, res: Response) => {
+  const sub = await db.queryOne(
+    "SELECT * FROM user_subscriptions WHERE user_id = $1 AND status = 'active' ORDER BY expires_at DESC LIMIT 1",
+    [req.userId]
+  ) as any;
 
   if (!sub) return res.status(404).json({ error: 'No active subscription' });
 
-  db.prepare('UPDATE user_subscriptions SET auto_renew = 0 WHERE id = ?').run(sub.id);
+  await db.execute('UPDATE user_subscriptions SET auto_renew = 0 WHERE id = $1', [sub.id]);
   res.json({ success: true, message: 'Auto-renewal cancelled. Your plan remains active until expiry.' });
 });
 
 // POST /subscription/upgrade — upgrade Base → Pro (new billing period)
 router.post('/upgrade', authenticate, async (req: AuthRequest, res: Response) => {
-  const currentSub = db.prepare(
-    "SELECT * FROM user_subscriptions WHERE user_id = ? AND status = 'active' AND expires_at > datetime('now') LIMIT 1"
-  ).get(req.userId) as any;
+  const currentSub = await db.queryOne(
+    "SELECT * FROM user_subscriptions WHERE user_id = $1 AND status = 'active' AND expires_at > NOW() LIMIT 1",
+    [req.userId]
+  ) as any;
 
   if (!currentSub) return res.status(400).json({ error: 'No active subscription to upgrade' });
   if (currentSub.plan_key === 'pro') return res.status(400).json({ error: 'Already on Pro plan' });
 
-  const proPlan = db.prepare("SELECT * FROM subscription_plans WHERE key = 'pro' AND active = 1").get() as any;
+  const proPlan = await db.queryOne("SELECT * FROM subscription_plans WHERE key = 'pro' AND active = 1") as any;
   if (!proPlan) return res.status(500).json({ error: 'Pro plan not found' });
 
   if (!config.razorpayKeyId || !config.razorpayKeySecret) {
@@ -212,8 +215,8 @@ router.post('/upgrade', authenticate, async (req: AuthRequest, res: Response) =>
     const order = await response.json() as any;
     if (!response.ok) return res.status(500).json({ error: 'Failed to create upgrade order' });
 
-    db.prepare('INSERT INTO payment_history (user_id, plan_key, amount_inr, status, razorpay_order_id) VALUES (?, ?, ?, ?, ?)')
-      .run(req.userId, 'pro', proPlan.price_inr, 'pending', order.id);
+    await db.execute('INSERT INTO payment_history (user_id, plan_key, amount_inr, status, razorpay_order_id) VALUES ($1, $2, $3, $4, $5)',
+      [req.userId, 'pro', proPlan.price_inr, 'pending', order.id]);
 
     res.json({ order_id: order.id, amount: order.amount, currency: order.currency, key_id: config.razorpayKeyId, plan_name: proPlan.name });
   } catch {
@@ -222,15 +225,15 @@ router.post('/upgrade', authenticate, async (req: AuthRequest, res: Response) =>
 });
 
 // GET /subscription/history — payment history
-router.get('/history', authenticate, (req: AuthRequest, res: Response) => {
-  const payments = db.prepare(`
+router.get('/history', authenticate, async (req: AuthRequest, res: Response) => {
+  const payments = await db.query(`
     SELECT ph.*, sp.name as plan_name
     FROM payment_history ph
     JOIN subscription_plans sp ON ph.plan_key = sp.key
-    WHERE ph.user_id = ?
+    WHERE ph.user_id = $1
     ORDER BY ph.created_at DESC
     LIMIT 50
-  `).all(req.userId) as any[];
+  `, [req.userId]) as any[];
 
   res.json(payments.map(p => ({
     id: p.id,
@@ -244,7 +247,7 @@ router.get('/history', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // POST /subscription/webhook — Razorpay webhook (no auth, verifies signature)
-router.post('/webhook', (req, res: Response) => {
+router.post('/webhook', async (req, res: Response) => {
   const webhookSecret = config.razorpayKeySecret;
   if (!webhookSecret) return res.status(503).json({ error: 'Not configured' });
 
@@ -264,9 +267,9 @@ router.post('/webhook', (req, res: Response) => {
   if (event === 'payment.captured') {
     const payment = payload.payment?.entity;
     if (payment?.order_id) {
-      const record = db.prepare('SELECT * FROM payment_history WHERE razorpay_order_id = ? AND status = ?').get(payment.order_id, 'pending') as any;
+      const record = await db.queryOne('SELECT * FROM payment_history WHERE razorpay_order_id = $1 AND status = $2', [payment.order_id, 'pending']) as any;
       if (record) {
-        db.prepare("UPDATE payment_history SET status = 'success', razorpay_payment_id = ? WHERE id = ?").run(payment.id, record.id);
+        await db.execute("UPDATE payment_history SET status = 'success', razorpay_payment_id = $1 WHERE id = $2", [payment.id, record.id]);
       }
     }
   }
@@ -274,7 +277,7 @@ router.post('/webhook', (req, res: Response) => {
   if (event === 'payment.failed') {
     const payment = payload.payment?.entity;
     if (payment?.order_id) {
-      db.prepare("UPDATE payment_history SET status = 'failed' WHERE razorpay_order_id = ? AND status = 'pending'").run(payment.order_id);
+      await db.execute("UPDATE payment_history SET status = 'failed' WHERE razorpay_order_id = $1 AND status = 'pending'", [payment.order_id]);
     }
   }
 

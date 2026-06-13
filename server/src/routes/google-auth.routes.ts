@@ -1,7 +1,7 @@
 import { Router, Response, Request } from 'express';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import db from '../database/db';
+import db from '../database/pg';
 import { signToken } from '../utils/jwt';
 import { config } from '../config';
 import { awardWelcomeBonus } from '../engine/kenduEngine';
@@ -86,7 +86,7 @@ router.post('/google', async (req: Request, res: Response) => {
     const { sub: googleId, email, name, picture } = payload;
 
     // Check if user exists by google_id
-    let user = db.prepare('SELECT id, name, email, role FROM users WHERE google_id = ?').get(googleId) as any;
+    let user = await db.queryOne('SELECT id, name, email, role FROM users WHERE google_id = $1', [googleId]);
 
     if (user) {
       const token = signToken(user.id);
@@ -94,41 +94,52 @@ router.post('/google', async (req: Request, res: Response) => {
     }
 
     // Check if user exists by email (link Google to existing account)
-    user = db.prepare('SELECT id, name, email, role FROM users WHERE email = ?').get(email) as any;
+    user = await db.queryOne('SELECT id, name, email, role FROM users WHERE email = $1', [email]);
 
     if (user) {
-      db.prepare('UPDATE users SET google_id = ?, profile_image_url = COALESCE(profile_image_url, ?) WHERE id = ?')
-        .run(googleId, picture || null, user.id);
+      await db.execute(
+        'UPDATE users SET google_id = $1, profile_image_url = COALESCE(profile_image_url, $2) WHERE id = $3',
+        [googleId, picture || null, user.id]
+      );
       const token = signToken(user.id);
       return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     }
 
-    // New user — create account without password. Wrap every write in a single
-    // transaction so a half-created user can never be persisted: either the whole
-    // signup lands atomically, or nothing does.
-    const createNewUser = db.transaction(() => {
-      const result = db.prepare(`
+    // New user — create account without password.
+    // Use a transaction to ensure atomicity.
+    const pool = (db as any).pool;
+    const client = await pool.connect();
+    let userId: number;
+    try {
+      await client.query('BEGIN');
+
+      const insertResult = await client.query(`
         INSERT INTO users (name, email, phone, password_hash, google_id, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url)
-        VALUES (?, ?, '', '', ?, 'male', 25, 170, 70, 'active', 'beginner', '[]', ?)
-      `).run(name, email, googleId, picture || null);
+        VALUES ($1, $2, '', '', $3, 'male', 25, 170, 70, 'active', 'beginner', '[]', $4)
+        RETURNING id
+      `, [name, email, googleId, picture || null]);
 
-      const newId = result.lastInsertRowid as number;
+      userId = insertResult.rows[0].id;
 
-      db.prepare('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES (?, 0, 1)').run(newId);
+      await client.query('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES ($1, 0, 1)', [userId]);
 
-      const socialClub = db.prepare("SELECT id FROM communities WHERE name = 'Sprint Social Club'").get() as any;
-      if (socialClub) {
-        db.prepare('INSERT OR IGNORE INTO community_members (community_id, user_id, role) VALUES (?, ?, ?)').run(socialClub.id, newId, 'member');
-        db.prepare('UPDATE communities SET member_count = member_count + 1 WHERE id = ?').run(socialClub.id);
+      const socialClubResult = await client.query("SELECT id FROM communities WHERE name = 'Sprint Social Club'");
+      if (socialClubResult.rows.length > 0) {
+        const socialClubId = socialClubResult.rows[0].id;
+        await client.query('INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [socialClubId, userId, 'member']);
+        await client.query('UPDATE communities SET member_count = member_count + 1 WHERE id = $1', [socialClubId]);
       }
 
-      awardWelcomeBonus(newId);
-      createNotification(newId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
 
-      return newId;
-    });
-
-    const userId = createNewUser();
+    awardWelcomeBonus(userId);
+    createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
 
     const token = signToken(userId);
     res.status(201).json({ token, user: { id: userId, name, email, role: 'runner' }, isNew: true });

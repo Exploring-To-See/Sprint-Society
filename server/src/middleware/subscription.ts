@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { AuthRequest } from './auth';
 
 export type PlanKey = 'free' | 'base' | 'pro';
@@ -10,12 +10,12 @@ const PLAN_HIERARCHY: Record<PlanKey, number> = {
   pro: 2,
 };
 
-export function getUserPlan(userId: number): PlanKey {
-  const sub = db.prepare(`
+export async function getUserPlan(userId: number): Promise<PlanKey> {
+  const sub = await db.queryOne(`
     SELECT plan_key FROM user_subscriptions
-    WHERE user_id = ? AND status = 'active' AND expires_at > datetime('now')
+    WHERE user_id = $1 AND status = 'active' AND expires_at > NOW()
     ORDER BY expires_at DESC LIMIT 1
-  `).get(userId) as any;
+  `, [userId]);
 
   if (!sub?.plan_key) return 'free';
   if (sub.plan_key in PLAN_HIERARCHY) return sub.plan_key as PlanKey;
@@ -23,8 +23,8 @@ export function getUserPlan(userId: number): PlanKey {
 }
 
 export function requirePlan(minimumPlan: PlanKey) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    const userPlan = getUserPlan(req.userId!);
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userPlan = await getUserPlan(req.userId!);
     const userLevel = PLAN_HIERARCHY[userPlan];
     const requiredLevel = PLAN_HIERARCHY[minimumPlan];
 

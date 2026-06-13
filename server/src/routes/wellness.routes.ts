@@ -1,12 +1,12 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
 // POST /wellness/log — Log today's sleep + stress
-router.post('/log', (req: AuthRequest, res: Response) => {
+router.post('/log', async (req: AuthRequest, res: Response) => {
   const { sleep_hours, stress_level, energy_level, notes } = req.body;
 
   if (!sleep_hours && !stress_level) {
@@ -16,15 +16,15 @@ router.post('/log', (req: AuthRequest, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
 
   try {
-    db.prepare(`
+    await db.execute(`
       INSERT INTO daily_wellness (user_id, date, sleep_hours, stress_level, energy_level, notes)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT(user_id, date) DO UPDATE SET
-        sleep_hours = COALESCE(excluded.sleep_hours, sleep_hours),
-        stress_level = COALESCE(excluded.stress_level, stress_level),
-        energy_level = COALESCE(excluded.energy_level, energy_level),
-        notes = COALESCE(excluded.notes, notes)
-    `).run(req.userId, today, sleep_hours || null, stress_level || null, energy_level || null, notes || null);
+        sleep_hours = COALESCE(EXCLUDED.sleep_hours, daily_wellness.sleep_hours),
+        stress_level = COALESCE(EXCLUDED.stress_level, daily_wellness.stress_level),
+        energy_level = COALESCE(EXCLUDED.energy_level, daily_wellness.energy_level),
+        notes = COALESCE(EXCLUDED.notes, daily_wellness.notes)
+    `, [req.userId, today, sleep_hours || null, stress_level || null, energy_level || null, notes || null]);
 
     res.json({ message: 'Wellness logged', date: today });
   } catch (err) {
@@ -33,20 +33,20 @@ router.post('/log', (req: AuthRequest, res: Response) => {
 });
 
 // GET /wellness/today — Get today's log (if exists)
-router.get('/today', (req: AuthRequest, res: Response) => {
+router.get('/today', async (req: AuthRequest, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
-  const log = db.prepare('SELECT * FROM daily_wellness WHERE user_id = ? AND date = ?').get(req.userId, today);
+  const log = await db.queryOne('SELECT * FROM daily_wellness WHERE user_id = $1 AND date = $2', [req.userId, today]);
   res.json(log || { logged: false });
 });
 
 // GET /wellness/week — Last 7 days of wellness data
-router.get('/week', (req: AuthRequest, res: Response) => {
-  const logs = db.prepare(`
+router.get('/week', async (req: AuthRequest, res: Response) => {
+  const logs = await db.query(`
     SELECT date, sleep_hours, stress_level, energy_level
     FROM daily_wellness
-    WHERE user_id = ? AND date >= date('now', '-7 days')
+    WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '7 days'
     ORDER BY date DESC
-  `).all(req.userId);
+  `, [req.userId]) as any[];
 
   const avgSleep = logs.filter((l: any) => l.sleep_hours).reduce((s: number, l: any) => s + l.sleep_hours, 0) / (logs.filter((l: any) => l.sleep_hours).length || 1);
   const avgStress = logs.filter((l: any) => l.stress_level).reduce((s: number, l: any) => s + l.stress_level, 0) / (logs.filter((l: any) => l.stress_level).length || 1);
@@ -61,9 +61,9 @@ router.get('/week', (req: AuthRequest, res: Response) => {
 });
 
 // GET /wellness/recovery-factor — How wellness affects today's training readiness
-router.get('/recovery-factor', (req: AuthRequest, res: Response) => {
+router.get('/recovery-factor', async (req: AuthRequest, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
-  const log = db.prepare('SELECT * FROM daily_wellness WHERE user_id = ? AND date = ?').get(req.userId, today) as any;
+  const log = await db.queryOne('SELECT * FROM daily_wellness WHERE user_id = $1 AND date = $2', [req.userId, today]) as any;
 
   if (!log) {
     return res.json({ factor: 1.0, adjustment: 'none', message: 'Log your wellness for personalized training adjustments.' });

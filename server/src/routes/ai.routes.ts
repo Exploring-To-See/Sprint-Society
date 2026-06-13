@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import db from '../database/db';
+import db from '../database/pg';
 import {
   getAIProfile,
   updateAIProfile,
@@ -13,13 +13,13 @@ const router = Router();
 router.use(authenticate);
 
 // GET /api/ai/status — check if AI features are available
-router.get('/status', (req: AuthRequest, res: Response) => {
+router.get('/status', async (req: AuthRequest, res: Response) => {
   const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
-  const subscription = db.prepare(`
+  const subscription = await db.queryOne(`
     SELECT plan_key FROM user_subscriptions
-    WHERE user_id = ? AND status = 'active' AND expires_at > datetime('now')
+    WHERE user_id = $1 AND status = 'active' AND expires_at > NOW()
     ORDER BY created_at DESC LIMIT 1
-  `).get(req.userId!) as any;
+  `, [req.userId!]) as any;
 
   const planKey = subscription?.plan_key || 'free';
   res.json({
@@ -31,18 +31,18 @@ router.get('/status', (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/ai/daily-insight — rule-based coaching insight (no API key needed)
-router.get('/daily-insight', (req: AuthRequest, res: Response) => {
-  const user = db.prepare(`
+router.get('/daily-insight', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne(`
     SELECT u.*, ux.total_xp, ux.current_level, ux.current_streak_days
-    FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id WHERE u.id = ?
-  `).get(req.userId!) as any;
+    FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id WHERE u.id = $1
+  `, [req.userId!]) as any;
 
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const recentRuns = db.prepare(`
+  const recentRuns = await db.query(`
     SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-    FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 7
-  `).all(req.userId!) as any[];
+    FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 7
+  `, [req.userId!]) as any[];
 
   const streak = user.current_streak_days || 0;
   const runsThisWeek = recentRuns.filter((r: any) => {
@@ -87,9 +87,9 @@ router.get('/daily-insight', (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/ai/profile — get user's AI profile (for My AI Profile page)
-router.get('/profile', (req: AuthRequest, res: Response) => {
+router.get('/profile', async (req: AuthRequest, res: Response) => {
   try {
-    const profile = getAIProfile(req.userId!);
+    const profile = await getAIProfile(req.userId!);
     res.json(profile);
   } catch (err: any) {
     console.error('[AI Routes] Get profile error:', err.message);
@@ -98,7 +98,7 @@ router.get('/profile', (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/ai/profile — update a field in their profile
-router.patch('/profile', (req: AuthRequest, res: Response) => {
+router.patch('/profile', async (req: AuthRequest, res: Response) => {
   const { field, value } = req.body;
 
   if (!field || value === undefined) {
@@ -106,7 +106,7 @@ router.patch('/profile', (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const success = updateAIProfile(req.userId!, field, value);
+    const success = await updateAIProfile(req.userId!, field, value);
     if (!success) {
       return res.status(400).json({ error: 'Invalid field. Allowed: health_notes, goals, diet_preferences, personal_context' });
     }
@@ -137,20 +137,20 @@ router.post('/evaluate', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/ai/usage — get user's AI usage stats for today
-router.get('/usage', (req: AuthRequest, res: Response) => {
+router.get('/usage', async (req: AuthRequest, res: Response) => {
   try {
-    const usage = getTodayUsage(req.userId!);
+    const usage = await getTodayUsage(req.userId!);
 
     // Determine their tier
-    const subscription = db.prepare(`
+    const subscription = await db.queryOne(`
       SELECT plan_key FROM user_subscriptions
-      WHERE user_id = ? AND status = 'active' AND expires_at > datetime('now')
+      WHERE user_id = $1 AND status = 'active' AND expires_at > NOW()
       ORDER BY created_at DESC LIMIT 1
-    `).get(req.userId!) as any;
+    `, [req.userId!]) as any;
 
     const planKey = subscription?.plan_key || 'free';
     const tier = planKey === 'pro' ? 'pro' : 'base';
-    const limits = checkUsageLimit(req.userId!, tier);
+    const limits = await checkUsageLimit(req.userId!, tier);
 
     res.json({
       ...usage,

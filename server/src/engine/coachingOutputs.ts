@@ -5,7 +5,7 @@
  * using pure rule-based logic. No LLM dependency.
  */
 
-import db from '../database/db';
+import db from '../database/pg';
 
 // --- Types ---
 
@@ -59,7 +59,7 @@ interface ActivityRow {
 
 // --- Exports ---
 
-export function generateWeeklySummary(userId: number): WeeklySummary {
+export async function generateWeeklySummary(userId: number): Promise<WeeklySummary> {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const startOfWeek = new Date(now);
@@ -70,35 +70,35 @@ export function generateWeeklySummary(userId: number): WeeklySummary {
   startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
 
   // This week's activities
-  const thisWeek = db.prepare(`
+  const thisWeek = await db.query(`
     SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-    FROM activities WHERE user_id = ? AND start_date >= ?
+    FROM activities WHERE user_id = $1 AND start_date >= $2
     ORDER BY start_date DESC
-  `).all(userId, startOfWeek.toISOString()) as ActivityRow[];
+  `, [userId, startOfWeek.toISOString()]) as ActivityRow[];
 
   // Previous week's activities
-  const prevWeek = db.prepare(`
+  const prevWeek = await db.query(`
     SELECT distance_meters, moving_time_seconds, average_pace_per_km, start_date
-    FROM activities WHERE user_id = ? AND start_date >= ? AND start_date < ?
+    FROM activities WHERE user_id = $1 AND start_date >= $2 AND start_date < $3
     ORDER BY start_date DESC
-  `).all(userId, startOfPrevWeek.toISOString(), startOfWeek.toISOString()) as ActivityRow[];
+  `, [userId, startOfPrevWeek.toISOString(), startOfWeek.toISOString()]) as ActivityRow[];
 
   // XP/Streak
-  const xp = db.prepare('SELECT current_streak_days FROM user_xp WHERE user_id = ?').get(userId) as { current_streak_days: number } | undefined;
+  const xp = await db.queryOne('SELECT current_streak_days FROM user_xp WHERE user_id = $1', [userId]) as { current_streak_days: number } | undefined;
 
   // Kendu earned this week
-  const kendu = db.prepare(`
+  const kendu = await db.queryOne(`
     SELECT COALESCE(SUM(amount), 0) as total FROM xp_transactions
-    WHERE user_id = ? AND created_at >= ? AND source = 'run_completed'
-  `).get(userId, startOfWeek.toISOString()) as { total: number };
+    WHERE user_id = $1 AND created_at >= $2 AND source = 'run_completed'
+  `, [userId, startOfWeek.toISOString()]) as { total: number };
 
   // Recent achievement
-  const recentAchievement = db.prepare(`
+  const recentAchievement = await db.queryOne(`
     SELECT a.name FROM user_achievements ua
     JOIN achievements a ON ua.achievement_id = a.id
-    WHERE ua.user_id = ? AND ua.earned_at >= ?
+    WHERE ua.user_id = $1 AND ua.earned_at >= $2
     ORDER BY ua.earned_at DESC LIMIT 1
-  `).get(userId, startOfWeek.toISOString()) as { name: string } | undefined;
+  `, [userId, startOfWeek.toISOString()]) as { name: string } | undefined;
 
   // Calculate stats
   const totalKm = thisWeek.reduce((s, a) => s + a.distance_meters, 0) / 1000;
@@ -117,7 +117,7 @@ export function generateWeeklySummary(userId: number): WeeklySummary {
   const paceChange = prevAvgPace > 0 ? Math.round(avgPace - prevAvgPace) : 0;
 
   // Next goal determination
-  const nextGoal = determineNextGoal(userId, totalKm, totalRuns);
+  const nextGoal = await determineNextGoal(userId, totalKm, totalRuns);
 
   return {
     totalKm: Math.round(totalKm * 10) / 10,
@@ -131,18 +131,18 @@ export function generateWeeklySummary(userId: number): WeeklySummary {
   };
 }
 
-export function generatePreRunBrief(userId: number): PreRunBrief {
+export async function generatePreRunBrief(userId: number): Promise<PreRunBrief> {
   // Get last 7 days of activity
-  const recentRuns = db.prepare(`
+  const recentRuns = await db.query(`
     SELECT distance_meters, average_pace_per_km, start_date, rpe
-    FROM activities WHERE user_id = ? AND start_date >= datetime('now', '-7 days')
+    FROM activities WHERE user_id = $1 AND start_date >= NOW() - INTERVAL '7 days'
     ORDER BY start_date DESC
-  `).all(userId) as ActivityRow[];
+  `, [userId]) as ActivityRow[];
 
   // Get runner profile for pace zones
-  const profile = db.prepare(`
-    SELECT estimated_vo2max, training_days_per_week FROM runner_profiles WHERE user_id = ?
-  `).get(userId) as { estimated_vo2max: number; training_days_per_week: number } | undefined;
+  const profile = await db.queryOne(`
+    SELECT estimated_vo2max, training_days_per_week FROM runner_profiles WHERE user_id = $1
+  `, [userId]) as { estimated_vo2max: number; training_days_per_week: number } | undefined;
 
   // Determine suggested distance based on recent volume
   const recentAvgDistance = recentRuns.length > 0
@@ -221,12 +221,12 @@ export function generatePreRunBrief(userId: number): PreRunBrief {
   };
 }
 
-export function generatePostRunAnalysis(userId: number, activityId: number): PostRunAnalysis {
+export async function generatePostRunAnalysis(userId: number, activityId: number): Promise<PostRunAnalysis> {
   // Get the specific activity
-  const activity = db.prepare(`
+  const activity = await db.queryOne(`
     SELECT id, distance_meters, moving_time_seconds, average_pace_per_km, splits, elevation_gain, rpe, start_date
-    FROM activities WHERE id = ? AND user_id = ?
-  `).get(activityId, userId) as ActivityRow | undefined;
+    FROM activities WHERE id = $1 AND user_id = $2
+  `, [activityId, userId]) as ActivityRow | undefined;
 
   if (!activity) {
     return {
@@ -239,11 +239,11 @@ export function generatePostRunAnalysis(userId: number, activityId: number): Pos
   }
 
   // Get user's average stats (last 30 days, excluding this run)
-  const avgStats = db.prepare(`
+  const avgStats = await db.queryOne(`
     SELECT AVG(average_pace_per_km) as avg_pace, AVG(distance_meters) as avg_dist
     FROM activities
-    WHERE user_id = ? AND id != ? AND start_date >= datetime('now', '-30 days') AND average_pace_per_km > 0
-  `).get(userId, activityId) as { avg_pace: number | null; avg_dist: number | null };
+    WHERE user_id = $1 AND id != $2 AND start_date >= NOW() - INTERVAL '30 days' AND average_pace_per_km > 0
+  `, [userId, activityId]) as { avg_pace: number | null; avg_dist: number | null };
 
   // Analyze splits
   let splitData: number[] = [];
@@ -284,12 +284,12 @@ export function generatePostRunAnalysis(userId: number, activityId: number): Pos
 
 // --- Helper Functions ---
 
-function determineNextGoal(userId: number, weekKm: number, weekRuns: number): string {
+async function determineNextGoal(userId: number, weekKm: number, weekRuns: number): Promise<string> {
   // Get total stats
-  const stats = db.prepare(`
+  const stats = await db.queryOne(`
     SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_dist
-    FROM activities WHERE user_id = ?
-  `).get(userId) as { total_runs: number; total_dist: number };
+    FROM activities WHERE user_id = $1
+  `, [userId]) as { total_runs: number; total_dist: number };
 
   const totalKm = stats.total_dist / 1000;
 

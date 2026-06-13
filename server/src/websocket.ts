@@ -1,7 +1,7 @@
 import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import jwt from 'jsonwebtoken';
-import db from './database/db';
+import db from './database/pg';
 import { config } from './config';
 
 interface AuthenticatedSocket extends WebSocket {
@@ -27,7 +27,7 @@ export function pushToUser(userId: number, event: { type: string; [key: string]:
 export function initWebSocket(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
-  wss.on('connection', (ws: AuthenticatedSocket, req) => {
+  wss.on('connection', async (ws: AuthenticatedSocket, req) => {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     const token = url.searchParams.get('token');
     const communityId = parseInt(url.searchParams.get('community') || '0');
@@ -43,7 +43,7 @@ export function initWebSocket(server: HttpServer) {
       ws.userId = decoded.userId || decoded.id;
       ws.communityId = communityId;
 
-      const user = db.prepare('SELECT name FROM users WHERE id = ?').get(ws.userId) as any;
+      const user = await db.queryOne('SELECT name FROM users WHERE id = $1', [ws.userId]);
       ws.userName = user?.name || 'Anonymous';
     } catch {
       ws.close(4003, 'Invalid token');
@@ -67,9 +67,10 @@ export function initWebSocket(server: HttpServer) {
       return;
     }
 
-    const isMember = db.prepare(
-      'SELECT 1 FROM community_members WHERE community_id = ? AND user_id = ?'
-    ).get(communityId, ws.userId);
+    const isMember = await db.queryOne(
+      'SELECT 1 FROM community_members WHERE community_id = $1 AND user_id = $2',
+      [communityId, ws.userId]
+    );
 
     if (!isMember) {
       ws.close(4004, 'Not a member');
@@ -81,7 +82,7 @@ export function initWebSocket(server: HttpServer) {
     }
     communities.get(communityId)!.add(ws);
 
-    ws.on('message', (raw) => {
+    ws.on('message', async (raw) => {
       try {
         const msg = JSON.parse(raw.toString());
 
@@ -89,13 +90,14 @@ export function initWebSocket(server: HttpServer) {
           const body = msg.body?.trim();
           if (!body || body.length > 1000) return;
 
-          const result = db.prepare(
-            'INSERT INTO community_chat_messages (community_id, user_id, body) VALUES (?, ?, ?)'
-          ).run(communityId, ws.userId, body);
+          const result = await db.queryOne(
+            'INSERT INTO community_chat_messages (community_id, user_id, body) VALUES ($1, $2, $3) RETURNING id',
+            [communityId, ws.userId, body]
+          );
 
           const broadcast = JSON.stringify({
             type: 'chat',
-            id: result.lastInsertRowid,
+            id: result?.id,
             user_id: ws.userId,
             user_name: ws.userName,
             body,

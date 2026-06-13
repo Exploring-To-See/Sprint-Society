@@ -1,14 +1,15 @@
-import db from '../database/db';
+import db from '../database/pg';
 
-export function isFlagEnabled(key: string, userId?: number): boolean {
-  const flag = db.prepare('SELECT * FROM feature_flags WHERE key = ?').get(key) as any;
+export async function isFlagEnabled(key: string, userId?: number): Promise<boolean> {
+  const flag = await db.queryOne('SELECT * FROM feature_flags WHERE key = $1', [key]);
   if (!flag) return false;
 
   // Check user-specific override
   if (userId) {
-    const override = db.prepare(
-      'SELECT enabled FROM feature_flag_overrides WHERE flag_id = ? AND user_id = ?'
-    ).get(flag.id, userId) as any;
+    const override = await db.queryOne(
+      'SELECT enabled FROM feature_flag_overrides WHERE flag_id = $1 AND user_id = $2',
+      [flag.id, userId]
+    );
     if (override) return !!override.enabled;
   }
 
@@ -23,17 +24,18 @@ export function isFlagEnabled(key: string, userId?: number): boolean {
   return true;
 }
 
-export function getAllFlags(userId?: number): Record<string, boolean> {
-  const flags = db.prepare('SELECT * FROM feature_flags').all() as any[];
+export async function getAllFlags(userId?: number): Promise<Record<string, boolean>> {
+  const flags = await db.query('SELECT * FROM feature_flags', []);
   const result: Record<string, boolean> = {};
 
   for (const flag of flags) {
     let enabled = !!flag.enabled;
 
     if (userId) {
-      const override = db.prepare(
-        'SELECT enabled FROM feature_flag_overrides WHERE flag_id = ? AND user_id = ?'
-      ).get(flag.id, userId) as any;
+      const override = await db.queryOne(
+        'SELECT enabled FROM feature_flag_overrides WHERE flag_id = $1 AND user_id = $2',
+        [flag.id, userId]
+      );
       if (override) {
         enabled = !!override.enabled;
         result[flag.key] = enabled;

@@ -1,5 +1,5 @@
 import { config } from '../config';
-import db from '../database/db';
+import db from '../database/pg';
 import { getUserPlan } from '../middleware/subscription';
 
 let Anthropic: any = null;
@@ -29,29 +29,29 @@ function getRandomErrorMessage(): string {
 /**
  * Build full context string for a user (used in system prompts)
  */
-export function buildUserContext(userId: number): string {
-  const user = db.prepare(`
+export async function buildUserContext(userId: number): Promise<string> {
+  const user = await db.queryOne(`
     SELECT u.*, ux.total_xp, ux.current_level, ux.current_streak_days
     FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE u.id = ?
-  `).get(userId) as any;
+    WHERE u.id = $1
+  `, [userId]) as any;
 
   if (!user) return '';
 
   // Get AI profile
-  const profile = db.prepare('SELECT * FROM ai_profiles WHERE user_id = ?').get(userId) as any;
+  const profile = await db.queryOne('SELECT * FROM ai_profiles WHERE user_id = $1', [userId]) as any;
 
   // Get recent runs (last 5)
-  const recentRuns = db.prepare(`
+  const recentRuns = await db.query(`
     SELECT distance_meters, moving_time_seconds, average_pace_per_km, average_heartrate, start_date
-    FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 5
-  `).all(userId) as any[];
+    FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 5
+  `, [userId]) as any[];
 
   // Get tier
-  const tier = db.prepare('SELECT tier, estimated_vo2max FROM tier_history WHERE user_id = ? ORDER BY calculated_at DESC LIMIT 1').get(userId) as any;
+  const tier = await db.queryOne('SELECT tier, estimated_vo2max FROM tier_history WHERE user_id = $1 ORDER BY calculated_at DESC LIMIT 1', [userId]) as any;
 
   // Get runner profile (coach style, goals, etc.)
-  const runnerProfile = db.prepare('SELECT * FROM runner_profiles WHERE user_id = ?').get(userId) as any;
+  const runnerProfile = await db.queryOne('SELECT * FROM runner_profiles WHERE user_id = $1', [userId]) as any;
 
   // Build context string
   let context = `RUNNER PROFILE:
@@ -100,12 +100,12 @@ Fitness Level: ${user.fitness_level || 'unknown'}, Experience: ${user.running_ex
 /**
  * Check if user has exceeded their daily message limit
  */
-export function checkUsageLimit(userId: number, tier: 'base' | 'pro'): { allowed: boolean; used: number; limit: number } {
+export async function checkUsageLimit(userId: number, tier: 'base' | 'pro'): Promise<{ allowed: boolean; used: number; limit: number }> {
   const today = new Date().toISOString().split('T')[0];
-  const usage = db.prepare(`
+  const usage = await db.queryOne(`
     SELECT COUNT(*) as count FROM ai_usage
-    WHERE user_id = ? AND purpose = 'chat' AND DATE(created_at) = ?
-  `).get(userId, today) as any;
+    WHERE user_id = $1 AND purpose = 'chat' AND DATE(created_at) = $2
+  `, [userId, today]) as any;
 
   const limit = tier === 'pro' ? 30 : 5;
   return { allowed: usage.count < limit, used: usage.count, limit };
@@ -114,19 +114,19 @@ export function checkUsageLimit(userId: number, tier: 'base' | 'pro'): { allowed
 /**
  * Track AI usage (tokens, model, purpose)
  */
-export function trackUsage(userId: number, model: string, inputTokens: number, outputTokens: number, purpose: string): void {
-  db.prepare('INSERT INTO ai_usage (user_id, model, input_tokens, output_tokens, purpose) VALUES (?, ?, ?, ?, ?)')
-    .run(userId, model, inputTokens, outputTokens, purpose);
+export async function trackUsage(userId: number, model: string, inputTokens: number, outputTokens: number, purpose: string): Promise<void> {
+  await db.execute('INSERT INTO ai_usage (user_id, model, input_tokens, output_tokens, purpose) VALUES ($1, $2, $3, $4, $5)',
+    [userId, model, inputTokens, outputTokens, purpose]);
 }
 
 /**
  * Extract insights from a conversation and update AI profile
  */
-export function extractAndStoreInsights(userId: number, userMessage: string, aiResponse: string): void {
+export async function extractAndStoreInsights(userId: number, userMessage: string, aiResponse: string): Promise<void> {
   // Ensure profile exists
-  db.prepare('INSERT OR IGNORE INTO ai_profiles (user_id) VALUES (?)').run(userId);
+  await db.execute('INSERT INTO ai_profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [userId]);
 
-  const profile = db.prepare('SELECT * FROM ai_profiles WHERE user_id = ?').get(userId) as any;
+  const profile = await db.queryOne('SELECT * FROM ai_profiles WHERE user_id = $1', [userId]) as any;
   const insights: string[] = JSON.parse(profile.conversation_insights || '[]');
   const healthNotes: string[] = JSON.parse(profile.health_notes || '[]');
   const goals: string[] = JSON.parse(profile.goals || '[]');
@@ -169,10 +169,10 @@ export function extractAndStoreInsights(userId: number, userMessage: string, aiR
   insights.push(insight);
   if (insights.length > 20) insights.shift();
 
-  db.prepare(`
-    UPDATE ai_profiles SET health_notes = ?, goals = ?, personal_context = ?, conversation_insights = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE user_id = ?
-  `).run(JSON.stringify(healthNotes), JSON.stringify(goals), JSON.stringify(personalCtx), JSON.stringify(insights), userId);
+  await db.execute(`
+    UPDATE ai_profiles SET health_notes = $1, goals = $2, personal_context = $3, conversation_insights = $4, updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = $5
+  `, [JSON.stringify(healthNotes), JSON.stringify(goals), JSON.stringify(personalCtx), JSON.stringify(insights), userId]);
 }
 
 /**
@@ -181,7 +181,7 @@ export function extractAndStoreInsights(userId: number, userMessage: string, aiR
 export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
   if (!anthropic) return { error: 'AI not configured' };
 
-  const context = buildUserContext(userId);
+  const context = await buildUserContext(userId);
   if (!context) return { error: 'User not found' };
 
   try {
@@ -196,7 +196,7 @@ export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    trackUsage(userId, 'haiku', response.usage.input_tokens, response.usage.output_tokens, 'background_eval');
+    await trackUsage(userId, 'haiku', response.usage.input_tokens, response.usage.output_tokens, 'background_eval');
 
     try {
       return JSON.parse(text);
@@ -215,9 +215,9 @@ export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
 export async function chatWithSonnet(userId: number, userMessage: string, recentMessages: Array<{ role: string; content: string }>): Promise<{ response: string; error?: string }> {
   if (!anthropic) return { response: '', error: 'AI coach is not configured yet. Coming soon!' };
 
-  const plan = getUserPlan(userId);
+  const plan = await getUserPlan(userId);
   const tier = plan === 'pro' ? 'pro' : 'base';
-  const usageCheck = checkUsageLimit(userId, tier);
+  const usageCheck = await checkUsageLimit(userId, tier);
   if (!usageCheck.allowed) {
     return {
       response: `You've used ${usageCheck.used}/${usageCheck.limit} messages today. Coach is resting — come back tomorrow!`,
@@ -225,7 +225,7 @@ export async function chatWithSonnet(userId: number, userMessage: string, recent
     };
   }
 
-  const context = buildUserContext(userId);
+  const context = await buildUserContext(userId);
   const conversationHistory = recentMessages.slice(-10).map(m => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
@@ -242,8 +242,8 @@ export async function chatWithSonnet(userId: number, userMessage: string, recent
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    trackUsage(userId, 'sonnet', response.usage.input_tokens, response.usage.output_tokens, 'chat');
-    extractAndStoreInsights(userId, userMessage, text);
+    await trackUsage(userId, 'sonnet', response.usage.input_tokens, response.usage.output_tokens, 'chat');
+    await extractAndStoreInsights(userId, userMessage, text);
 
     return { response: text };
   } catch (err: any) {
@@ -255,16 +255,16 @@ export async function chatWithSonnet(userId: number, userMessage: string, recent
 /**
  * Get AI profile for display (My AI Profile page)
  */
-export function getAIProfile(userId: number) {
-  db.prepare('INSERT OR IGNORE INTO ai_profiles (user_id) VALUES (?)').run(userId);
+export async function getAIProfile(userId: number) {
+  await db.execute('INSERT INTO ai_profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [userId]);
 
-  const profile = db.prepare('SELECT * FROM ai_profiles WHERE user_id = ?').get(userId) as any;
-  const tier = db.prepare('SELECT tier, estimated_vo2max FROM tier_history WHERE user_id = ? ORDER BY calculated_at DESC LIMIT 1').get(userId) as any;
-  const user = db.prepare('SELECT name, age, gender, fitness_level, running_experience FROM users WHERE id = ?').get(userId) as any;
-  const usage = db.prepare(`
+  const profile = await db.queryOne('SELECT * FROM ai_profiles WHERE user_id = $1', [userId]) as any;
+  const tier = await db.queryOne('SELECT tier, estimated_vo2max FROM tier_history WHERE user_id = $1 ORDER BY calculated_at DESC LIMIT 1', [userId]) as any;
+  const user = await db.queryOne('SELECT name, age, gender, fitness_level, running_experience FROM users WHERE id = $1', [userId]) as any;
+  const usage = await db.queryOne(`
     SELECT COUNT(*) as total_messages, COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens
-    FROM ai_usage WHERE user_id = ?
-  `).get(userId) as any;
+    FROM ai_usage WHERE user_id = $1
+  `, [userId]) as any;
 
   return {
     user: { ...user, tier: tier?.tier || null, vdot: tier?.estimated_vo2max || null },
@@ -282,31 +282,31 @@ export function getAIProfile(userId: number) {
 /**
  * Update a specific field in the AI profile (user self-editing)
  */
-export function updateAIProfile(userId: number, field: string, value: any): boolean {
+export async function updateAIProfile(userId: number, field: string, value: any): Promise<boolean> {
   const validFields = ['health_notes', 'goals', 'diet_preferences', 'personal_context'];
   if (!validFields.includes(field)) return false;
 
-  db.prepare('INSERT OR IGNORE INTO ai_profiles (user_id) VALUES (?)').run(userId);
-  db.prepare(`UPDATE ai_profiles SET ${field} = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`)
-    .run(JSON.stringify(value), userId);
+  await db.execute('INSERT INTO ai_profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [userId]);
+  await db.execute(`UPDATE ai_profiles SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2`,
+    [JSON.stringify(value), userId]);
   return true;
 }
 
 /**
  * Get today's usage stats for a user
  */
-export function getTodayUsage(userId: number) {
+export async function getTodayUsage(userId: number) {
   const today = new Date().toISOString().split('T')[0];
 
-  const chatUsage = db.prepare(`
+  const chatUsage = await db.queryOne(`
     SELECT COUNT(*) as count FROM ai_usage
-    WHERE user_id = ? AND purpose = 'chat' AND DATE(created_at) = ?
-  `).get(userId, today) as any;
+    WHERE user_id = $1 AND purpose = 'chat' AND DATE(created_at) = $2
+  `, [userId, today]) as any;
 
-  const totalUsage = db.prepare(`
+  const totalUsage = await db.queryOne(`
     SELECT COUNT(*) as total_calls, COALESCE(SUM(input_tokens), 0) as input_tokens, COALESCE(SUM(output_tokens), 0) as output_tokens
-    FROM ai_usage WHERE user_id = ? AND DATE(created_at) = ?
-  `).get(userId, today) as any;
+    FROM ai_usage WHERE user_id = $1 AND DATE(created_at) = $2
+  `, [userId, today]) as any;
 
   return {
     chat_messages_today: chatUsage.count,

@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { calculateHRZones, estimateMaxHR, analyzeActivityHR, detectAerobicDecoupling } from '../engine/heartRateZones';
 
@@ -7,14 +7,15 @@ const router = Router();
 router.use(authenticate);
 
 // GET /heartrate/zones — Get user's personalized HR zones
-router.get('/zones', (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+router.get('/zones', async (req: AuthRequest, res: Response) => {
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   // Get max HR from activities or estimate
-  const maxHRFromActivities = db.prepare(
-    `SELECT MAX(max_heartrate) as max_hr FROM activities WHERE user_id = ? AND max_heartrate > 0`
-  ).get(req.userId) as any;
+  const maxHRFromActivities = await db.queryOne(
+    `SELECT MAX(max_heartrate) as max_hr FROM activities WHERE user_id = $1 AND max_heartrate > 0`,
+    [req.userId]
+  ) as any;
 
   const maxHR = estimateMaxHR(
     user.age || 30,
@@ -24,11 +25,12 @@ router.get('/zones', (req: AuthRequest, res: Response) => {
   );
 
   // Resting HR: use lowest avg HR from easy/recovery runs if available
-  const restingHREstimate = db.prepare(
+  const restingHREstimate = await db.queryOne(
     `SELECT MIN(average_heartrate) as resting_estimate
-     FROM activities WHERE user_id = ? AND average_heartrate > 40
-     AND distance_meters > 1000 AND average_pace_per_km > 360`
-  ).get(req.userId) as any;
+     FROM activities WHERE user_id = $1 AND average_heartrate > 40
+     AND distance_meters > 1000 AND average_pace_per_km > 360`,
+    [req.userId]
+  ) as any;
 
   const restingHR = restingHREstimate?.resting_estimate
     ? Math.max(40, restingHREstimate.resting_estimate - 20) // Subtract 20 since running HR > resting
@@ -46,19 +48,21 @@ router.get('/zones', (req: AuthRequest, res: Response) => {
 });
 
 // GET /heartrate/analysis/:activityId — Analyze HR for a specific run
-router.get('/analysis/:activityId', (req: AuthRequest, res: Response) => {
-  const activity = db.prepare(
-    `SELECT * FROM activities WHERE id = ? AND user_id = ?`
-  ).get(req.params.activityId, req.userId) as any;
+router.get('/analysis/:activityId', async (req: AuthRequest, res: Response) => {
+  const activity = await db.queryOne(
+    `SELECT * FROM activities WHERE id = $1 AND user_id = $2`,
+    [req.params.activityId, req.userId]
+  ) as any;
 
   if (!activity) return res.status(404).json({ error: 'Activity not found' });
   if (!activity.average_heartrate) return res.json({ error: 'No HR data for this activity', has_hr: false });
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
 
-  const maxHRFromActivities = db.prepare(
-    `SELECT MAX(max_heartrate) as max_hr FROM activities WHERE user_id = ? AND max_heartrate > 0`
-  ).get(req.userId) as any;
+  const maxHRFromActivities = await db.queryOne(
+    `SELECT MAX(max_heartrate) as max_hr FROM activities WHERE user_id = $1 AND max_heartrate > 0`,
+    [req.userId]
+  ) as any;
 
   const maxHR = estimateMaxHR(user.age || 30, 'tanaka', user.gender, maxHRFromActivities?.max_hr);
   const profile = calculateHRZones(maxHR);
@@ -84,15 +88,16 @@ router.get('/analysis/:activityId', (req: AuthRequest, res: Response) => {
 });
 
 // GET /heartrate/trends — HR efficiency over time
-router.get('/trends', (req: AuthRequest, res: Response) => {
+router.get('/trends', async (req: AuthRequest, res: Response) => {
   const weeks = parseInt(req.query.weeks as string) || 12;
 
-  const activities = db.prepare(
+  const activities = await db.query(
     `SELECT average_heartrate, average_pace_per_km, distance_meters, moving_time_seconds, start_date
-     FROM activities WHERE user_id = ? AND average_heartrate > 0
-     AND start_date > datetime('now', '-${weeks * 7} days')
-     ORDER BY start_date ASC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 AND average_heartrate > 0
+     AND start_date > NOW() - INTERVAL '${weeks * 7} days'
+     ORDER BY start_date ASC`,
+    [req.userId]
+  ) as any[];
 
   if (activities.length < 3) {
     return res.json({ trends: [], message: 'Need at least 3 runs with HR data for trends.' });
@@ -133,7 +138,7 @@ router.get('/trends', (req: AuthRequest, res: Response) => {
 // ===== HRV ENDPOINTS =====
 
 // POST /heartrate/hrv — Log an HRV reading (manual or synced)
-router.post('/hrv', (req: AuthRequest, res: Response) => {
+router.post('/hrv', async (req: AuthRequest, res: Response) => {
   const { rmssd, sdnn, source } = req.body;
 
   if (!rmssd || rmssd < 5 || rmssd > 200) {
@@ -143,11 +148,11 @@ router.post('/hrv', (req: AuthRequest, res: Response) => {
   const today = new Date().toISOString().split('T')[0];
 
   try {
-    db.prepare(`
+    await db.execute(`
       INSERT INTO hrv_readings (user_id, date, rmssd, sdnn, source)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(user_id, date) DO UPDATE SET rmssd = excluded.rmssd, sdnn = excluded.sdnn, source = excluded.source
-    `).run(req.userId, today, rmssd, sdnn || null, source || 'manual');
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT(user_id, date) DO UPDATE SET rmssd = EXCLUDED.rmssd, sdnn = EXCLUDED.sdnn, source = EXCLUDED.source
+    `, [req.userId, today, rmssd, sdnn || null, source || 'manual']);
 
     res.json({ message: 'HRV logged', date: today, rmssd });
   } catch (err) {
@@ -156,12 +161,12 @@ router.post('/hrv', (req: AuthRequest, res: Response) => {
 });
 
 // GET /heartrate/hrv/trend — 7-day HRV trend + baseline comparison
-router.get('/hrv/trend', (req: AuthRequest, res: Response) => {
-  const readings = db.prepare(`
+router.get('/hrv/trend', async (req: AuthRequest, res: Response) => {
+  const readings = await db.query(`
     SELECT date, rmssd, sdnn, source FROM hrv_readings
-    WHERE user_id = ? AND date >= date('now', '-30 days')
+    WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '30 days'
     ORDER BY date DESC
-  `).all(req.userId) as any[];
+  `, [req.userId]) as any[];
 
   if (readings.length === 0) {
     return res.json({ has_data: false, message: 'No HRV data. Log morning HRV for recovery insights.' });

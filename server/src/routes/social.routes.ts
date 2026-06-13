@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createNotification } from './notifications.routes';
 import { isFlagEnabled } from '../utils/featureFlags';
@@ -8,7 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 // GET /social/feed — Activity feed from people you follow (+ your own)
-router.get('/feed', (req: AuthRequest, res: Response) => {
+router.get('/feed', async (req: AuthRequest, res: Response) => {
   if (!isFlagEnabled('social_feed', req.userId!)) {
     return res.status(503).json({ error: 'Social feed is temporarily unavailable', flag: 'social_feed' });
   }
@@ -18,14 +18,15 @@ router.get('/feed', (req: AuthRequest, res: Response) => {
   const offset = (page - 1) * limit;
 
   // Get IDs of people this user follows + self
-  const following = db.prepare(
-    `SELECT following_id FROM follows WHERE follower_id = ?`
-  ).all(req.userId) as any[];
+  const following = await db.query(
+    `SELECT following_id FROM follows WHERE follower_id = $1`,
+    [req.userId]
+  );
 
   const followingIds = [req.userId, ...following.map((f: any) => f.following_id)];
-  const placeholders = followingIds.map(() => '?').join(',');
+  const placeholders = followingIds.map((_, i) => `$${i + 2}`).join(',');
 
-  const activities = db.prepare(`
+  const activities = await db.query(`
     SELECT a.*, u.name as user_name, u.profile_image_url,
       COALESCE(k.kudos_count, 0) as kudos_count,
       COALESCE(c.comments_count, 0) as comments_count,
@@ -35,19 +36,19 @@ router.get('/feed', (req: AuthRequest, res: Response) => {
     JOIN users u ON a.user_id = u.id
     LEFT JOIN (SELECT activity_id, COUNT(*) as kudos_count FROM kudos GROUP BY activity_id) k ON k.activity_id = a.id
     LEFT JOIN (SELECT activity_id, COUNT(*) as comments_count FROM comments GROUP BY activity_id) c ON c.activity_id = a.id
-    LEFT JOIN (SELECT activity_id, 1 as user_gave_kudos, reaction_type FROM kudos WHERE user_id = ?) uk ON uk.activity_id = a.id
+    LEFT JOIN (SELECT activity_id, 1 as user_gave_kudos, reaction_type FROM kudos WHERE user_id = $1) uk ON uk.activity_id = a.id
     WHERE a.user_id IN (${placeholders})
     ORDER BY a.start_date DESC
-    LIMIT ? OFFSET ?
-  `).all(req.userId, ...followingIds, limit, offset) as any[];
+    LIMIT $${followingIds.length + 2} OFFSET $${followingIds.length + 3}
+  `, [req.userId, ...followingIds, limit, offset]);
 
-  const EMOJIS: Record<string, string> = { high_five: '🙌', fire: '🔥', impressive: '💪', respect: '🫡', lets_go: '⚡' };
+  const EMOJIS: Record<string, string> = { high_five: '\u{1F64C}', fire: '\u{1F525}', impressive: '\u{1F4AA}', respect: '\u{1FAE1}', lets_go: '⚡' };
 
   res.json({
     feed: activities.map(a => ({
       ...a,
       user_gave_kudos: a.user_gave_kudos > 0,
-      user_reaction_emoji: a.user_reaction_type ? (EMOJIS[a.user_reaction_type] || '🙌') : null,
+      user_reaction_emoji: a.user_reaction_type ? (EMOJIS[a.user_reaction_type] || '\u{1F64C}') : null,
       distance_km: Math.round(a.distance_meters / 100) / 10,
       duration_minutes: Math.round(a.moving_time_seconds / 60),
       pace_formatted: formatPace(a.average_pace_per_km),
@@ -57,33 +58,34 @@ router.get('/feed', (req: AuthRequest, res: Response) => {
   });
 });
 
-const REACTION_EMOJIS: Record<string, string> = { high_five: '🙌', fire: '🔥', impressive: '💪', respect: '🫡', lets_go: '⚡' };
+const REACTION_EMOJIS: Record<string, string> = { high_five: '\u{1F64C}', fire: '\u{1F525}', impressive: '\u{1F4AA}', respect: '\u{1FAE1}', lets_go: '⚡' };
 
 // POST /social/kudos/:activityId — Give reaction
-router.post('/kudos/:activityId', (req: AuthRequest, res: Response) => {
+router.post('/kudos/:activityId', async (req: AuthRequest, res: Response) => {
   const activityId = parseInt(req.params.activityId);
   const reactionType = req.body?.reaction_type || 'high_five';
 
-  const activity = db.prepare('SELECT * FROM activities WHERE id = ?').get(activityId) as any;
+  const activity = await db.queryOne('SELECT * FROM activities WHERE id = $1', [activityId]);
   if (!activity) return res.status(404).json({ error: 'Activity not found' });
 
   try {
-    db.prepare('INSERT INTO kudos (user_id, activity_id, reaction_type) VALUES (?, ?, ?)').run(req.userId, activityId, reactionType);
+    await db.execute('INSERT INTO kudos (user_id, activity_id, reaction_type) VALUES ($1, $2, $3)', [req.userId, activityId, reactionType]);
 
     if (activity.user_id !== req.userId) {
-      db.prepare('UPDATE user_xp SET total_xp = total_xp + 5 WHERE user_id = ?').run(activity.user_id);
-      db.prepare('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES (?, ?, ?, ?)').run(
+      await db.execute('UPDATE user_xp SET total_xp = total_xp + 5 WHERE user_id = $1', [activity.user_id]);
+      await db.execute('INSERT INTO xp_transactions (user_id, amount, source, description) VALUES ($1, $2, $3, $4)', [
         activity.user_id, 5, 'kudos_received', 'Received kudos from a club member'
-      );
-      const emoji = REACTION_EMOJIS[reactionType] || '🙌';
-      const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
+      ]);
+      const emoji = REACTION_EMOJIS[reactionType] || '\u{1F64C}';
+      const actorRow = await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId]);
+      const actorName = actorRow?.name || 'Someone';
       createNotification(activity.user_id, 'kudos', `${actorName} reacted ${emoji}`, 'On your recent run', req.userId, 'activity', activityId);
     }
 
-    const count = db.prepare('SELECT COUNT(*) as count FROM kudos WHERE activity_id = ?').get(activityId) as any;
+    const count = await db.queryOne('SELECT COUNT(*) as count FROM kudos WHERE activity_id = $1', [activityId]);
     res.json({ success: true, kudos_count: count.count });
   } catch (e: any) {
-    if (e.message?.includes('UNIQUE')) {
+    if (e.message?.includes('unique') || e.message?.includes('duplicate') || e.code === '23505') {
       return res.status(409).json({ error: 'Already reacted' });
     }
     console.error('[Social] Kudos error:', e.message);
@@ -92,68 +94,70 @@ router.post('/kudos/:activityId', (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /social/kudos/:activityId — Remove kudos
-router.delete('/kudos/:activityId', (req: AuthRequest, res: Response) => {
-  db.prepare('DELETE FROM kudos WHERE user_id = ? AND activity_id = ?').run(req.userId, parseInt(req.params.activityId));
-  const count = db.prepare('SELECT COUNT(*) as count FROM kudos WHERE activity_id = ?').get(parseInt(req.params.activityId)) as any;
+router.delete('/kudos/:activityId', async (req: AuthRequest, res: Response) => {
+  await db.execute('DELETE FROM kudos WHERE user_id = $1 AND activity_id = $2', [req.userId, parseInt(req.params.activityId)]);
+  const count = await db.queryOne('SELECT COUNT(*) as count FROM kudos WHERE activity_id = $1', [parseInt(req.params.activityId)]);
   res.json({ success: true, kudos_count: count.count });
 });
 
 // GET /social/comments/:activityId — Get comments for an activity
-router.get('/comments/:activityId', (req: AuthRequest, res: Response) => {
-  const comments = db.prepare(`
+router.get('/comments/:activityId', async (req: AuthRequest, res: Response) => {
+  const comments = await db.query(`
     SELECT c.*, u.name as user_name, u.profile_image_url
     FROM comments c JOIN users u ON c.user_id = u.id
-    WHERE c.activity_id = ?
+    WHERE c.activity_id = $1
     ORDER BY c.created_at ASC
-  `).all(parseInt(req.params.activityId)) as any[];
+  `, [parseInt(req.params.activityId)]);
 
   res.json(comments);
 });
 
 // POST /social/comments/:activityId — Add a comment
-router.post('/comments/:activityId', (req: AuthRequest, res: Response) => {
+router.post('/comments/:activityId', async (req: AuthRequest, res: Response) => {
   const { body } = req.body;
   if (!body || body.trim().length === 0) return res.status(400).json({ error: 'Comment cannot be empty' });
   if (body.length > 500) return res.status(400).json({ error: 'Comment too long (max 500 chars)' });
 
   const activityId = parseInt(req.params.activityId);
-  const activity = db.prepare('SELECT * FROM activities WHERE id = ?').get(activityId) as any;
+  const activity = await db.queryOne('SELECT * FROM activities WHERE id = $1', [activityId]);
   if (!activity) return res.status(404).json({ error: 'Activity not found' });
 
-  const result = db.prepare('INSERT INTO comments (user_id, activity_id, body) VALUES (?, ?, ?)').run(
+  const result = await db.queryOne('INSERT INTO comments (user_id, activity_id, body) VALUES ($1, $2, $3) RETURNING id', [
     req.userId, activityId, body.trim()
-  );
+  ]);
 
   // Award XP for receiving a comment
   if (activity.user_id !== req.userId) {
-    db.prepare('UPDATE user_xp SET total_xp = total_xp + 3 WHERE user_id = ?').run(activity.user_id);
-    const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
+    await db.execute('UPDATE user_xp SET total_xp = total_xp + 3 WHERE user_id = $1', [activity.user_id]);
+    const actorRow = await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId]);
+    const actorName = actorRow?.name || 'Someone';
     createNotification(activity.user_id, 'comment', `${actorName} commented on your run`, body.trim().slice(0, 80), req.userId, 'activity', activityId);
   }
 
-  const comment = db.prepare(`
+  const comment = await db.queryOne(`
     SELECT c.*, u.name as user_name, u.profile_image_url
-    FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = ?
-  `).get(result.lastInsertRowid) as any;
+    FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = $1
+  `, [result.id]);
 
   res.json(comment);
 });
 
 // POST /social/follow/:userId — Follow a user
-router.post('/follow/:userId', (req: AuthRequest, res: Response) => {
+router.post('/follow/:userId', async (req: AuthRequest, res: Response) => {
   const targetId = parseInt(req.params.userId);
   if (targetId === req.userId) return res.status(400).json({ error: 'Cannot follow yourself' });
 
-  const target = db.prepare('SELECT id, name FROM users WHERE id = ?').get(targetId) as any;
+  const target = await db.queryOne('SELECT id, name FROM users WHERE id = $1', [targetId]);
   if (!target) return res.status(404).json({ error: 'User not found' });
 
   try {
-    db.prepare('INSERT INTO follows (follower_id, following_id) VALUES (?, ?)').run(req.userId, targetId);
-    const actorName = (db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId) as any)?.name || 'Someone';
+    await db.execute('INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)', [req.userId, targetId]);
+    const actorRow = await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId]);
+    const actorName = actorRow?.name || 'Someone';
     createNotification(targetId, 'follow', `${actorName} started following you`, undefined, req.userId, 'user', req.userId);
     res.json({ success: true, following: true });
   } catch (e: any) {
-    if (e.message?.includes('UNIQUE')) {
+    if (e.message?.includes('unique') || e.message?.includes('duplicate') || e.code === '23505') {
       return res.json({ success: true, following: true, already_following: true });
     }
     throw e;
@@ -161,52 +165,52 @@ router.post('/follow/:userId', (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /social/follow/:userId — Unfollow a user
-router.delete('/follow/:userId', (req: AuthRequest, res: Response) => {
-  db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').run(req.userId, parseInt(req.params.userId));
+router.delete('/follow/:userId', async (req: AuthRequest, res: Response) => {
+  await db.execute('DELETE FROM follows WHERE follower_id = $1 AND following_id = $2', [req.userId, parseInt(req.params.userId)]);
   res.json({ success: true, following: false });
 });
 
 // GET /social/following — Who you follow
-router.get('/following', (req: AuthRequest, res: Response) => {
-  const following = db.prepare(`
+router.get('/following', async (req: AuthRequest, res: Response) => {
+  const followingList = await db.query(`
     SELECT u.id, u.name, u.profile_image_url, ux.current_level, ux.total_xp
     FROM follows f
     JOIN users u ON f.following_id = u.id
     LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE f.follower_id = ?
+    WHERE f.follower_id = $1
     ORDER BY u.name ASC
-  `).all(req.userId);
+  `, [req.userId]);
 
-  res.json(following);
+  res.json(followingList);
 });
 
 // GET /social/followers — Who follows you
-router.get('/followers', (req: AuthRequest, res: Response) => {
-  const followers = db.prepare(`
+router.get('/followers', async (req: AuthRequest, res: Response) => {
+  const followers = await db.query(`
     SELECT u.id, u.name, u.profile_image_url, ux.current_level, ux.total_xp
     FROM follows f
     JOIN users u ON f.follower_id = u.id
     LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE f.following_id = ?
+    WHERE f.following_id = $1
     ORDER BY f.created_at DESC
-  `).all(req.userId);
+  `, [req.userId]);
 
   res.json(followers);
 });
 
 // GET /social/discover — Suggest people to follow (club members not yet followed)
-router.get('/discover', (req: AuthRequest, res: Response) => {
-  const suggestions = db.prepare(`
+router.get('/discover', async (req: AuthRequest, res: Response) => {
+  const suggestions = await db.query(`
     SELECT u.id, u.name, u.profile_image_url, u.running_experience,
       ux.current_level, ux.total_xp,
       (SELECT COUNT(*) FROM activities WHERE user_id = u.id) as total_runs
     FROM users u
     LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE u.id != ? AND u.role = 'runner'
-      AND u.id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
+    WHERE u.id != $1 AND u.role = 'runner'
+      AND u.id NOT IN (SELECT following_id FROM follows WHERE follower_id = $1)
     ORDER BY ux.total_xp DESC
     LIMIT 10
-  `).all(req.userId, req.userId);
+  `, [req.userId]);
 
   res.json(suggestions);
 });

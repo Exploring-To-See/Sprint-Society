@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 
 const router = Router();
 
@@ -17,13 +17,13 @@ interface InviteCode {
 }
 
 // Validate an invite code (public - no auth needed)
-router.post('/validate', (req: Request, res: Response) => {
+router.post('/validate', async (req: Request, res: Response) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'Code is required' });
 
-  const invite = db.prepare(`
-    SELECT * FROM invite_codes WHERE code = ? AND active = 1
-  `).get(code.toUpperCase().trim()) as InviteCode | undefined;
+  const invite = await db.queryOne(`
+    SELECT * FROM invite_codes WHERE code = $1 AND active = 1
+  `, [code.toUpperCase().trim()]) as InviteCode | undefined;
 
   if (!invite) return res.status(404).json({ error: 'Invalid invite code' });
   if (invite.used_count >= invite.max_uses) return res.status(410).json({ error: 'This code has reached its limit' });
@@ -37,21 +37,23 @@ router.post('/validate', (req: Request, res: Response) => {
 });
 
 // Join waitlist (public)
-router.post('/waitlist', (req: Request, res: Response) => {
+router.post('/waitlist', async (req: Request, res: Response) => {
   const { email, phone, name } = req.body;
   if (!email && !phone) return res.status(400).json({ error: 'Email or phone required' });
 
-  const existing = db.prepare(
-    'SELECT id FROM waitlist WHERE email = ? OR phone = ?'
-  ).get(email || null, phone || null) as { id: number } | undefined;
+  const existing = await db.queryOne(
+    'SELECT id FROM waitlist WHERE email = $1 OR phone = $2',
+    [email || null, phone || null]
+  ) as { id: number } | undefined;
 
   if (existing) return res.json({ message: 'Already on the waitlist!', position: null });
 
-  db.prepare(
-    'INSERT INTO waitlist (email, phone, name) VALUES (?, ?, ?)'
-  ).run(email || null, phone || null, name || null);
+  await db.execute(
+    'INSERT INTO waitlist (email, phone, name) VALUES ($1, $2, $3)',
+    [email || null, phone || null, name || null]
+  );
 
-  const position = (db.prepare('SELECT COUNT(*) as c FROM waitlist').get() as { c: number }).c;
+  const position = (await db.queryOne('SELECT COUNT(*) as c FROM waitlist') as { c: number }).c;
 
   res.json({ message: "You're on the list!", position });
 });

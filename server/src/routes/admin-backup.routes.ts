@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
 import fs from 'fs';
@@ -9,7 +9,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireAdmin);
 
-const BACKUP_DIR = path.join(path.dirname(process.env.DB_PATH || './data/sprint-society.db'), 'backups');
+const BACKUP_DIR = path.join(process.cwd(), 'data', 'backups');
 
 const TABLES_TO_EXPORT = [
   'users', 'activities', 'user_xp', 'xp_transactions', 'achievements', 'user_achievements',
@@ -30,9 +30,9 @@ function escapeCsvField(val: any): string {
   return str;
 }
 
-function tableToCSV(tableName: string): string | null {
+async function tableToCSV(tableName: string): Promise<string | null> {
   try {
-    const rows = db.prepare(`SELECT * FROM ${tableName}`).all() as Record<string, any>[];
+    const rows = await db.query(`SELECT * FROM ${tableName}`, []) as Record<string, any>[];
     if (rows.length === 0) return null;
 
     const headers = Object.keys(rows[0]);
@@ -48,7 +48,7 @@ function tableToCSV(tableName: string): string | null {
   }
 }
 
-function runBackup(): { filename: string; path: string; tables: number; totalRows: number } {
+async function runBackup(): Promise<{ filename: string; path: string; tables: number; totalRows: number }> {
   if (!fs.existsSync(BACKUP_DIR)) {
     fs.mkdirSync(BACKUP_DIR, { recursive: true });
   }
@@ -61,7 +61,7 @@ function runBackup(): { filename: string; path: string; tables: number; totalRow
   let totalRows = 0;
 
   for (const table of TABLES_TO_EXPORT) {
-    const csv = tableToCSV(table);
+    const csv = await tableToCSV(table);
     if (csv) {
       fs.writeFileSync(path.join(backupFolder, `${table}.csv`), csv, 'utf-8');
       tablesExported++;
@@ -83,9 +83,9 @@ function runBackup(): { filename: string; path: string; tables: number; totalRow
 }
 
 // GET /admin/backup/now — trigger backup and return a single combined CSV download
-router.get('/now', (req: AuthRequest, res: Response) => {
+router.get('/now', async (req: AuthRequest, res: Response) => {
   try {
-    const result = runBackup();
+    const result = await runBackup();
 
     // Build a combined CSV with table separators
     let combined = '';
@@ -108,13 +108,13 @@ router.get('/now', (req: AuthRequest, res: Response) => {
 });
 
 // GET /admin/backup/table/:name — download a single table as CSV
-router.get('/table/:name', (req: AuthRequest, res: Response) => {
+router.get('/table/:name', async (req: AuthRequest, res: Response) => {
   const { name } = req.params;
   if (!TABLES_TO_EXPORT.includes(name)) {
     return res.status(400).json({ error: 'Table not in export list' });
   }
 
-  const csv = tableToCSV(name);
+  const csv = await tableToCSV(name);
   if (!csv) {
     return res.status(404).json({ error: 'Table empty or not found' });
   }
@@ -125,7 +125,7 @@ router.get('/table/:name', (req: AuthRequest, res: Response) => {
 });
 
 // GET /admin/backup/history — list past backups
-router.get('/history', (req: AuthRequest, res: Response) => {
+router.get('/history', async (req: AuthRequest, res: Response) => {
   try {
     if (!fs.existsSync(BACKUP_DIR)) {
       return res.json([]);
@@ -151,11 +151,11 @@ router.get('/history', (req: AuthRequest, res: Response) => {
 });
 
 // GET /admin/backup/stats — quick DB stats without running a full backup
-router.get('/stats', (req: AuthRequest, res: Response) => {
+router.get('/stats', async (req: AuthRequest, res: Response) => {
   const stats: Record<string, number> = {};
   for (const table of TABLES_TO_EXPORT) {
     try {
-      const row = db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as any;
+      const row = await db.queryOne(`SELECT COUNT(*) as count FROM ${table}`, []) as any;
       stats[table] = row.count;
     } catch {
       stats[table] = -1;

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
-import db from '../database/db';
+import db from '../database/pg';
 import { config } from '../config';
 import { authenticate } from '../middleware/auth';
 import { sendPasswordResetEmail } from '../services/email.service';
@@ -18,7 +18,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   if (!parsed.success) return res.status(400).json({ error: 'Valid email required' });
 
   const { email } = parsed.data;
-  const user = db.prepare('SELECT id, name, email FROM users WHERE email = ?').get(email) as any;
+  const user = await db.queryOne('SELECT id, name, email FROM users WHERE email = $1', [email]) as any;
 
   // Always return success to prevent email enumeration (with timing normalization)
   if (!user) {
@@ -27,9 +27,10 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   }
 
   // Rate limit: max 3 tokens per user per hour
-  const recentTokens = db.prepare(
-    `SELECT COUNT(*) as count FROM password_reset_tokens WHERE user_id = ? AND created_at > datetime('now', '-1 hour')`
-  ).get(user.id) as any;
+  const recentTokens = await db.queryOne(
+    `SELECT COUNT(*) as count FROM password_reset_tokens WHERE user_id = $1 AND created_at > NOW() - INTERVAL '1 hour'`,
+    [user.id]
+  ) as any;
 
   if (recentTokens.count >= 3) {
     return res.json({ message: 'If that email exists, a reset link has been sent.' });
@@ -39,7 +40,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
 
-  db.prepare('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)').run(user.id, token, expiresAt);
+  await db.execute('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)', [user.id, token, expiresAt]);
 
   const resetUrl = `${config.clientUrl}/reset-password/${token}`;
   await sendPasswordResetEmail(user.email, resetUrl, user.name);
@@ -47,34 +48,35 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   res.json({ message: 'If that email exists, a reset link has been sent.' });
 });
 
-router.post('/reset-password', (req: Request, res: Response) => {
+router.post('/reset-password', async (req: Request, res: Response) => {
   const parsed = resetSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Token and password (6+ chars) required' });
 
   const { token, password } = parsed.data;
 
-  const record = db.prepare(
-    `SELECT * FROM password_reset_tokens WHERE token = ? AND expires_at > datetime('now')`
-  ).get(token) as any;
+  const record = await db.queryOne(
+    `SELECT * FROM password_reset_tokens WHERE token = $1 AND expires_at > NOW()`,
+    [token]
+  ) as any;
 
   if (!record) return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
 
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, record.user_id);
+  await db.execute('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, record.user_id]);
 
   // Delete all tokens for this user
-  db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(record.user_id);
+  await db.execute('DELETE FROM password_reset_tokens WHERE user_id = $1', [record.user_id]);
 
   res.json({ message: 'Password updated successfully. You can now log in.' });
 });
 
-router.put('/change-password', authenticate, (req: any, res: Response) => {
+router.put('/change-password', authenticate, async (req: any, res: Response) => {
   const parsed = changeSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Current password and new password (6+ chars) required' });
 
   const { currentPassword, newPassword } = parsed.data;
 
-  const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.userId) as any;
+  const user = await db.queryOne('SELECT password_hash FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
@@ -82,7 +84,7 @@ router.put('/change-password', authenticate, (req: any, res: Response) => {
   }
 
   const hash = bcrypt.hashSync(newPassword, 10);
-  db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, req.userId);
+  await db.execute('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.userId]);
 
   res.json({ message: 'Password changed successfully' });
 });

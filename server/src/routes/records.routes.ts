@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { calculateAllPRs, checkForNewPRs, getPRSummary } from '../engine/personalRecords';
 
@@ -7,12 +7,13 @@ const router = Router();
 router.use(authenticate);
 
 // GET /records — All personal records
-router.get('/', (req: AuthRequest, res: Response) => {
-  const activities = db.prepare(
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const activities = await db.query(
     `SELECT id, distance_meters, moving_time_seconds, average_pace_per_km,
      average_heartrate, max_heartrate, elevation_gain, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date DESC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date DESC`,
+    [req.userId]
+  ) as any[];
 
   if (activities.length === 0) {
     return res.json({
@@ -30,21 +31,23 @@ router.get('/', (req: AuthRequest, res: Response) => {
 });
 
 // GET /records/check/:activityId — Check if a specific activity set any PRs
-router.get('/check/:activityId', (req: AuthRequest, res: Response) => {
-  const activity = db.prepare(
+router.get('/check/:activityId', async (req: AuthRequest, res: Response) => {
+  const activity = await db.queryOne(
     `SELECT id, distance_meters, moving_time_seconds, average_pace_per_km,
      average_heartrate, max_heartrate, elevation_gain, start_date
-     FROM activities WHERE id = ? AND user_id = ?`
-  ).get(req.params.activityId, req.userId) as any;
+     FROM activities WHERE id = $1 AND user_id = $2`,
+    [req.params.activityId, req.userId]
+  ) as any;
 
   if (!activity) return res.status(404).json({ error: 'Activity not found' });
 
   // Get all other activities to compare against
-  const otherActivities = db.prepare(
+  const otherActivities = await db.query(
     `SELECT id, distance_meters, moving_time_seconds, average_pace_per_km,
      average_heartrate, max_heartrate, elevation_gain, start_date
-     FROM activities WHERE user_id = ? AND id != ? ORDER BY start_date DESC`
-  ).all(req.userId, activity.id) as any[];
+     FROM activities WHERE user_id = $1 AND id != $2 ORDER BY start_date DESC`,
+    [req.userId, activity.id]
+  ) as any[];
 
   const existingPRs = calculateAllPRs(otherActivities);
   const prCheck = checkForNewPRs(activity, existingPRs);
@@ -59,12 +62,13 @@ router.get('/check/:activityId', (req: AuthRequest, res: Response) => {
 });
 
 // GET /records/timeline — PR progression over time
-router.get('/timeline', (req: AuthRequest, res: Response) => {
-  const activities = db.prepare(
+router.get('/timeline', async (req: AuthRequest, res: Response) => {
+  const activities = await db.query(
     `SELECT id, distance_meters, moving_time_seconds, average_pace_per_km,
      average_heartrate, max_heartrate, elevation_gain, start_date
-     FROM activities WHERE user_id = ? ORDER BY start_date ASC`
-  ).all(req.userId) as any[];
+     FROM activities WHERE user_id = $1 ORDER BY start_date ASC`,
+    [req.userId]
+  ) as any[];
 
   if (activities.length < 2) {
     return res.json({ timeline: [], message: 'Need more runs to show PR progression.' });

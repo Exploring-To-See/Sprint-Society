@@ -1,11 +1,11 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-router.get('/xp', authenticate, (req: AuthRequest, res: Response) => {
-  const xp = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(req.userId) as any;
+router.get('/xp', authenticate, async (req: AuthRequest, res: Response) => {
+  const xp = await db.queryOne('SELECT * FROM user_xp WHERE user_id = $1', [req.userId]);
   if (!xp) {
     return res.json({ total_xp: 0, current_level: 1, current_streak_days: 0, longest_streak_days: 0, xp_to_next_level: 100, level_progress_percent: 0 });
   }
@@ -26,13 +26,13 @@ router.get('/xp', authenticate, (req: AuthRequest, res: Response) => {
   });
 });
 
-router.get('/achievements', authenticate, (req: AuthRequest, res: Response) => {
-  const achievements = db.prepare(`
+router.get('/achievements', authenticate, async (req: AuthRequest, res: Response) => {
+  const achievements = await db.query(`
     SELECT a.*, ua.earned_at
     FROM achievements a
-    LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
+    LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = $1
     ORDER BY a.category, a.requirement_value
-  `).all(req.userId) as any[];
+  `, [req.userId]);
 
   res.json(achievements.map(a => ({
     ...a,
@@ -40,8 +40,8 @@ router.get('/achievements', authenticate, (req: AuthRequest, res: Response) => {
   })));
 });
 
-router.get('/leaderboard', authenticate, (req: AuthRequest, res: Response) => {
-  const leaderboard = db.prepare(`
+router.get('/leaderboard', authenticate, async (req: AuthRequest, res: Response) => {
+  const leaderboard = await db.query(`
     SELECT u.id as user_id, u.name, ux.total_xp, ux.current_level,
       COALESCE((SELECT tier FROM tier_history WHERE user_id = u.id ORDER BY calculated_at DESC LIMIT 1), 'beginner') as tier,
       COALESCE((SELECT SUM(distance_meters) / 1000 FROM activities WHERE user_id = u.id), 0) as total_distance_km
@@ -49,35 +49,36 @@ router.get('/leaderboard', authenticate, (req: AuthRequest, res: Response) => {
     JOIN user_xp ux ON u.id = ux.user_id
     ORDER BY ux.total_xp DESC
     LIMIT 50
-  `).all();
+  `, []);
 
   res.json(leaderboard);
 });
 
-router.get('/history', authenticate, (req: AuthRequest, res: Response) => {
-  const transactions = db.prepare(`
-    SELECT * FROM xp_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50
-  `).all(req.userId);
+router.get('/history', authenticate, async (req: AuthRequest, res: Response) => {
+  const transactions = await db.query(`
+    SELECT * FROM xp_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50
+  `, [req.userId]);
 
   res.json(transactions);
 });
 
-router.get('/friend-streaks', authenticate, (req: AuthRequest, res: Response) => {
-  const friends = db.prepare(`
+router.get('/friend-streaks', authenticate, async (req: AuthRequest, res: Response) => {
+  const friends = await db.query(`
     SELECT u.id, u.name, u.profile_image_url, ux.current_streak_days
     FROM follows f
     JOIN users u ON u.id = f.following_id
     LEFT JOIN user_xp ux ON ux.user_id = u.id
-    WHERE f.follower_id = ?
+    WHERE f.follower_id = $1
     AND EXISTS (
       SELECT 1 FROM activities a
-      WHERE a.user_id = u.id AND a.start_date > datetime('now', '-1 day')
+      WHERE a.user_id = u.id AND a.start_date > NOW() - INTERVAL '1 day'
     )
     ORDER BY ux.current_streak_days DESC
     LIMIT 10
-  `).all(req.userId) as any[];
+  `, [req.userId]);
 
-  const myStreak = (db.prepare('SELECT current_streak_days FROM user_xp WHERE user_id = ?').get(req.userId) as any)?.current_streak_days || 0;
+  const myStreakRow = await db.queryOne('SELECT current_streak_days FROM user_xp WHERE user_id = $1', [req.userId]);
+  const myStreak = myStreakRow?.current_streak_days || 0;
 
   const friendStreaks = friends.map(f => ({
     user_id: f.id,
@@ -94,18 +95,19 @@ router.get('/friend-streaks', authenticate, (req: AuthRequest, res: Response) =>
   });
 });
 
-router.get('/badge-collection', authenticate, (req: AuthRequest, res: Response) => {
-  const achievements = db.prepare(`
+router.get('/badge-collection', authenticate, async (req: AuthRequest, res: Response) => {
+  const achievements = await db.query(`
     SELECT a.*, ua.earned_at
     FROM achievements a
-    LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
+    LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = $1
     ORDER BY a.category, a.requirement_value
-  `).all(req.userId) as any[];
+  `, [req.userId]);
 
-  const totalUsers = (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'runner'").get() as any).count || 1;
+  const totalUsersRow = await db.queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'runner'", []);
+  const totalUsers = totalUsersRow?.count || 1;
 
   // Batch query: get earned counts for ALL achievements in one query (fixes N+1)
-  const rarityCounts = db.prepare('SELECT achievement_id, COUNT(*) as count FROM user_achievements GROUP BY achievement_id').all() as any[];
+  const rarityCounts = await db.query('SELECT achievement_id, COUNT(*) as count FROM user_achievements GROUP BY achievement_id', []);
   const rarityMap = new Map(rarityCounts.map((r: any) => [r.achievement_id, r.count]));
 
   const categories: Record<string, any[]> = {};

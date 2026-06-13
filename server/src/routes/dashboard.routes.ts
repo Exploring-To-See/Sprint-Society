@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import db from '../database/db';
+import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { classifyTier } from '../engine/tierClassifier';
 import { generateWeeklyChallenges } from '../engine/challengeGenerator';
@@ -18,9 +18,9 @@ function totalXpToReachLevel(level: number): number {
   return total;
 }
 
-router.get('/', (req: AuthRequest, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   // 1. XP
-  const xpRow = db.prepare('SELECT * FROM user_xp WHERE user_id = ?').get(req.userId) as any;
+  const xpRow = await db.queryOne('SELECT * FROM user_xp WHERE user_id = $1', [req.userId]) as any;
   let xp;
   if (!xpRow) {
     xp = { total_xp: 0, current_level: 1, current_streak_days: 0, longest_streak_days: 0, xp_to_next_level: 100, level_progress_percent: 0 };
@@ -39,10 +39,10 @@ router.get('/', (req: AuthRequest, res: Response) => {
   }
 
   // 2. Tier
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
-  const runs = db.prepare(
-    'SELECT distance_meters, moving_time_seconds, start_date FROM activities WHERE user_id = ? ORDER BY start_date DESC LIMIT 30'
-  ).all(req.userId) as any[];
+  const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
+  const runs = await db.query(
+    'SELECT distance_meters, moving_time_seconds, start_date FROM activities WHERE user_id = $1 ORDER BY start_date DESC LIMIT 30', [req.userId]
+  ) as any[];
   const tier = classifyTier(user, runs);
 
   // 3. Challenges
@@ -51,27 +51,27 @@ router.get('/', (req: AuthRequest, res: Response) => {
   weekStart.setDate(now.getDate() - now.getDay());
   const weekStartStr = weekStart.toISOString().split('T')[0];
 
-  let challenges = db.prepare('SELECT * FROM challenges WHERE user_id = ? AND week_start = ?').all(req.userId, weekStartStr) as any[];
+  let challenges = await db.query('SELECT * FROM challenges WHERE user_id = $1 AND week_start = $2', [req.userId, weekStartStr]) as any[];
   if (challenges.length === 0) {
     const newChallenges = generateWeeklyChallenges(req.userId!, tier.tier, weekStartStr);
-    const stmt = db.prepare('INSERT INTO challenges (user_id, week_start, category, title, description, target_value, target_unit, tier, xp_reward) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     for (const c of newChallenges) {
-      stmt.run(req.userId, weekStartStr, c.category, c.title, c.description, c.target_value || null, c.target_unit || null, c.tier, c.xp_reward);
+      await db.execute('INSERT INTO challenges (user_id, week_start, category, title, description, target_value, target_unit, tier, xp_reward) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+        [req.userId, weekStartStr, c.category, c.title, c.description, c.target_value || null, c.target_unit || null, c.tier, c.xp_reward]);
     }
-    challenges = db.prepare('SELECT * FROM challenges WHERE user_id = ? AND week_start = ?').all(req.userId, weekStartStr) as any[];
+    challenges = await db.query('SELECT * FROM challenges WHERE user_id = $1 AND week_start = $2', [req.userId, weekStartStr]) as any[];
   }
 
   // 4. Run stats
-  const runStats = db.prepare(`
+  const runStats = await db.queryOne(`
     SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_distance,
       COALESCE(SUM(moving_time_seconds), 0) as total_time, COALESCE(AVG(average_pace_per_km), 0) as avg_pace,
       COALESCE(MIN(average_pace_per_km), 0) as best_pace, COALESCE(MAX(distance_meters), 0) as longest_run,
       COALESCE(SUM(elevation_gain), 0) as total_elevation
-    FROM activities WHERE user_id = ?
-  `).get(req.userId);
+    FROM activities WHERE user_id = $1
+  `, [req.userId]);
 
   // 5. Plan week
-  const existingPlan = db.prepare('SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = ? ORDER BY generated_at DESC LIMIT 1').get(req.userId) as any;
+  const existingPlan = await db.queryOne('SELECT plan_data, generated_at FROM transformation_plans WHERE user_id = $1 ORDER BY generated_at DESC LIMIT 1', [req.userId]) as any;
   let planWeek = null;
   if (existingPlan) {
     const plan = safeJsonParse(existingPlan.plan_data, { weeks: [] });
@@ -82,7 +82,7 @@ router.get('/', (req: AuthRequest, res: Response) => {
   }
 
   // 6. Profiling status
-  const profile = db.prepare('SELECT profiling_complete FROM runner_profiles WHERE user_id = ?').get(req.userId) as any;
+  const profile = await db.queryOne('SELECT profiling_complete FROM runner_profiles WHERE user_id = $1', [req.userId]) as any;
   const profilingStatus = { complete: !!profile?.profiling_complete };
 
   res.json({ data: { xp, tier, challenges: challenges.map((c: any) => ({ ...c, completed: Boolean(c.completed) })), runStats, planWeek, profilingStatus } });
