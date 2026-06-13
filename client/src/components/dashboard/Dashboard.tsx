@@ -49,10 +49,17 @@ export function Dashboard() {
   const [levelUpToast, setLevelUpToast] = useState<{ title: string; message: string } | null>(null);
   const lastLevelRef = useRef<number | null>(null);
 
-  const { data: xp } = useQuery({
-    queryKey: ['xp'],
-    queryFn: () => api.get('/gamification/xp').then(r => r.data),
+  const { data: dashboard, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-batch'],
+    queryFn: () => api.get('/dashboard').then(r => r.data),
+    staleTime: 2 * 60 * 1000,
   });
+
+  const xp = dashboard?.xp;
+  const tier = dashboard?.tier;
+  const challenges = dashboard?.challenges;
+  const stats = dashboard?.runStats;
+  const profilingStatus = dashboard?.profilingStatus;
 
   useEffect(() => {
     if (!xp?.current_level) return;
@@ -63,26 +70,6 @@ export function Dashboard() {
     }
     lastLevelRef.current = xp.current_level;
   }, [xp?.current_level]);
-
-  const { data: tier } = useQuery({
-    queryKey: ['tier'],
-    queryFn: () => api.get('/coaching/tier').then(r => r.data).catch(() => null),
-  });
-
-  const { data: challenges } = useQuery({
-    queryKey: ['challenges'],
-    queryFn: () => api.get('/coaching/challenges').then(r => r.data).catch(() => []),
-  });
-
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['run-stats'],
-    queryFn: () => api.get('/runs/stats').then(r => r.data).catch(() => null),
-  });
-
-  const { data: profilingStatus } = useQuery({
-    queryKey: ['profiling-status'],
-    queryFn: () => api.get('/profiling/status').then(r => r.data).catch(() => ({ complete: false })),
-  });
 
   const level = xp?.current_level || 1;
   const progressPercent = xp?.level_progress_percent || 0;

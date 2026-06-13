@@ -387,6 +387,16 @@ Client-side (`client/src/lib/api.ts`) auto-unwraps the envelope:
 
 No raw error text is ever shown to users.
 
+### Batch Endpoints (Performance)
+
+Two batch endpoints collapse multiple round-trips into one:
+
+**GET /api/dashboard** — returns `{ xp, tier, challenges, runStats, planWeek, profilingStatus }` in one response. Replaces 6 separate queries from the Dashboard page.
+
+**GET /api/coach/insights** — returns `{ adaptive, summary, vdotProgression, tier, predictions, stats, records }` in one response. Replaces 7+ separate queries from the AI Analytics tab.
+
+Client uses `staleTime: 2 minutes` to avoid re-fetching on tab switches. Query keys: `dashboard-batch` and `coach-insights-batch`.
+
 **Env validation (production):**
 - `JWT_SECRET` missing or <32 chars → server refuses to start (exit 1)
 - `CLIENT_URL` missing → server refuses to start

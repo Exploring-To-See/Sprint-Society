@@ -3,61 +3,27 @@ import { motion } from 'framer-motion';
 import api from '../../lib/api';
 
 export function AIAnalyticsTab() {
-  const { data: adaptive } = useQuery({
-    queryKey: ['adaptive-load'],
-    queryFn: () => api.get('/adaptive/load').then(r => r.data).catch(() => null),
+  const { data: insights } = useQuery({
+    queryKey: ['coach-insights-batch'],
+    queryFn: () => api.get('/coach/insights').then(r => r.data),
+    staleTime: 2 * 60 * 1000,
   });
 
-  const { data: summary } = useQuery({
-    queryKey: ['adaptive-summary'],
-    queryFn: () => api.get('/adaptive/summary').then(r => r.data).catch(() => null),
-  });
+  const adaptive = insights?.adaptive;
+  const summary = insights?.summary;
+  const vdotProg = insights?.vdotProgression;
+  const tier = insights?.tier;
+  const predictions = insights?.predictions;
+  const stats = insights?.stats;
+  const records = insights?.records;
 
-  const { data: vdotProg } = useQuery({
-    queryKey: ['vdot-progression'],
-    queryFn: () => api.get('/adaptive/vdot-progression').then(r => r.data).catch(() => null),
-  });
-
-  const { data: tier } = useQuery({
-    queryKey: ['tier'],
-    queryFn: () => api.get('/coaching/tier').then(r => r.data).catch(() => null),
-  });
-
-  const { data: predictions } = useQuery({
-    queryKey: ['race-predictions'],
-    queryFn: async () => {
-      const [p5k, p10k, phm, pm] = await Promise.all([
-        api.get('/training/predict?distance=5000').then(r => r.data).catch(() => null),
-        api.get('/training/predict?distance=10000').then(r => r.data).catch(() => null),
-        api.get('/training/predict?distance=21097').then(r => r.data).catch(() => null),
-        api.get('/training/predict?distance=42195').then(r => r.data).catch(() => null),
-      ]);
-      return { '5K': p5k, '10K': p10k, 'Half': phm, 'Marathon': pm };
-    },
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['run-stats'],
-    queryFn: () => api.get('/runs/stats').then(r => r.data).catch(() => null),
-  });
-
-  const { data: records } = useQuery({
-    queryKey: ['records'],
-    queryFn: () => api.get('/records').then(r => r.data).catch(() => null),
-  });
-
-  const { data: kenduBal } = useQuery({
-    queryKey: ['kendu-balance'],
-    queryFn: () => api.get('/kendu/balance').then(r => r.data).catch(() => null),
-  });
-
-  const vo2max = tier?.estimated_vo2max || summary?.vo2max || null;
+  const vo2max = tier?.estimated_vo2max || summary?.vdot || null;
   const ageGrade = tier?.age_graded_percentage || null;
   const vdot = summary?.vdot || vdotProg?.current_vdot || null;
   const trainingLoad = adaptive?.training_stress_balance;
   const injuryRisk = adaptive?.injury_risk || 'Unknown';
   const readiness = summary?.readiness;
-  const streakDays = kenduBal?.current_streak_days || 0;
+  const streakDays = 0;
 
   function formatTime(seconds: number | null | undefined): string {
     if (!seconds) return '—';

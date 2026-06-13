@@ -34,6 +34,8 @@ import aiRoutes from './routes/ai.routes';
 import kenduRoutes from './routes/kendu.routes';
 import wellnessRoutes from './routes/wellness.routes';
 import goalsRoutes from './routes/goals.routes';
+import dashboardBatchRoutes from './routes/dashboard.routes';
+import insightsBatchRoutes from './routes/insights.batch.routes';
 import adminAnalyticsRoutes from './routes/admin-analytics.routes';
 import adminFlagsRoutes from './routes/admin-flags.routes';
 import adminSegmentsRoutes from './routes/admin-segments.routes';
@@ -92,6 +94,8 @@ app.use('/api/kendu', kenduRoutes);
 app.use('/api/wellness', wellnessRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/dashboard', dashboardBatchRoutes);
+app.use('/api/coach/insights', insightsBatchRoutes);
 
 // GET /api/flags — client-facing feature flags (authenticated)
 app.get('/api/flags', (req, res) => {
