@@ -140,6 +140,13 @@ app.get('/api/announcements', async (req, res) => {
   }
 });
 
+// Unknown API routes must return JSON 404 — never fall through to the SPA
+// catch-all below (which would serve index.html with a 200 and break client
+// error handling).
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: { code: 'NOT_FOUND', message: `No such endpoint: ${req.method} ${req.originalUrl}` } });
+});
+
 if (config.nodeEnv === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');
   app.use(express.static(clientDist));

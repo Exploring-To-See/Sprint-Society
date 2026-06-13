@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { backendWsUrl } from '../lib/backend';
 
 export function useNotificationSocket(enabled: boolean) {
   const queryClient = useQueryClient();
@@ -14,8 +15,7 @@ export function useNotificationSocket(enabled: boolean) {
       const token = localStorage.getItem('sprint_society_token');
       if (!token) return;
 
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${token}`);
+      const ws = new WebSocket(backendWsUrl(`/ws?token=${token}`));
       wsRef.current = ws;
 
       ws.onopen = () => setConnected(true);

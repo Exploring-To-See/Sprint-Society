@@ -10,7 +10,9 @@ AI-powered run club platform. Track your runs, level up your fitness, transform 
 
 ## How It Works
 
-This is a **hosted web app** — once deployed, anyone can access it from their phone/laptop via a URL (e.g., `sprint-society.up.railway.app`).
+This is a **hosted web app** — once deployed, anyone can access it from their phone/laptop via a URL.
+
+**Production:** [app.sprintsociety.in](https://app.sprintsociety.in) — served by the `poetic-creativity` Railway service, which deploys the whole monorepo from the repo root (`railway.toml`). This is the single source of truth for production.
 
 ### Two Access Levels:
 
