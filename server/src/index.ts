@@ -48,12 +48,15 @@ import insightsRoutes from './routes/insights.routes';
 import googleAuthRoutes from './routes/google-auth.routes';
 import adminBackupRoutes from './routes/admin-backup.routes';
 import { startScheduler } from './scheduler';
+import { createRequestLogger } from './utils/logger';
+import './utils/sentry';
 
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
+app.use(createRequestLogger());
 app.use(sanitizeInput);
 app.use('/api', generalLimiter);
 

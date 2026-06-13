@@ -23,6 +23,8 @@
     "zod": "^3.23.8",
     "dotenv": "^16.4.5",
     "@anthropic-ai/sdk": "^0.52.0",
+    "pino": "^9.2.0",
+    "@sentry/node": "^8.0.0",
     "ws": "^8.17.1"
   },
   "devDependencies": {
@@ -38,6 +40,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/node": "^20.14.10",
-    "@types/ws": "^8.5.10"
+    "@types/ws": "^8.5.10",
+    "pino-pretty": "^11.2.0"
   }
 }

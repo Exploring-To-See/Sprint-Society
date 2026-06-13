@@ -1,5 +1,7 @@
 import db from '../database/db';
 import { runBackup } from '../routes/admin-backup.routes';
+import path from 'path';
+import fs from 'fs';
 
 interface ScheduledJob {
   name: string;
@@ -83,5 +85,49 @@ registerJob('streak-decay', 6 * 60 * 60 * 1000, () => {
 
   if (result.changes > 0) {
     console.log(`[Scheduler] Reset streaks for ${result.changes} inactive users`);
+  }
+});
+
+// --- Job: Nightly SQLite .backup (every 24 hours) ---
+registerJob('sqlite-backup', 24 * 60 * 60 * 1000, () => {
+  const dbPath = process.env.DB_PATH || path.join(__dirname, '../../data/sprint-society.db');
+  const backupDir = path.join(path.dirname(dbPath), 'backups');
+
+  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+  const timestamp = new Date().toISOString().split('T')[0];
+  const backupPath = path.join(backupDir, `sprint-society-${timestamp}.backup`);
+
+  try {
+    db.backup(backupPath);
+    console.log(`[Scheduler] SQLite backup complete: ${backupPath}`);
+
+    // Prune backups older than 14 days
+    const files = fs.readdirSync(backupDir).filter(f => f.endsWith('.backup'));
+    const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    for (const file of files) {
+      const filePath = path.join(backupDir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.mtimeMs < cutoff) {
+        fs.unlinkSync(filePath);
+        console.log(`[Scheduler] Pruned old backup: ${file}`);
+      }
+    }
+
+    // Upload to object storage if configured
+    const storageTarget = process.env.BACKUP_STORAGE_URL;
+    if (storageTarget) {
+      const axios = require('axios');
+      const fileData = fs.readFileSync(backupPath);
+      axios.put(`${storageTarget}/sprint-society-${timestamp}.backup`, fileData, {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      }).then(() => {
+        console.log(`[Scheduler] Backup uploaded to object storage`);
+      }).catch((err: any) => {
+        console.error(`[Scheduler] Backup upload failed:`, err.message);
+      });
+    }
+  } catch (err: any) {
+    console.error(`[Scheduler] SQLite backup failed:`, err.message);
   }
 });

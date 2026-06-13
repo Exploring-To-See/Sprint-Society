@@ -413,6 +413,35 @@ Notifications are pushed in real-time via the existing `/ws` WebSocket server.
 - Supports both notification-only and community-chat connections simultaneously
 - Cleaned up on logout/close
 
+### Logging + Error Tracking
+
+**Structured logging (pino):**
+- Request IDs assigned to every request via middleware
+- PII redacted: authorization headers, passwords, tokens
+- JSON format in production, pretty-printed in dev
+- `LOG_LEVEL` env var controls verbosity (default: info in prod, debug in dev)
+
+**Sentry (error tracking):**
+- Server: `@sentry/node` — initializes from `SENTRY_DSN` env var
+- Client: `@sentry/react` — initializes from `VITE_SENTRY_DSN` env var
+- Both gracefully do nothing when DSN is unset (app runs fine without it)
+- PII stripped before sending (no auth headers, no cookies)
+
+**Env vars for observability:**
+| Variable | Purpose |
+|----------|---------|
+| `SENTRY_DSN` | Server Sentry DSN (free tier) |
+| `VITE_SENTRY_DSN` | Client Sentry DSN (same project, or separate) |
+| `LOG_LEVEL` | pino log level (debug/info/warn/error) |
+
+### Database Backups
+
+- Nightly SQLite `.backup()` via scheduler (safe during concurrent writes)
+- Stored in `data/backups/sprint-society-YYYY-MM-DD.backup`
+- Auto-pruned after 14 days
+- Uploads to `BACKUP_STORAGE_URL` if set (S3-compatible PUT)
+- See `docs/RESTORE.md` for full restore instructions
+
 **Env validation (production):**
 - `JWT_SECRET` missing or <32 chars → server refuses to start (exit 1)
 - `CLIENT_URL` missing → server refuses to start
