@@ -13,7 +13,8 @@
     "start": "cd server && npm start",
     "setup:admin": "cd server && npx tsx src/setup-admin.ts",
     "seed": "cd server && npx tsx src/scripts/seed-dummy-data.ts",
-    "test": "cd server && npm test"
+    "test": "cd server && npm test",
+    "typecheck": "cd client && tsc -b --noEmit && cd ../server && tsc --noEmit"
   },
   "engines": {
     "node": ">=18.0.0"
