@@ -6,7 +6,7 @@ import api from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'overview' | 'runners' | 'events' | 'communities' | 'sessions' | 'announcements' | 'analytics' | 'flags' | 'segments' | 'notifications' | 'content' | 'audit' | 'engineering' | 'moderation';
+type Tab = 'overview' | 'runners' | 'events' | 'communities' | 'sessions' | 'announcements' | 'analytics' | 'flags' | 'segments' | 'notifications' | 'content' | 'audit' | 'engineering' | 'moderation' | 'backup';
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
@@ -73,6 +73,7 @@ export function AdminPage() {
     { key: 'audit', label: 'Audit' },
     { key: 'engineering', label: 'Engineering' },
     { key: 'moderation', label: 'Moderation' },
+    { key: 'backup', label: 'Backup' },
   ];
 
   return (
@@ -124,6 +125,7 @@ export function AdminPage() {
         {tab === 'audit' && <AuditTab />}
         {tab === 'engineering' && <EngineeringTab />}
         {tab === 'moderation' && <ModerationTab />}
+        {tab === 'backup' && <BackupTab />}
       </main>
     </div>
   );
@@ -1260,6 +1262,109 @@ function ModerationTab() {
           </div>
         </motion.div>
       ))}
+    </motion.div>
+  );
+}
+
+/* ===== BACKUP TAB ===== */
+function BackupTab() {
+  const [downloading, setDownloading] = useState(false);
+  const [lastResult, setLastResult] = useState('');
+
+  const { data: stats } = useQuery({
+    queryKey: ['admin-backup-stats'],
+    queryFn: () => api.get('/admin/backup/stats').then(r => r.data),
+  });
+
+  const { data: history } = useQuery({
+    queryKey: ['admin-backup-history'],
+    queryFn: () => api.get('/admin/backup/history').then(r => r.data),
+  });
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setLastResult('');
+    try {
+      const res = await api.get('/admin/backup/now', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sprint-society-backup-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setLastResult('Backup downloaded successfully!');
+    } catch (err: any) {
+      setLastResult('Download failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const totalRows = stats ? Object.values(stats.tables as Record<string, number>).reduce((a: number, b: number) => a + (b > 0 ? b : 0), 0) : 0;
+
+  return (
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
+      <motion.div variants={fadeUp} className="card p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[14px] font-bold text-white">Database Backup</h3>
+            <p className="text-[11px] text-zinc-500 mt-1">Download all tables as CSV. Auto-backup runs daily.</p>
+          </div>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="px-4 py-2.5 rounded-xl bg-accent text-white text-[12px] font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
+          >
+            {downloading ? 'Exporting...' : 'Download Backup'}
+          </button>
+        </div>
+        {lastResult && (
+          <p className={`text-[11px] ${lastResult.includes('failed') ? 'text-red-400' : 'text-accent-green'}`}>{lastResult}</p>
+        )}
+      </motion.div>
+
+      {stats && (
+        <motion.div variants={fadeUp} className="card p-4">
+          <p className="text-[12px] font-bold text-white mb-3">Database Stats</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2.5 rounded-lg bg-bg-primary">
+              <p className="text-[18px] font-bold text-accent">{Object.keys(stats.tables).length}</p>
+              <p className="text-[10px] text-zinc-500">Tables</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-bg-primary">
+              <p className="text-[18px] font-bold text-accent">{totalRows.toLocaleString()}</p>
+              <p className="text-[10px] text-zinc-500">Total Rows</p>
+            </div>
+          </div>
+          <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto">
+            {Object.entries(stats.tables as Record<string, number>)
+              .filter(([, count]) => (count as number) > 0)
+              .sort(([, a], [, b]) => (b as number) - (a as number))
+              .map(([table, count]) => (
+                <div key={table} className="flex items-center justify-between py-1 px-2 rounded hover:bg-bg-tertiary/50">
+                  <span className="text-[11px] text-zinc-400 font-mono">{table}</span>
+                  <span className="text-[11px] text-zinc-500">{(count as number).toLocaleString()} rows</span>
+                </div>
+              ))}
+          </div>
+        </motion.div>
+      )}
+
+      {history && history.length > 0 && (
+        <motion.div variants={fadeUp} className="card p-4">
+          <p className="text-[12px] font-bold text-white mb-3">Backup History (auto-daily)</p>
+          <div className="space-y-2">
+            {history.map((b: any) => (
+              <div key={b.folder} className="flex items-center justify-between py-1.5 px-2 rounded bg-bg-primary">
+                <span className="text-[11px] text-zinc-400">{b.created_at ? new Date(b.created_at).toLocaleString() : b.folder}</span>
+                <span className="text-[10px] text-zinc-500">{b.tables_exported} tables · {b.total_rows?.toLocaleString()} rows</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

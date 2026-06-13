@@ -1,4 +1,5 @@
 import db from '../database/db';
+import { runBackup } from '../routes/admin-backup.routes';
 
 interface ScheduledJob {
   name: string;
@@ -57,6 +58,17 @@ registerJob('challenge-expiry', 60 * 60 * 1000, () => {
 //     console.log(`[Scheduler] Kendu upkeep: ${result.processed} processed, ${result.dormant} dormant`);
 //   }
 // });
+
+// --- Job: Auto backup (every 24 hours) ---
+// Creates a CSV backup of all tables in /data/backups/
+registerJob('auto-backup', 24 * 60 * 60 * 1000, () => {
+  try {
+    const result = runBackup();
+    console.log(`[Scheduler] Backup complete: ${result.tables} tables, ${result.totalRows} rows → ${result.filename}`);
+  } catch (err) {
+    console.error('[Scheduler] Backup failed:', err);
+  }
+});
 
 // --- Job: Streak decay (every 6 hours) ---
 // Reset streaks for users who haven't logged activity in > 1 day

@@ -44,6 +44,7 @@ import adminEngineeringRoutes from './routes/admin-engineering.routes';
 import adminModerationRoutes from './routes/admin-moderation.routes';
 import insightsRoutes from './routes/insights.routes';
 import googleAuthRoutes from './routes/google-auth.routes';
+import adminBackupRoutes from './routes/admin-backup.routes';
 import { startScheduler } from './scheduler';
 
 const app = express();
@@ -72,6 +73,7 @@ app.use('/api/admin/content', adminContentRoutes);
 app.use('/api/admin/audit', adminAuditRoutes);
 app.use('/api/admin/engineering', adminEngineeringRoutes);
 app.use('/api/admin/moderation', adminModerationRoutes);
+app.use('/api/admin/backup', adminBackupRoutes);
 app.use('/api/heartrate', heartrateRoutes);
 app.use('/api/records', recordsRoutes);
 app.use('/api/adaptive', adaptiveRoutes);
@@ -90,6 +92,26 @@ app.use('/api/kendu', kenduRoutes);
 app.use('/api/wellness', wellnessRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/insights', insightsRoutes);
+
+// GET /api/flags — client-facing feature flags (authenticated)
+app.get('/api/flags', (req, res) => {
+  try {
+    const { authenticate } = require('./middleware/auth');
+    const authHeader = req.headers.authorization;
+    let userId: number | undefined;
+    if (authHeader?.startsWith('Bearer ')) {
+      const jwt = require('jsonwebtoken');
+      try {
+        const decoded = jwt.verify(authHeader.slice(7), config.jwtSecret) as any;
+        userId = decoded.userId || decoded.id;
+      } catch {}
+    }
+    const { getAllFlags } = require('./utils/featureFlags');
+    res.json(getAllFlags(userId));
+  } catch (err) {
+    res.json({});
+  }
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', name: 'Sprint Society API', version: '1.2.0', uptime: Math.floor(process.uptime()) });
