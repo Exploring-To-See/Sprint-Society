@@ -54,9 +54,9 @@ export function TodaySession({ streak = 0 }: { streak?: number }) {
     <motion.div variants={fadeUp} className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Today</p>
+          <p className="text-label uppercase text-zinc-600">Today</p>
           {urgencyText && (
-            <span className="text-[11px] text-accent font-medium">{urgencyText}</span>
+            <span className="text-caption text-accent font-medium">{urgencyText}</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
@@ -72,8 +72,8 @@ export function TodaySession({ streak = 0 }: { streak?: number }) {
           {config.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-white leading-tight">{todaySession.title}</p>
-          <p className="text-[11px] text-zinc-500 mt-1 line-clamp-1">{todaySession.description}</p>
+          <p className="text-body font-semibold text-white leading-tight">{todaySession.title}</p>
+          <p className="text-caption text-zinc-500 mt-1 line-clamp-1">{todaySession.description}</p>
         </div>
       </div>
 

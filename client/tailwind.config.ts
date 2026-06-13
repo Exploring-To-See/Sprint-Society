@@ -27,6 +27,27 @@ export default {
         body: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      fontSize: {
+        'display': ['28px', { lineHeight: '1.1', fontWeight: '800' }],
+        'h1': ['22px', { lineHeight: '1.2', fontWeight: '700' }],
+        'h2': ['18px', { lineHeight: '1.3', fontWeight: '600' }],
+        'body': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
+        'body-sm': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+        'caption': ['11px', { lineHeight: '1.4', fontWeight: '500' }],
+        'label': ['10px', { lineHeight: '1.3', fontWeight: '600', letterSpacing: '0.05em' }],
+      },
+      borderRadius: {
+        'card': '16px',
+        'button': '12px',
+        'input': '10px',
+        'badge': '8px',
+        'pill': '9999px',
+      },
+      spacing: {
+        'card-pad': '16px',
+        'section-gap': '16px',
+        'page-x': '16px',
+      },
       animation: {
         'slide-up': 'slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
         'fade-in': 'fade-in 0.2s ease-out',

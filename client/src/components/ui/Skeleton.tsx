@@ -60,3 +60,33 @@ export function SkeletonList({ count = 4 }: { count?: number }) {
     </div>
   );
 }
+
+export function DashboardSkeleton() {
+  return (
+    <div className="space-y-4 p-4 animate-fade-in">
+      <Skeleton variant="card" className="w-full h-14" />
+      <Skeleton variant="card" className="w-full h-[88px]" />
+      <div className="flex rounded-xl bg-bg-secondary border border-bg-tertiary divide-x divide-bg-tertiary overflow-hidden">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex-1 p-4 space-y-2">
+            <Skeleton className="h-2 w-12" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+        ))}
+      </div>
+      <Skeleton variant="card" className="w-full h-32" />
+      <Skeleton variant="card" className="w-full h-24" />
+    </div>
+  );
+}
+
+export function MapSkeleton() {
+  return (
+    <div className="w-full h-[300px] bg-bg-tertiary/30 rounded-xl flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-zinc-600 border-t-accent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-[11px] text-zinc-600">Loading map...</p>
+      </div>
+    </div>
+  );
+}

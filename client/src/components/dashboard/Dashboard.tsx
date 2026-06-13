@@ -13,6 +13,7 @@ import { PaceDotTrail } from './PaceDotTrail';
 import { AthleteCard } from './AthleteCard';
 import { ProgressPill } from './ProgressPill';
 import { Confetti, CelebrationToast } from '../celebrations/Confetti';
+import { DashboardSkeleton } from '../ui/Skeleton';
 
 const stagger = {
   hidden: {},
@@ -33,12 +34,12 @@ function StatCard({ label, value, unit, animate }: { label: string; value: strin
 
   return (
     <div className="flex-1 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mb-2">{label}</p>
+      <p className="text-label uppercase text-zinc-500 mb-2">{label}</p>
       <div className="flex items-baseline gap-1">
-        <span className="font-mono font-bold text-[22px] tabular-nums tracking-tight text-white">
+        <span className="font-mono font-bold text-h1 tabular-nums tracking-tight text-white">
           {displayValue}
         </span>
-        {unit && <span className="text-[10px] text-zinc-600 font-medium">{unit}</span>}
+        {unit && <span className="text-label text-zinc-600">{unit}</span>}
       </div>
     </div>
   );
@@ -176,10 +177,8 @@ export function Dashboard() {
           <>
             {/* Loading skeleton */}
             {statsLoading && !stats && (
-              <motion.div variants={fadeUp} className="space-y-3">
-                <div className="h-[40px] rounded-xl bg-bg-secondary animate-pulse" />
-                <div className="h-[88px] rounded-xl bg-bg-secondary animate-pulse" />
-                <div className="h-[72px] rounded-xl bg-bg-secondary animate-pulse" />
+              <motion.div variants={fadeUp}>
+                <DashboardSkeleton />
               </motion.div>
             )}
 
