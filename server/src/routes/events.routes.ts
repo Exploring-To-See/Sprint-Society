@@ -304,7 +304,7 @@ router.post('/:id/checkin', async (req: AuthRequest, res: Response) => {
   await awardXP(req.userId!, 50, 'event_checkin', `Checked in at: ${event.title}`);
 
   // Award Kendu for event attendance
-  const kenduEarned = awardKenduForEvent(req.userId!, eventId);
+  const kenduEarned = await awardKenduForEvent(req.userId!, eventId);
   if (kenduEarned > 0) {
     createNotification(req.userId!, 'kendu_earned', `You earned ${kenduEarned} Kendu for attending ${event.title}!`, `+${kenduEarned} Kendu`);
   }

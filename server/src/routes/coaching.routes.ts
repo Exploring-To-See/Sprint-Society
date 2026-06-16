@@ -129,7 +129,7 @@ router.post('/challenges/:id/complete', authenticate, async (req: AuthRequest, r
   await db.execute(`INSERT INTO xp_transactions (user_id, amount, source, description) VALUES ($1, $2, 'challenge', $3)`, [req.userId, totalXpReward, `Completed: ${challenge.title}`]);
 
   // Award Kendu for challenge completion
-  const kenduEarned = awardKenduForChallenge(req.userId!, challenge.id);
+  const kenduEarned = await awardKenduForChallenge(req.userId!, challenge.id);
   if (kenduEarned > 0) {
     createNotification(req.userId!, 'kendu_earned', `Challenge complete! +${kenduEarned} Kendu`, `Completed: ${challenge.title}`);
   }

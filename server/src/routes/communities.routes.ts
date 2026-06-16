@@ -512,7 +512,7 @@ router.post('/requests/:id/approve', async (req: AuthRequest, res: Response) => 
   const request = await db.queryOne('SELECT * FROM community_requests WHERE id = $1 AND status = $2', [requestId, 'pending']) as any;
   if (!request) return res.status(404).json({ error: 'Request not found or already processed' });
 
-  const spendResult = spendToCreateCommunity(request.user_id, request.name);
+  const spendResult = await spendToCreateCommunity(request.user_id, request.name);
   if (!spendResult.success) {
     return res.status(402).json({ error: `User doesn't have enough Kendu (needs 1000). Balance: ${spendResult.newBalance}` });
   }

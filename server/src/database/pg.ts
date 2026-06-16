@@ -1,9 +1,18 @@
-import { Pool, type PoolConfig, type QueryResult } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
+
+// Use SSL only for remote/managed Postgres (e.g. Railway). Local/test Postgres
+// typically has no SSL, and forcing it throws "server does not support SSL connections".
+const dbUrl = process.env.DATABASE_URL || '';
+const isLocalDb =
+  /@(localhost|127\.0\.0\.1|::1)/.test(dbUrl) ||
+  process.env.NODE_ENV === 'development' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PGSSL === 'false';
 
 const poolConfig: PoolConfig = {
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  ssl: { rejectUnauthorized: false },
+  ssl: isLocalDb ? false : { rejectUnauthorized: false },
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
 };
@@ -20,8 +29,8 @@ pool.on('error', (err) => {
  */
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
-    const result: QueryResult<T> = await pool.query(sql, params);
-    return result.rows;
+    const result = await pool.query(sql, params);
+    return result.rows as T[];
   } catch (err: any) {
     console.error('[PG] Query error:', err.message);
     console.error('[PG] SQL:', sql);

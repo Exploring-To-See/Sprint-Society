@@ -15,6 +15,13 @@ if (isProduction || isStaging) {
   if (process.env.JWT_SECRET.length < 32) {
     console.warn(`[CONFIG] ⚠️  JWT_SECRET is short (${process.env.JWT_SECRET.length} chars) — recommend 32+ for production`);
   }
+  if (!process.env.DATABASE_URL) {
+    console.error(`[FATAL] DATABASE_URL is required in ${nodeEnv}. Server cannot start without a Postgres connection.`);
+    process.exit(1);
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn('[CONFIG] ⚠️  ANTHROPIC_API_KEY not set — AI coaching/chat will be disabled');
+  }
   if (!process.env.CLIENT_URL) {
     console.warn('[CONFIG] ⚠️  CLIENT_URL not set — using default. Set it for CORS to work correctly.');
   }

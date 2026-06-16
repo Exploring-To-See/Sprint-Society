@@ -66,7 +66,7 @@ async function generateProactiveNotifications(userId: number) {
   const today = new Date().toISOString().split('T')[0];
 
   // --- AI Coaching Insights (from proactive coach engine) ---
-  const insights = generateInsights(userId);
+  const insights = await generateInsights(userId);
   for (const insight of insights) {
     // Only create notifications for high-priority insights (3+)
     if (insight.priority < 3) continue;

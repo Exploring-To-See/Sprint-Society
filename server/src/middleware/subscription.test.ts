@@ -1,81 +1,43 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import Database from 'better-sqlite3';
-import path from 'path';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-let testDb: InstanceType<typeof Database>;
+// subscription.ts uses the async Postgres layer (../database/pg). Mock its
+// queryOne so these stay fast unit tests of the plan-mapping + gating logic.
+// (The SQL filtering of expired/cancelled subs is covered by integration tests.)
+const { queryOne } = vi.hoisted(() => ({ queryOne: vi.fn() }));
+vi.mock('../database/pg', () => ({ default: { queryOne } }));
 
-vi.mock('../database/db', () => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS user_subscriptions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      plan_key TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'active',
-      expires_at TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-  return { default: db };
-});
-
-import db from '../database/db';
 import { getUserPlan, requirePlan, type PlanKey } from './subscription';
 
-function insertSub(userId: number, planKey: string, status: string, daysFromNow: number) {
-  const expires = new Date(Date.now() + daysFromNow * 86400000).toISOString();
-  db.prepare(
-    'INSERT INTO user_subscriptions (user_id, plan_key, status, expires_at) VALUES (?, ?, ?, ?)'
-  ).run(userId, planKey, status, expires);
-}
-
-function clearSubs() {
-  db.prepare('DELETE FROM user_subscriptions').run();
-}
+beforeEach(() => queryOne.mockReset());
 
 describe('getUserPlan', () => {
-  beforeEach(clearSubs);
-
-  it('returns "free" for user with no subscription', () => {
-    expect(getUserPlan(999)).toBe('free');
+  it('returns "free" when no active subscription row', async () => {
+    queryOne.mockResolvedValue(null);
+    expect(await getUserPlan(999)).toBe('free');
   });
 
-  it('returns "base" for user with active base subscription', () => {
-    insertSub(1, 'base', 'active', 30);
-    expect(getUserPlan(1)).toBe('base');
+  it('returns "base" for an active base subscription', async () => {
+    queryOne.mockResolvedValue({ plan_key: 'base' });
+    expect(await getUserPlan(1)).toBe('base');
   });
 
-  it('returns "pro" for user with active pro subscription', () => {
-    insertSub(2, 'pro', 'active', 30);
-    expect(getUserPlan(2)).toBe('pro');
+  it('returns "pro" for an active pro subscription', async () => {
+    queryOne.mockResolvedValue({ plan_key: 'pro' });
+    expect(await getUserPlan(2)).toBe('pro');
   });
 
-  it('returns "free" for expired subscription', () => {
-    insertSub(3, 'pro', 'active', -1);
-    expect(getUserPlan(3)).toBe('free');
+  it('returns "free" when the sub is filtered out by SQL (expired/cancelled)', async () => {
+    queryOne.mockResolvedValue(null);
+    expect(await getUserPlan(3)).toBe('free');
   });
 
-  it('returns "free" for cancelled subscription', () => {
-    insertSub(4, 'pro', 'cancelled', 30);
-    expect(getUserPlan(4)).toBe('free');
-  });
-
-  it('returns "free" for unknown plan key in DB', () => {
-    insertSub(5, 'unknown_plan', 'active', 30);
-    expect(getUserPlan(5)).toBe('free');
-  });
-
-  it('returns highest active plan when multiple exist', () => {
-    insertSub(6, 'base', 'active', 10);
-    insertSub(6, 'pro', 'active', 30);
-    expect(getUserPlan(6)).toBe('pro');
+  it('returns "free" for an unknown plan key', async () => {
+    queryOne.mockResolvedValue({ plan_key: 'unknown_plan' });
+    expect(await getUserPlan(5)).toBe('free');
   });
 });
 
 describe('requirePlan middleware', () => {
-  beforeEach(clearSubs);
-
   function mockReqRes(userId: number) {
     const req = { userId } as any;
     const res = {
@@ -86,15 +48,17 @@ describe('requirePlan middleware', () => {
     return { req, res, next };
   }
 
-  it('allows free user through free gate', () => {
+  it('allows a free user through the free gate', async () => {
+    queryOne.mockResolvedValue(null);
     const { req, res, next } = mockReqRes(100);
-    requirePlan('free')(req, res, next);
+    await requirePlan('free')(req, res, next);
     expect(next).toHaveBeenCalled();
   });
 
-  it('blocks free user from base gate', () => {
+  it('blocks a free user from the base gate', async () => {
+    queryOne.mockResolvedValue(null);
     const { req, res, next } = mockReqRes(101);
-    requirePlan('base')(req, res, next);
+    await requirePlan('base')(req, res, next);
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -104,47 +68,46 @@ describe('requirePlan middleware', () => {
     }));
   });
 
-  it('blocks free user from pro gate', () => {
+  it('blocks a free user from the pro gate', async () => {
+    queryOne.mockResolvedValue(null);
     const { req, res, next } = mockReqRes(102);
-    requirePlan('pro')(req, res, next);
+    await requirePlan('pro')(req, res, next);
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
-  it('allows base user through base gate', () => {
-    insertSub(103, 'base', 'active', 30);
+  it('allows a base user through the base gate', async () => {
+    queryOne.mockResolvedValue({ plan_key: 'base' });
     const { req, res, next } = mockReqRes(103);
-    requirePlan('base')(req, res, next);
+    await requirePlan('base')(req, res, next);
     expect(next).toHaveBeenCalled();
   });
 
-  it('blocks base user from pro gate', () => {
-    insertSub(104, 'base', 'active', 30);
+  it('blocks a base user from the pro gate', async () => {
+    queryOne.mockResolvedValue({ plan_key: 'base' });
     const { req, res, next } = mockReqRes(104);
-    requirePlan('pro')(req, res, next);
+    await requirePlan('pro')(req, res, next);
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
-  it('allows pro user through all gates', () => {
-    insertSub(105, 'pro', 'active', 30);
-
+  it('allows a pro user through all gates', async () => {
+    queryOne.mockResolvedValue({ plan_key: 'pro' });
     const gates: PlanKey[] = ['free', 'base', 'pro'];
     for (const gate of gates) {
       const { req, res, next } = mockReqRes(105);
-      requirePlan(gate)(req, res, next);
+      await requirePlan(gate)(req, res, next);
       expect(next).toHaveBeenCalled();
     }
   });
 
-  it('treats expired pro user as free (blocks base gate)', () => {
-    insertSub(106, 'pro', 'active', -1);
+  it('treats an expired pro user as free (blocks the base gate)', async () => {
+    // The SQL `expires_at > NOW()` filter excludes the expired row, so queryOne returns null.
+    queryOne.mockResolvedValue(null);
     const { req, res, next } = mockReqRes(106);
-    requirePlan('base')(req, res, next);
+    await requirePlan('base')(req, res, next);
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      current_plan: 'free',
-    }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ current_plan: 'free' }));
   });
 });

@@ -46,7 +46,7 @@ router.post('/earn', async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'km is required and must be positive' });
   }
 
-  const result = calculateKenduForRun(
+  const result = await calculateKenduForRun(
     req.userId!,
     km,
     wasCoachAssigned || false,
@@ -57,48 +57,48 @@ router.post('/earn', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/earn-event — Award Kendu for community event
-router.post('/earn-event', (req: AuthRequest, res: Response) => {
+router.post('/earn-event', async (req: AuthRequest, res: Response) => {
   const { eventId } = req.body;
   if (!eventId) return res.status(400).json({ error: 'eventId required' });
 
-  const awarded = awardKenduForEvent(req.userId!, eventId);
-  const balance = getKenduBalance(req.userId!);
+  const awarded = await awardKenduForEvent(req.userId!, eventId);
+  const balance = await getKenduBalance(req.userId!);
 
   res.json({ pointsEarned: awarded, newBalance: balance.spendable_balance });
 });
 
 // POST /kendu/earn-plan — Award Kendu for completing training plan
-router.post('/earn-plan', (req: AuthRequest, res: Response) => {
+router.post('/earn-plan', async (req: AuthRequest, res: Response) => {
   const { planId } = req.body;
 
-  const awarded = awardKenduForPlan(req.userId!, planId);
-  const balance = getKenduBalance(req.userId!);
+  const awarded = await awardKenduForPlan(req.userId!, planId);
+  const balance = await getKenduBalance(req.userId!);
 
   res.json({ pointsEarned: awarded, newBalance: balance.spendable_balance });
 });
 
 // POST /kendu/earn-workout — Award Kendu for completing a coach workout
-router.post('/earn-workout', (req: AuthRequest, res: Response) => {
+router.post('/earn-workout', async (req: AuthRequest, res: Response) => {
   const { sessionId } = req.body;
 
-  const awarded = awardKenduForWorkout(req.userId!, sessionId);
-  const balance = getKenduBalance(req.userId!);
+  const awarded = await awardKenduForWorkout(req.userId!, sessionId);
+  const balance = await getKenduBalance(req.userId!);
 
   res.json({ pointsEarned: awarded, newBalance: balance.spendable_balance });
 });
 
 // GET /kendu/balance — Get current user's balance
-router.get('/balance', (req: AuthRequest, res: Response) => {
-  const balance = getKenduBalance(req.userId!);
+router.get('/balance', async (req: AuthRequest, res: Response) => {
+  const balance = await getKenduBalance(req.userId!);
   res.json(balance);
 });
 
 // GET /kendu/balance/:userId — Get specific user's balance (public info)
-router.get('/balance/:userId', (req: AuthRequest, res: Response) => {
+router.get('/balance/:userId', async (req: AuthRequest, res: Response) => {
   const userId = parseInt(req.params.userId);
   if (isNaN(userId)) return res.status(400).json({ error: 'Invalid userId' });
 
-  const balance = getKenduBalance(userId);
+  const balance = await getKenduBalance(userId);
   res.json(balance);
 });
 
@@ -165,11 +165,11 @@ router.get('/offers', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/redeem — Redeem an offer
-router.post('/redeem', (req: AuthRequest, res: Response) => {
+router.post('/redeem', async (req: AuthRequest, res: Response) => {
   const { offerId } = req.body;
   if (!offerId) return res.status(400).json({ error: 'offerId required' });
 
-  const result = redeemOffer(req.userId!, offerId);
+  const result = await redeemOffer(req.userId!, offerId);
 
   if (!result.success) {
     return res.status(400).json({ error: result.error });
@@ -361,7 +361,7 @@ router.get('/admin/economy', async (req: AuthRequest, res: Response) => {
   const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
-  const stats = getEconomyStats();
+  const stats = await getEconomyStats();
 
   const weeklyEarned = await db.queryOne(`
     SELECT COALESCE(SUM(amount), 0) as total FROM kendu_transactions
@@ -396,7 +396,7 @@ router.post('/admin/process-upkeep', async (req: AuthRequest, res: Response) => 
   const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
-  const result = checkAllUpkeepDue();
+  const result = await checkAllUpkeepDue();
   res.json(result);
 });
 
@@ -405,28 +405,28 @@ router.post('/admin/resolve-challenges', async (req: AuthRequest, res: Response)
   const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
   if (user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
 
-  const result = resolveExpiredChallenges();
+  const result = await resolveExpiredChallenges();
   res.json(result);
 });
 
 // ===== SPENDING ENDPOINTS =====
 
 // POST /kendu/spend/community — Spend Kendu to create a community
-router.post('/spend/community', (req: AuthRequest, res: Response) => {
+router.post('/spend/community', async (req: AuthRequest, res: Response) => {
   const { communityName } = req.body;
   if (!communityName) return res.status(400).json({ error: 'communityName required' });
 
-  const result = spendToCreateCommunity(req.userId!, communityName);
+  const result = await spendToCreateCommunity(req.userId!, communityName);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
 
 // POST /kendu/spend/event — Spend Kendu to host an event
-router.post('/spend/event', (req: AuthRequest, res: Response) => {
+router.post('/spend/event', async (req: AuthRequest, res: Response) => {
   const { eventTitle } = req.body;
   if (!eventTitle) return res.status(400).json({ error: 'eventTitle required' });
 
-  const result = spendToHostEvent(req.userId!, eventTitle);
+  const result = await spendToHostEvent(req.userId!, eventTitle);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
@@ -438,7 +438,7 @@ router.post('/spend/challenge', async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'opponentId, stakeAmount, metric, deadline required' });
   }
 
-  const stakeResult = spendForChallenge(req.userId!, stakeAmount, 0);
+  const stakeResult = await spendForChallenge(req.userId!, stakeAmount, 0);
   if (!stakeResult.success) return res.status(402).json({ error: stakeResult.error });
 
   const challenge = await db.execute(`
@@ -465,7 +465,7 @@ router.post('/challenge/accept', async (req: AuthRequest, res: Response) => {
 
   if (!challenge) return res.status(404).json({ error: 'Challenge not found or not pending' });
 
-  const stakeResult = spendForChallenge(req.userId!, challenge.stake_amount, challengeId);
+  const stakeResult = await spendForChallenge(req.userId!, challenge.stake_amount, challengeId);
   if (!stakeResult.success) return res.status(402).json({ error: stakeResult.error });
 
   await db.execute("UPDATE kendu_challenges SET status = 'active' WHERE id = $1", [challengeId]);
@@ -515,21 +515,21 @@ router.get('/challenges', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/spend/rsvp — Priority RSVP for an event
-router.post('/spend/rsvp', (req: AuthRequest, res: Response) => {
+router.post('/spend/rsvp', async (req: AuthRequest, res: Response) => {
   const { eventId } = req.body;
   if (!eventId) return res.status(400).json({ error: 'eventId required' });
 
-  const result = spendForPriorityRSVP(req.userId!, eventId);
+  const result = await spendForPriorityRSVP(req.userId!, eventId);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
 
 // POST /kendu/spend/gift — Gift Kendu to another runner
-router.post('/spend/gift', (req: AuthRequest, res: Response) => {
+router.post('/spend/gift', async (req: AuthRequest, res: Response) => {
   const { toUserId, amount, message } = req.body;
   if (!toUserId || !amount) return res.status(400).json({ error: 'toUserId and amount required' });
 
-  const result = giftKendu(req.userId!, toUserId, amount, message);
+  const result = await giftKendu(req.userId!, toUserId, amount, message);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
@@ -548,7 +548,7 @@ router.post('/spend/card-skin', async (req: AuthRequest, res: Response) => {
   const existing = await db.queryOne('SELECT id FROM user_skins WHERE user_id = $1 AND skin_id = $2', [req.userId, skinId]);
   if (existing) return res.status(400).json({ error: 'Skin already owned' });
 
-  const result = spendForCardSkin(req.userId!, skinId);
+  const result = await spendForCardSkin(req.userId!, skinId);
   if (!result.success) return res.status(402).json({ error: result.error });
 
   await db.execute('INSERT INTO user_skins (user_id, skin_id) VALUES ($1, $2)', [req.userId, skinId]);
@@ -563,7 +563,7 @@ router.post('/spend/boost-post', async (req: AuthRequest, res: Response) => {
   const post = await db.queryOne('SELECT * FROM community_posts WHERE id = $1 AND user_id = $2', [postId, req.userId]) as any;
   if (!post) return res.status(404).json({ error: 'Post not found or not yours' });
 
-  const result = spendToBoostPost(req.userId!, postId);
+  const result = await spendToBoostPost(req.userId!, postId);
   if (!result.success) return res.status(402).json({ error: result.error });
 
   await db.execute('UPDATE community_posts SET pinned = 1 WHERE id = $1', [postId]);
@@ -572,28 +572,28 @@ router.post('/spend/boost-post', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/spend/group-challenge — Create a group challenge
-router.post('/spend/group-challenge', (req: AuthRequest, res: Response) => {
+router.post('/spend/group-challenge', async (req: AuthRequest, res: Response) => {
   const { title } = req.body;
   if (!title) return res.status(400).json({ error: 'title required' });
 
-  const result = spendToCreateGroupChallenge(req.userId!, title);
+  const result = await spendToCreateGroupChallenge(req.userId!, title);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
 
 // POST /kendu/spend/ai-deep-dive — Pay for extended AI session
-router.post('/spend/ai-deep-dive', (req: AuthRequest, res: Response) => {
-  const result = spendForAIDeepDive(req.userId!);
+router.post('/spend/ai-deep-dive', async (req: AuthRequest, res: Response) => {
+  const result = await spendForAIDeepDive(req.userId!);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
 
 // POST /kendu/spend/sponsor — Sponsor a community leaderboard
-router.post('/spend/sponsor', (req: AuthRequest, res: Response) => {
+router.post('/spend/sponsor', async (req: AuthRequest, res: Response) => {
   const { communityId } = req.body;
   if (!communityId) return res.status(400).json({ error: 'communityId required' });
 
-  const result = spendToSponsorLeaderboard(req.userId!, communityId);
+  const result = await spendToSponsorLeaderboard(req.userId!, communityId);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });
@@ -612,11 +612,11 @@ router.get('/subscriptions', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /kendu/upkeep/reactivate — Reactivate a dormant community
-router.post('/upkeep/reactivate', (req: AuthRequest, res: Response) => {
+router.post('/upkeep/reactivate', async (req: AuthRequest, res: Response) => {
   const { subscriptionId } = req.body;
   if (!subscriptionId) return res.status(400).json({ error: 'subscriptionId required' });
 
-  const result = reactivateCommunity(req.userId!, subscriptionId);
+  const result = await reactivateCommunity(req.userId!, subscriptionId);
   if (!result.success) return res.status(402).json({ error: result.error });
   res.json(result);
 });

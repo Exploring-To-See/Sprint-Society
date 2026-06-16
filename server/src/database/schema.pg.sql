@@ -1008,3 +1008,16 @@ CREATE TABLE IF NOT EXISTS community_requests (
     created_at TIMESTAMP DEFAULT NOW(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- ===== Idempotent column migrations =====
+-- Ported from the SQLite ALTER TABLE migrations in server/src/database/db.ts that
+-- were never reflected in this Postgres schema. Safe to run repeatedly.
+ALTER TABLE users           ADD COLUMN IF NOT EXISTS google_id TEXT;
+ALTER TABLE users           ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'Asia/Kolkata';
+ALTER TABLE activities      ADD COLUMN IF NOT EXISTS activity_type TEXT DEFAULT 'Run';
+ALTER TABLE activities      ADD COLUMN IF NOT EXISTS rpe INTEGER;
+ALTER TABLE activities      ADD COLUMN IF NOT EXISTS suspicious INTEGER DEFAULT 0;
+ALTER TABLE activities      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE communities     ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE kudos           ADD COLUMN IF NOT EXISTS reaction_type TEXT DEFAULT 'high_five';
