@@ -353,7 +353,7 @@ export interface CreateCommunityPayload {
 
 // ===== Subscription Types =====
 
-export type PlanKey = 'free' | 'pro' | 'premium';
+export type PlanKey = 'free' | 'base' | 'pro';
 export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'pending';
 
 export interface SubscriptionPlan {
@@ -377,7 +377,7 @@ export interface UserSubscription {
 
 // ===== Notifications Types =====
 
-export type NotificationType = 'kudos' | 'comment' | 'follow' | 'event_reminder' | 'event_rsvp' | 'community_post' | 'community_join' | 'achievement' | 'level_up' | 'xp_award';
+export type NotificationType = 'welcome' | 'kudos' | 'comment' | 'follow' | 'event_reminder' | 'event_rsvp' | 'community_post' | 'community_join' | 'achievement' | 'level_up' | 'xp_award' | 'ai_insight';
 
 export interface UserNotification {
   id: number;
