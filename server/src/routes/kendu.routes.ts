@@ -31,7 +31,7 @@ import {
 const router = Router();
 router.use(authenticate);
 
-// user_skins table is created by schema.sql during initializeDatabase()
+// user_skins table is created by schema.pg.sql during initializeDatabase()
 
 // POST /kendu/earn — Award Kendu after a run (admin only — normal earning happens via runCascade)
 router.post('/earn', async (req: AuthRequest, res: Response) => {

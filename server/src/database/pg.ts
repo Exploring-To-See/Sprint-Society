@@ -25,7 +25,6 @@ pool.on('error', (err) => {
 
 /**
  * Execute a query and return all rows.
- * Replacement for SQLite's .all()
  */
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
@@ -41,7 +40,6 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
 
 /**
  * Execute a query and return the first row or null.
- * Replacement for SQLite's .get()
  */
 export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T | null> {
   const rows = await query<T>(sql, params);
@@ -50,7 +48,6 @@ export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T 
 
 /**
  * Execute a statement (INSERT/UPDATE/DELETE) and return rowCount + rows.
- * Replacement for SQLite's .run()
  * rows includes RETURNING data if present in the SQL.
  */
 export async function execute(sql: string, params?: any[]): Promise<{ rowCount: number; rows: any[] }> {

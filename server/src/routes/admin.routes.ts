@@ -210,7 +210,7 @@ router.post('/events/:id/go-live', async (req: AuthRequest, res: Response) => {
 router.post('/events/:id/complete', async (req: AuthRequest, res: Response) => {
   const eventId = parseInt(req.params.id);
 
-  // PostgreSQL doesn't have db.transaction() like better-sqlite3, use BEGIN/COMMIT
+  // Use BEGIN/COMMIT for transactional event completion
   try {
     await db.execute('BEGIN', []);
 

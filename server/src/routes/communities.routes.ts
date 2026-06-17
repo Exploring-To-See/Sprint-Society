@@ -7,7 +7,7 @@ import { spendToCreateCommunity, createCommunitySubscription } from '../engine/k
 const router = Router();
 router.use(authenticate);
 
-// community_requests table is created by schema.sql during initializeDatabase()
+// community_requests table is created by schema.pg.sql during initializeDatabase()
 
 const MIN_LEVEL_TO_CREATE = 5;
 const MIN_XP_TO_CREATE = 500;
