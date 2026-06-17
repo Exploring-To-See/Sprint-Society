@@ -1,14 +1,18 @@
-// DB_PATH + JWT_SECRET are set in src/test-setup.ts before any import, so the
-// db connection opens against a per-worker temp DB (not the real one).
-import { describe, it, expect, beforeAll } from 'vitest';
+// DATABASE_URL + JWT_SECRET are set in src/test-setup.ts before any import, so
+// the pg pool opens against the local test Postgres (not the real one).
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { initializeDatabase } from '../database/db';
+import { resetDatabase, closePool } from '../test-helpers/db';
 import { createApp } from '../app';
 
 const app = createApp();
 
-beforeAll(() => {
-  initializeDatabase();
+beforeAll(async () => {
+  await resetDatabase();
+});
+
+afterAll(async () => {
+  await closePool();
 });
 
 describe('Auth flow: register → login → me', () => {

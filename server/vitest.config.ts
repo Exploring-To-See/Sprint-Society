@@ -8,5 +8,8 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'],
     testTimeout: 15000,
     pool: 'forks',
+    // Integration suites share one Postgres and TRUNCATE in beforeAll, so they
+    // must not run in parallel or they'd wipe each other's data mid-test.
+    fileParallelism: false,
   },
 });
