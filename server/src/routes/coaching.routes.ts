@@ -121,7 +121,7 @@ router.post('/challenges/:id/complete', authenticate, async (req: AuthRequest, r
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
   if (challenge.completed) return res.status(400).json({ error: 'Already completed' });
 
-  await db.execute('UPDATE challenges SET completed = true, completed_at = CURRENT_TIMESTAMP WHERE id = $1', [challenge.id]);
+  await db.execute('UPDATE challenges SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = $1', [challenge.id]);
 
   // Award XP (original challenge XP + 15 bonus XP)
   const totalXpReward = challenge.xp_reward + 15;

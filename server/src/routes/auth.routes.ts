@@ -33,7 +33,7 @@ router.post('/register', async (req, res: Response) => {
     let code: any = null;
     if (data.invite_code) {
       code = await db.queryOne(
-        `SELECT * FROM invite_codes WHERE code = $1 AND active = true`,
+        `SELECT * FROM invite_codes WHERE code = $1 AND active = 1`,
         [data.invite_code.toUpperCase().trim()]
       );
 

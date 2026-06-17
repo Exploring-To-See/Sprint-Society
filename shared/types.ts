@@ -377,7 +377,7 @@ export interface UserSubscription {
 
 // ===== Notifications Types =====
 
-export type NotificationType = 'welcome' | 'kudos' | 'comment' | 'follow' | 'event_reminder' | 'event_rsvp' | 'community_post' | 'community_join' | 'achievement' | 'level_up' | 'xp_award' | 'ai_insight';
+export type NotificationType = 'welcome' | 'kudos' | 'comment' | 'follow' | 'event_reminder' | 'event_rsvp' | 'community_post' | 'community_join' | 'achievement' | 'level_up' | 'xp_award' | 'ai_insight' | 'kendu_earned' | 'goal_completed';
 
 export interface UserNotification {
   id: number;

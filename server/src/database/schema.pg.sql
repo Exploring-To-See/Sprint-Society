@@ -619,7 +619,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_history_user ON payment_history(user_id, 
 CREATE TABLE IF NOT EXISTS user_notifications (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('welcome', 'kudos', 'comment', 'follow', 'event_reminder', 'event_rsvp', 'community_post', 'community_join', 'achievement', 'level_up', 'xp_award', 'ai_insight')),
+    type TEXT NOT NULL CHECK(type IN ('welcome', 'kudos', 'comment', 'follow', 'event_reminder', 'event_rsvp', 'community_post', 'community_join', 'achievement', 'level_up', 'xp_award', 'ai_insight', 'kendu_earned', 'goal_completed')),
     title TEXT NOT NULL,
     body TEXT,
     actor_id INTEGER,
@@ -839,12 +839,17 @@ CREATE TABLE IF NOT EXISTS kendu_transactions (
 -- Kendu Economy: Offers/Rewards Store
 CREATE TABLE IF NOT EXISTS kendu_offers (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    brand_name TEXT NOT NULL,
+    offer_title TEXT NOT NULL,
     description TEXT,
-    cost INTEGER NOT NULL,
-    category TEXT NOT NULL DEFAULT 'reward',
+    kendu_cost INTEGER NOT NULL,
+    rupee_value INTEGER,
+    total_quantity INTEGER NOT NULL,
+    remaining_quantity INTEGER NOT NULL,
     active INTEGER NOT NULL DEFAULT 1,
-    max_redemptions INTEGER,
+    expires_at TIMESTAMP,
+    event_id INTEGER,
+    max_per_user INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -853,6 +858,7 @@ CREATE TABLE IF NOT EXISTS kendu_redemptions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     offer_id INTEGER NOT NULL,
+    kendu_spent INTEGER NOT NULL DEFAULT 0,
     coupon_code TEXT,
     redeemed_at TIMESTAMP DEFAULT NOW(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

@@ -22,7 +22,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   `, [req.userId, limit, offset]) as any[];
 
   const unreadRow = await db.queryOne(
-    'SELECT COUNT(*) as c FROM user_notifications WHERE user_id = $1 AND read = false',
+    'SELECT COUNT(*) as c FROM user_notifications WHERE user_id = $1 AND read = 0',
     [req.userId]
   ) as any;
   const unread_count = parseInt(unreadRow.c);
@@ -39,7 +39,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.get('/unread-count', async (req: AuthRequest, res: Response) => {
   await generateProactiveNotifications(req.userId!);
   const countRow = await db.queryOne(
-    'SELECT COUNT(*) as c FROM user_notifications WHERE user_id = $1 AND read = false',
+    'SELECT COUNT(*) as c FROM user_notifications WHERE user_id = $1 AND read = 0',
     [req.userId]
   ) as any;
   res.json({ count: parseInt(countRow.c) });
@@ -47,13 +47,13 @@ router.get('/unread-count', async (req: AuthRequest, res: Response) => {
 
 // POST /notifications/read-all — mark all as read
 router.post('/read-all', async (req: AuthRequest, res: Response) => {
-  await db.execute('UPDATE user_notifications SET read = true WHERE user_id = $1 AND read = false', [req.userId]);
+  await db.execute('UPDATE user_notifications SET read = 1 WHERE user_id = $1 AND read = 0', [req.userId]);
   res.json({ success: true });
 });
 
 // POST /notifications/:id/read — mark one as read
 router.post('/:id/read', async (req: AuthRequest, res: Response) => {
-  await db.execute('UPDATE user_notifications SET read = true WHERE id = $1 AND user_id = $2', [
+  await db.execute('UPDATE user_notifications SET read = 1 WHERE id = $1 AND user_id = $2', [
     parseInt(req.params.id), req.userId
   ]);
   res.json({ success: true });

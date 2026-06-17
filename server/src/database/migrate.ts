@@ -82,7 +82,7 @@ async function seedSprintSocialClub(): Promise<void> {
 
   const result = await execute(`
     INSERT INTO communities (owner_id, name, description, category, is_verified, member_count)
-    VALUES ($1, 'Sprint Social Club', 'The official Sprint Society community. Everyone''s in. Announcements, events, vibes.', 'social', true, 1)
+    VALUES ($1, 'Sprint Social Club', 'The official Sprint Society community. Everyone''s in. Announcements, events, vibes.', 'social', 1, 1)
     RETURNING id
   `, [admin.id]);
 
@@ -184,7 +184,7 @@ async function seedInviteCodes(): Promise<void> {
     if (existing) continue;
 
     await execute(
-      'INSERT INTO invite_codes (code, name, max_uses, created_by, active) VALUES ($1, $2, $3, $4, true)',
+      'INSERT INTO invite_codes (code, name, max_uses, created_by, active) VALUES ($1, $2, $3, $4, 1)',
       [c.code, c.name, c.max_uses, admin.id]
     );
   }
