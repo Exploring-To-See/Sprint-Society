@@ -50,7 +50,7 @@
 - [x] SS-022: Social feed pagination indicator
 - [x] SS-023: Readiness cross-training support (0.5x multiplier)
 - [x] SS-024: Chat rate limiting (20 msg/min)
-- [x] SS-025: Railway deployment (RESOLVED — app is live)
+- [x] SS-025: Vercel + Supabase deployment (RESOLVED — Railway retired)
 - [x] SS-026: Landing page fix (logo top, no text overlap, login visible)
 
 ---
@@ -58,9 +58,9 @@
 ## Backlog — Not Started
 
 ### Deployment / Infra
-- [ ] SS-030: Set ANTHROPIC_API_KEY on Railway (enables AI chat)
-- [ ] SS-031: Set RAZORPAY keys on Railway (enables payments)
-- [ ] SS-032: PostgreSQL migration (DEFERRED — only after 100 users)
+- [ ] SS-030: Set ANTHROPIC_API_KEY in Vercel (enables AI chat)
+- [ ] SS-031: Set RAZORPAY keys in Vercel (enables payments)
+- [x] SS-032: PostgreSQL migration (DONE — Supabase Postgres)
 
 ### Completed (2026-05-25)
 - [x] SS-050: Built-in GPS run tracker (/run/track — replaces Strava dependency)
@@ -70,7 +70,7 @@
 ### Subscription Tier Alignment
 - [x] SS-033: Update pricing to ₹9 Base (Haiku) / ₹99 Pro (Sonnet) — ₹199 + nutrition dropped
 
-### AI Features (v1.2 scope — needs ANTHROPIC_API_KEY on Railway)
+### AI Features (v1.2 scope — needs ANTHROPIC_API_KEY in Vercel)
 - [ ] SS-034: Background Haiku evaluation on Strava sync (auto-adjust training plan)
 - [ ] SS-035: Weekly AI Summary card generation (Sunday)
 

@@ -21,3 +21,4 @@ __pycache__/
 
 # Preview files (local design reference)
 preview-*.html
+.node/

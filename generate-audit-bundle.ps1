@@ -38,8 +38,8 @@ SPRINT SOCIETY — ALGORITHM & CLASSIFICATION ENGINE AUDIT BUNDLE
 ================================================================================
 
 Project: Sprint Society (AI-powered run club platform)
-Stack: TypeScript, Express, React, better-sqlite3, Strava API
-Deploy: Railway.app
+Stack: TypeScript, Express, React, Postgres (pg)
+Deploy: Vercel (serverless) + Supabase Postgres
 
 PURPOSE OF THIS AUDIT:
 Review the runner classification algorithm for:
@@ -131,13 +131,13 @@ SPRINT SOCIETY — SECURITY & BACKEND AUDIT BUNDLE
 ================================================================================
 
 Project: Sprint Society (AI-powered run club platform)
-Stack: TypeScript, Express, better-sqlite3, JWT auth, Strava OAuth2
-Deploy: Railway.app (single server, SQLite DB)
+Stack: TypeScript, Express, Postgres (pg), JWT auth, Google OAuth
+Deploy: Vercel (serverless) + Supabase Postgres
 
 PURPOSE OF THIS AUDIT:
 Review for:
 - Authentication/authorization vulnerabilities (JWT handling, token storage)
-- SQL injection (using better-sqlite3 parameterized queries)
+- SQL injection (using pg parameterized queries)
 - API input validation gaps
 - IDOR (insecure direct object references)
 - Rate limiting / abuse prevention
@@ -151,7 +151,7 @@ ARCHITECTURE NOTES:
 - Single Express server, all routes behind JWT middleware
 - Admin routes have separate adminAuth middleware
 - Strava integration uses OAuth2 with refresh token rotation
-- SQLite (better-sqlite3) — synchronous, no connection pooling
+- Postgres (pg) — async, pooled (Supabase transaction pooler in production)
 - No Redis/session store — stateless JWT only
 
 ================================================================================
@@ -254,7 +254,7 @@ SPRINT SOCIETY — FRONTEND & UX AUDIT BUNDLE
 
 Project: Sprint Society (AI-powered run club platform)
 Stack: React 18, Vite, TypeScript, TailwindCSS, Framer Motion, Recharts, React Query
-Deploy: Railway.app (static build served by Express)
+Deploy: Vercel (static client + serverless API)
 
 PURPOSE OF THIS AUDIT:
 Review for:

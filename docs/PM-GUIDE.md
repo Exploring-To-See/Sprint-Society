@@ -262,34 +262,37 @@ Users can view and edit their AI profile via the My AI Profile page.
 ### Architecture
 
 ```
-Client (React + Vite)  →  Server (Express + TypeScript)  →  SQLite DB
-                                    ↕
-                              Strava API (OAuth2 + Webhooks)
+Client (React + Vite, static)  →  /api (Express serverless function)  →  Supabase Postgres
+                                          ↕
+                              Anthropic (AI coach) · Razorpay · Google OAuth
 ```
 
 ### Deployment
 
-- Hosted on **Railway.app**
-- Single service deployment (monorepo builds together)
-- SQLite file lives on Railway's persistent volume
+- Hosted on **Vercel** — static client (`client/dist`) + the Express API as a
+  serverless function (`api/[...path].ts`)
+- Database is **Supabase Postgres** (transaction pooler in production)
+- Background jobs run via **Vercel Cron** (`/api/cron/maintenance`)
+- Full runbook: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ### Environment Variables
 
 | Variable | Purpose |
 |----------|---------|
-| `STRAVA_CLIENT_ID` | Strava OAuth app ID |
-| `STRAVA_CLIENT_SECRET` | Strava OAuth secret |
-| `STRAVA_WEBHOOK_VERIFY_TOKEN` | Webhook validation |
-| `JWT_SECRET` | Auth token signing |
-| `DATABASE_URL` | SQLite file path |
-| `CLIENT_URL` | Frontend URL (for CORS) |
+| `JWT_SECRET` | Auth token signing (required) |
+| `DATABASE_URL` | Supabase Postgres connection (pooler `:6543` in prod) |
+| `CLIENT_URL` | Frontend origin (for CORS) |
+| `CRON_SECRET` | Guards the maintenance cron |
 | `ANTHROPIC_API_KEY` | Claude AI coaching (optional — degrades gracefully) |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | Payments |
 | `GOOGLE_CLIENT_ID` | Google OAuth2 client ID (enables "Sign in with Google") |
 | `VITE_GOOGLE_CLIENT_ID` | Same value as GOOGLE_CLIENT_ID (exposed to frontend at build time) |
 
+Full list with formats: [.env.example](../.env.example).
+
 ### Database
 
-SQLite via `better-sqlite3`. Key tables:
+Postgres via `pg` (Supabase). Key tables:
 - `users` — profiles, credentials, fitness data, timezone (default 'Asia/Kolkata')
 - `activities` — all synced runs
 - `user_xp` — level, XP, streaks
@@ -366,7 +369,7 @@ Key indexes for feed/event/admin query performance:
 **Launch checklist (for founder):**
 - [ ] Create Razorpay account at https://razorpay.com
 - [ ] Get TEST keys from Dashboard → Settings → API Keys
-- [ ] Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` on Railway (test mode first)
+- [ ] Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in Vercel (test mode first)
 - [ ] Test: buy Base subscription with test card `4111 1111 1111 1111`
 - [ ] Test: upgrade Base→Pro
 - [ ] Test: verify subscription expires after duration
@@ -463,7 +466,7 @@ Notifications are pushed in real-time via the existing `/ws` WebSocket server.
 
 ### Database Backups
 
-- Nightly SQLite `.backup()` via scheduler (safe during concurrent writes)
+- Supabase managed daily backups (primary); admin CSV export via the Backup tab (secondary)
 - Stored in `data/backups/sprint-society-YYYY-MM-DD.backup`
 - Auto-pruned after 14 days
 - Uploads to `BACKUP_STORAGE_URL` if set (S3-compatible PUT)
@@ -491,7 +494,7 @@ Creates or promotes an account to admin role.
 
 1. Check their Strava connection status (Runners tab → find user)
 2. If disconnected → tell them to reconnect on Profile
-3. If connected → check webhook logs on Railway
+3. If connected → check function logs in Vercel
 4. Last resort → tell them to hit manual sync on Profile
 
 ### "Tier seems wrong"

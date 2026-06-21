@@ -348,32 +348,32 @@ New section on Kendu admin tab shows:
 ### Architecture
 
 ```
-Client (React + Vite)  →  Server (Express + TypeScript)  →  SQLite DB
-                                    ↕
-                              Strava API (OAuth2 + Webhooks)
+Client (React + Vite, static)  →  /api (Express serverless function)  →  Supabase Postgres
+                                          ↕
+                              Anthropic (AI coach) · Razorpay · Google OAuth
 ```
 
 ### Deployment
 
-- Hosted on **Railway.app**
-- Single service deployment (monorepo builds together)
-- SQLite file lives on Railway's persistent volume
+- Hosted on **Vercel** — static client + Express API as a serverless function
+- Database is **Supabase Postgres** (transaction pooler in production)
+- Background jobs run via **Vercel Cron**; full runbook: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ### Environment Variables
 
 | Variable | Purpose |
 |----------|---------|
-| `STRAVA_CLIENT_ID` | Strava OAuth app ID |
-| `STRAVA_CLIENT_SECRET` | Strava OAuth secret |
-| `STRAVA_WEBHOOK_VERIFY_TOKEN` | Webhook validation |
-| `JWT_SECRET` | Auth token signing |
-| `DATABASE_URL` | SQLite file path |
-| `CLIENT_URL` | Frontend URL (for CORS) |
+| `JWT_SECRET` | Auth token signing (required) |
+| `DATABASE_URL` | Supabase Postgres connection (pooler `:6543` in prod) |
+| `CLIENT_URL` | Frontend origin (for CORS) |
+| `CRON_SECRET` | Guards the maintenance cron |
 | `ANTHROPIC_API_KEY` | Claude AI coaching (optional — degrades gracefully) |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | Payments |
+| `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` | Google sign-in |
 
 ### Database
 
-SQLite via `better-sqlite3`. Key tables:
+Postgres via `pg` (Supabase). Key tables:
 - `users` — profiles, credentials, fitness data
 - `activities` — all synced runs
 - `user_xp` — level, XP, streaks
@@ -400,7 +400,7 @@ Creates or promotes an account to admin role.
 
 1. Check their Strava connection status (Runners tab → find user)
 2. If disconnected → tell them to reconnect on Profile
-3. If connected → check webhook logs on Railway
+3. If connected → check function logs in Vercel
 4. Last resort → tell them to hit manual sync on Profile
 
 ### "Tier seems wrong"

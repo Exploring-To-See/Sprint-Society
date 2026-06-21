@@ -221,10 +221,10 @@ AI: "Yes, but you had intervals yesterday. I'd move it to Monday for
 
 ## Technical Stack
 - **AI**: Claude API (coaching conversations) + custom algorithms (sports science)
-- **Backend**: Express + TypeScript + SQLite → migrate to PostgreSQL at scale
+- **Backend**: Express + TypeScript + Postgres (Supabase) as a Vercel serverless function
 - **Frontend**: React + Vite + TailwindCSS + Framer Motion
 - **Data**: API-first architecture for any wearable/health source
-- **Deployment**: Railway → AWS/GCP when scaling
+- **Deployment**: Vercel (static client + serverless API) + Supabase Postgres
 - **Payments**: Razorpay (India-first)
 
 ---

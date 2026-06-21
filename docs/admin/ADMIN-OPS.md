@@ -17,28 +17,31 @@
 
 ---
 
-## 🌐 Railway Admin Actions
+## 🌐 Vercel Admin Actions
 
 ### Daily Check
-1. Open Railway dashboard → Sprint-Society service
-2. Check: Is it running? (green status)
-3. Check: Metrics tab → memory usage, response times
+1. Open the Vercel dashboard → Sprint-Society project
+2. Check: latest Production deployment is **Ready** (green)
+3. Check: Logs / Observability for errors and function durations
 
 ### After Code Push
-- Railway auto-deploys on push to `main`
-- Check Deployments tab for build status
-- If failed: click deploy → Build Logs → screenshot error
+- Vercel auto-deploys on push to `main`
+- Check Deployments for build status
+- If failed: open the deployment → Build/Function Logs
 
-### Environment Variables (Settings → Variables)
+### Environment Variables (Settings → Environment Variables)
 | Key | What it is | When to change |
 |-----|-----------|----------------|
-| `NODE_ENV` | `production` | Never |
-| `PORT` | `3001` | Never |
-| `JWT_SECRET` | Auth encryption key | Never (changing logs everyone out) |
-| `CLIENT_URL` | Your Railway URL | Only if URL changes |
+| `JWT_SECRET` | Auth signing key | Never (changing logs everyone out) |
+| `DATABASE_URL` | Supabase Postgres (transaction pooler `:6543`) | If you rotate the DB |
+| `CLIENT_URL` | Your production origin (Vercel URL / custom domain) | When the URL changes |
+| `CRON_SECRET` | Guards the daily maintenance cron | Rarely |
+| `ANTHROPIC_API_KEY` | AI coach/chat | When set up |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | Payments | When set up |
+| `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` | Google sign-in | When set up |
 | `RESEND_API_KEY` | Email service key | When you set up Resend |
-| `STRAVA_CLIENT_ID` | Strava app ID | When you set up Strava |
-| `STRAVA_CLIENT_SECRET` | Strava secret | When you set up Strava |
+
+> Full list with formats: [.env.example](../../.env.example). Deploy runbook: [docs/DEPLOYMENT.md](../DEPLOYMENT.md).
 
 ---
 
@@ -67,7 +70,7 @@ Login as admin at `https://YOUR-URL/admin`
 ## 📅 Routine Work Plan
 
 ### Daily (2 min)
-- [ ] Check Railway is running (green)
+- [ ] Check the latest Vercel deployment is Ready (green)
 - [ ] Check for new signups (admin panel → Overview)
 
 ### Weekly (15 min)
@@ -93,9 +96,9 @@ Login as admin at `https://YOUR-URL/admin`
 Before pushing to production:
 1. [ ] Run `/sprint-team` — fix anything it finds
 2. [ ] Run `/security-review` — no vulnerabilities
-3. [ ] Check: all env vars still correct on Railway
-4. [ ] Push to `main` — Railway auto-deploys
-5. [ ] Wait 3-4 min → check Deployments tab → confirm green
+3. [ ] Check: all env vars still correct in Vercel
+4. [ ] Push to `main` — Vercel auto-deploys
+5. [ ] Wait 1-2 min → check Deployments → confirm Ready (green)
 6. [ ] Open the live URL → test login → test one feature
 7. [ ] Done
 
@@ -105,21 +108,21 @@ Before pushing to production:
 
 | Service | Where to find | URL |
 |---------|--------------|-----|
-| Railway | Dashboard | railway.app |
+| Vercel | Dashboard (hosting + deploys + env vars) | vercel.com |
+| Supabase | Dashboard (Postgres + backups) | supabase.com |
 | GitHub | Exploring-To-See/Sprint-Society | github.com |
 | Resend | API keys (when set up) | resend.com/api-keys |
-| Strava API | Settings/API (when set up) | strava.com/settings/api |
-| Admin login | admin@sprintsociety.com / [your password] | your-railway-url/admin |
+| Admin login | admin@sprintsociety.com / [your password] | your-domain/admin |
 
 ---
 
 ## 🆘 If Something Breaks
 
-1. **App is down**: Railway dashboard → Deployments → check latest deploy. Redeploy previous working version if needed.
-2. **Build failed**: Click failed deploy → Build Logs → screenshot → come to Claude Code → paste.
-3. **User reports bug**: Check Railway logs (Deployments → Logs tab). Then fix and push.
-4. **Forgot admin password**: Run `npm run setup:admin` on Railway shell to create new admin.
-5. **Database issue**: Railway shell → `cd server && node -e "require('./dist/database/db')"` to check.
+1. **App is down**: Vercel dashboard → Deployments → check latest deploy. Roll back to a previous working deployment if needed.
+2. **Build failed**: Open the failed deployment → Build/Function Logs → screenshot → come to Claude Code → paste.
+3. **User reports bug**: Check Vercel function logs (Deployment → Logs / Observability). Then fix and push.
+4. **Forgot admin password**: Run `ADMIN_PASSWORD=new-pass npm run migrate` (re-seeds the admin user) against the Supabase database.
+5. **Database issue**: Check the Supabase dashboard (Database → Logs/Health), or connect with `psql "$DATABASE_URL"`.
 
 ---
 
