@@ -66,6 +66,9 @@ const globalStore = new SlidingWindowStore();
 
 function createRateLimiter(config: RateLimitConfig) {
   return (req: Request, res: Response, next: NextFunction) => {
+    // Disabled under test so integration suites can fire many requests per IP.
+    if (process.env.NODE_ENV === 'test') return next();
+
     const key = config.keyGenerator(req);
     const { allowed, remaining, resetMs } = globalStore.isAllowed(key, config.windowMs, config.maxRequests);
 
