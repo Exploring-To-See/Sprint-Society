@@ -12,7 +12,7 @@ AI-powered run club platform. Track your runs, level up your fitness, transform 
 
 This is a **hosted web app** — once deployed, anyone can access it from their phone/laptop via a URL.
 
-**Production:** [app.sprintsociety.in](https://app.sprintsociety.in) — served by the `poetic-creativity` Railway service, which deploys the whole monorepo from the repo root (`railway.toml`). This is the single source of truth for production.
+**Production:** deployed on **Vercel** (static client + the Express API as a serverless function) backed by **Supabase Postgres**. The Vercel project deploys from the repo root on every push to `main`; `app.sprintsociety.in` is attached to that Vercel project as a custom domain. This is the single source of truth for production.
 
 ### Two Access Levels:
 
@@ -23,59 +23,47 @@ This is a **hosted web app** — once deployed, anyone can access it from their 
 
 ---
 
-## Deploy to Railway (Recommended)
+## Deploy to Vercel
 
-### Step 1: Push code to GitHub
+The whole app (static client + the `/api` serverless function) deploys from the
+repo root. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full runbook and
+the custom-domain cutover.
 
-1. Go to github.com and create a new repository called `sprint-society`
-2. Upload this entire `sprint-society` folder to that repository
+### Step 1: Import the repo into Vercel
 
-### Step 2: Deploy on Railway
+1. Push the repo to GitHub.
+2. In Vercel → **Add New… → Project**, import the repository.
+3. **Leave the Root Directory as the repo root** (do not set it to `client/`) —
+   the API function and the `shared/` types live outside `client/`. `vercel.json`
+   already defines the build command, output directory, the `/api` function and
+   the daily cron.
 
-1. Go to [railway.app](https://railway.app) and sign in with GitHub
-2. Click **"New Project"** → **"Deploy from GitHub Repo"**
-3. Select your `sprint-society` repository
-4. Railway will auto-detect and build it
+### Step 2: Provision Supabase
 
-### Step 3: Set Environment Variables on Railway
+1. Create a Supabase project; copy the **transaction pooler** connection string
+   (`...pooler.supabase.com:6543`).
+2. Apply the schema + seed: `DATABASE_URL=<direct 5432 url> npm run migrate`.
 
-In your Railway project settings → Variables, add:
+### Step 3: Set environment variables on Vercel
 
-```
-PORT=3001
-NODE_ENV=production
-JWT_SECRET=pick-a-random-secret-string-here
-STRAVA_CLIENT_ID=your-strava-client-id
-STRAVA_CLIENT_SECRET=your-strava-client-secret
-STRAVA_REDIRECT_URI=https://YOUR-RAILWAY-URL/strava/callback
-ADMIN_EMAIL=your-email@example.com
-ADMIN_PASSWORD=your-secure-password
-ADMIN_NAME=Your Name
-```
+Add the variables from [`.env.example`](.env.example) — at minimum
+`JWT_SECRET`, `DATABASE_URL` (pooler), `CLIENT_URL` (your Vercel origin),
+`ANTHROPIC_API_KEY`, `RAZORPAY_KEY_ID/SECRET` (+ `RAZORPAY_WEBHOOK_SECRET`),
+`GOOGLE_CLIENT_ID` + `VITE_GOOGLE_CLIENT_ID`, and `CRON_SECRET`.
+Leave `VITE_API_URL` and `VITE_ENABLE_WS` unset (same-origin API, polling realtime).
 
-### Step 4: Create Your Admin Account
+### Step 4: Create your admin account
 
-After deploy, run this in Railway's terminal (or locally):
 ```bash
-npm run setup:admin
+ADMIN_PASSWORD=your-secure-password npm run migrate   # seeds admin@sprintsociety.com
 ```
 
-### Step 5: Access the App
+### Step 5: Foolproof, then attach the domain
 
-- Your URL will be something like: `https://sprint-society-production.up.railway.app`
-- Log in with your admin email/password → you'll see the Admin Panel
-- Share the same URL with runners → they register and get the runner view
-
----
-
-## Strava Setup
-
-1. Go to https://www.strava.com/settings/api
-2. Create an application:
-   - Application Name: `Sprint Society`
-   - Website: your Railway URL
-   - Authorization Callback Domain: your Railway domain (e.g., `sprint-society-production.up.railway.app`)
-3. Copy Client ID and Client Secret to your Railway environment variables
+1. Test everything on the `*.vercel.app` URL first.
+2. Then add `app.sprintsociety.in` under Vercel → Project → Settings → Domains,
+   update `CLIENT_URL` (and the Google OAuth authorized origins) to the custom
+   domain, and redeploy.
 
 ---
 
@@ -103,11 +91,12 @@ npm run setup:admin
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, Vite, TypeScript, TailwindCSS, Framer Motion, Recharts |
-| Backend | Express, TypeScript, better-sqlite3, JWT |
-| Integration | Strava API (OAuth2 + Webhooks) |
-| AI Engine | Deterministic sports science formulas (zero cost) |
-| Hosting | Railway.app (free tier available) |
+| Frontend | React 18, Vite, TypeScript, TailwindCSS, Framer Motion, Recharts (PWA) |
+| Backend | Express, TypeScript, Postgres (`pg`), JWT |
+| Database | Supabase Postgres |
+| Integrations | Razorpay (payments), Anthropic (AI coach), Google OAuth |
+| AI Engine | Deterministic sports-science formulas + Anthropic for coaching/chat |
+| Hosting | Vercel (static client + serverless API + Vercel Cron) |
 
 ---
 

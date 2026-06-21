@@ -40,7 +40,7 @@ router.post('/sprints', async (req: AuthRequest, res: Response) => {
 
 // GET /git-log — return last 20 commits (placeholder)
 router.get('/git-log', async (req: AuthRequest, res: Response) => {
-  // Cannot run git on Railway without exec, returning placeholder
+  // Cannot run git in the serverless runtime, returning placeholder
   const placeholder = [
     { hash: 'placeholder', message: 'Git log not available in production', date: new Date().toISOString() },
   ];

@@ -160,7 +160,11 @@ router.post('/log', authenticate, async (req: AuthRequest, res: Response) => {
     map_polyline || null
   ]);
 
-  const cascade = executeRunCascade({
+  // Await the cascade before responding. It writes XP, Kendu, PBs, achievements,
+  // goal progress and notifications — fire-and-forget would (a) serialize a
+  // pending Promise as `{}` to the client and (b) lose every write on a
+  // serverless host, which freezes the function the moment the response is sent.
+  const cascade = await executeRunCascade({
     userId: req.userId!,
     activityId: result.id as number,
     distanceMeters: distance_meters,

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { backendWsUrl } from '../lib/backend';
+import { backendWsUrl, WS_ENABLED, CHAT_POLL_MS } from '../lib/backend';
 import { useAuth } from '../context/AuthContext';
 import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 
@@ -495,9 +495,13 @@ function CommunityChat({ communityId }: { communityId: string }) {
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: history } = useQuery({
+  // When WebSocket is disabled (e.g. Vercel serverless) we keep chat fresh by
+  // polling the history endpoint; with WebSocket on, history seeds the initial
+  // list and live messages arrive over the socket.
+  const { data: history, refetch: refetchChat } = useQuery({
     queryKey: ['community-chat', communityId],
     queryFn: () => api.get(`/communities/${communityId}/chat`).then(r => r.data),
+    refetchInterval: WS_ENABLED ? false : CHAT_POLL_MS,
   });
 
   useEffect(() => {
@@ -505,7 +509,7 @@ function CommunityChat({ communityId }: { communityId: string }) {
   }, [history]);
 
   const connectWs = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('sprint_society_token');
     if (!token) return;
 
     const wsUrl = backendWsUrl(`/ws?token=${token}&community=${communityId}`);
@@ -549,6 +553,7 @@ function CommunityChat({ communityId }: { communityId: string }) {
   };
 
   useEffect(() => {
+    if (!WS_ENABLED) return; // polling mode — no socket
     connectWs();
     return () => {
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
@@ -560,17 +565,37 @@ function CommunityChat({ communityId }: { communityId: string }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'chat', body: input.trim() }));
+  // In polling mode the input is always usable; in WebSocket mode it follows the
+  // live connection state.
+  const canSend = WS_ENABLED ? connected : true;
+
+  const sendMessage = async () => {
+    const body = input.trim();
+    if (!body) return;
+
+    if (WS_ENABLED && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'chat', body }));
+      setInput('');
+      return;
+    }
+
+    // REST fallback (no socket): persist via POST, then refresh history.
     setInput('');
+    try {
+      await api.post(`/communities/${communityId}/chat`, { body });
+      refetchChat();
+    } catch {
+      setInput(body); // restore so the user can retry
+    }
   };
 
   return (
     <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-[400px]">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] text-zinc-600">
-          {connectionLost ? (
+          {!WS_ENABLED ? (
+            <span className="text-accent-green">● Live</span>
+          ) : connectionLost ? (
             <button onClick={handleRetry} className="text-red-400 active:scale-95 transition-transform">
               ● Connection lost. Tap to retry.
             </button>
@@ -613,14 +638,14 @@ function CommunityChat({ communityId }: { communityId: string }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder={connected ? 'Type a message...' : 'Connecting...'}
-          disabled={!connected}
+          placeholder={canSend ? 'Type a message...' : 'Connecting...'}
+          disabled={!canSend}
           maxLength={1000}
           className="flex-1 px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-zinc-600 focus:outline-none disabled:opacity-40"
         />
         <button
           onClick={sendMessage}
-          disabled={!input.trim() || !connected}
+          disabled={!input.trim() || !canSend}
           className="px-3 py-2 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95 transition-all"
         >
           Send

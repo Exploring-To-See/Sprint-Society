@@ -3,13 +3,20 @@ import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 const router = Router();
 router.use(authenticate);
 router.use(requireAdmin);
 
-const BACKUP_DIR = path.join(process.cwd(), 'data', 'backups');
+// On serverless (Vercel) the project filesystem is read-only — only the OS temp
+// dir is writable — so on-disk backup history lives in /tmp there (ephemeral;
+// Supabase's managed backups are the durable copy). Self-hosted deploys keep
+// backups under ./data/backups as before. Override with BACKUP_DIR if needed.
+const BACKUP_DIR =
+  process.env.BACKUP_DIR ||
+  (process.env.VERCEL ? path.join(os.tmpdir(), 'sprint-society-backups') : path.join(process.cwd(), 'data', 'backups'));
 
 const TABLES_TO_EXPORT = [
   'users', 'activities', 'user_xp', 'xp_transactions', 'achievements', 'user_achievements',
@@ -82,19 +89,16 @@ async function runBackup(): Promise<{ filename: string; path: string; tables: nu
   return { filename: `backup-${timestamp}`, path: backupFolder, tables: tablesExported, totalRows };
 }
 
-// GET /admin/backup/now — trigger backup and return a single combined CSV download
+// GET /admin/backup/now — return a single combined CSV download.
+// Built entirely in memory (no disk writes) so it works on read-only serverless
+// filesystems as well as self-hosted servers.
 router.get('/now', async (req: AuthRequest, res: Response) => {
   try {
-    const result = await runBackup();
-
-    // Build a combined CSV with table separators
     let combined = '';
     for (const table of TABLES_TO_EXPORT) {
-      const csvPath = path.join(result.path, `${table}.csv`);
-      if (fs.existsSync(csvPath)) {
-        combined += `\n--- TABLE: ${table} ---\n`;
-        combined += fs.readFileSync(csvPath, 'utf-8');
-        combined += '\n';
+      const csv = await tableToCSV(table);
+      if (csv) {
+        combined += `\n--- TABLE: ${table} ---\n${csv}\n`;
       }
     }
 

@@ -144,7 +144,7 @@ router.post('/google', async (req: Request, res: Response) => {
     const token = signToken(userId);
     res.status(201).json({ token, user: { id: userId, name, email, role: 'runner' }, isNew: true });
   } catch (err: any) {
-    // Log the full reason server-side (never the raw token) so Railway logs pinpoint the cause.
+    // Log the full reason server-side (never the raw token) so the server logs pinpoint the cause.
     console.error('[Google Auth] failed:', err?.message, err?.code || '');
     const msg: string = err?.message || '';
     if (msg.includes('audience') || msg.includes('issuer') || msg.includes('Invalid token') || msg.includes('not verified')) {

@@ -1,63 +1,68 @@
 # Sprint Society — Database Restore Guide
 
-## Backup System
+The production database is **Supabase Postgres**. Durable backups are Supabase's
+managed responsibility; the app-level CSV export is a convenience/secondary copy.
 
-Sprint Society runs nightly SQLite backups via the scheduler:
-- **Schedule:** Every 24 hours (registered on server startup)
-- **Method:** SQLite `.backup()` API (consistent, safe during writes)
-- **Location:** `data/backups/sprint-society-YYYY-MM-DD.backup`
-- **Retention:** 14 days (older files are pruned automatically)
-- **Upload:** If `BACKUP_STORAGE_URL` env var is set, uploads to object storage after local backup
+## Backup layers
 
-## Restore from Local Backup
+1. **Supabase managed backups (primary).**
+   - Supabase takes automatic daily backups; Point-in-Time Recovery (PITR) is
+     available on paid plans.
+   - Restore from the Supabase dashboard → Database → Backups, or via
+     `supabase db dump` / `pg_restore`.
 
-```bash
-# 1. Stop the server
-railway down  # or kill the process
+2. **App-level CSV export (secondary).**
+   - Admin panel → Backup tab → "Download Backup" streams a combined CSV of all
+     tables (`GET /api/admin/backup/now`). This is built in memory and works on
+     Vercel (read-only filesystem) as well as self-hosted servers.
+   - Self-hosted deploys also write dated CSV folders to `./data/backups` nightly
+     via the in-process scheduler. On Vercel there is no nightly disk backup —
+     rely on Supabase's managed backups (the daily Vercel Cron only runs DB
+     maintenance, not exports).
 
-# 2. List available backups
-ls data/backups/
-
-# 3. Replace the database with the backup
-cp data/backups/sprint-society-2026-06-12.backup data/sprint-society.db
-
-# 4. Restart the server
-railway up  # or npm start
-```
-
-## Restore from Object Storage
+## Restore the whole database (Supabase)
 
 ```bash
-# 1. Download the backup
-curl -o data/sprint-society.db "$BACKUP_STORAGE_URL/sprint-society-2026-06-12.backup"
+# Option A — Supabase dashboard:
+#   Database → Backups → choose a snapshot → Restore (or use PITR).
 
-# 2. Restart the server
-npm start
+# Option B — from a pg_dump you took yourself:
+pg_restore --clean --no-owner \
+  -d "$DATABASE_URL" \
+  ./sprint-society-YYYY-MM-DD.dump
+
+# Option C — re-apply schema to a fresh database, then load data:
+npm run migrate            # applies server/src/database/schema.pg.sql (idempotent) + seeds
 ```
 
-## Restore from Railway Admin Panel
+> `DATABASE_URL` must point at the Supabase database. For a full restore use the
+> **direct** connection string (port 5432), not the transaction pooler (6543).
 
-1. Go to admin panel → Backup tab
-2. Click "Download Backup" (downloads a CSV export of all tables)
-3. For full DB restore, use the `.backup` files from the filesystem
+## Restore a single table
 
-## Environment Variables
+Download it from the admin panel (`GET /api/admin/backup/table/:name`) or query
+Supabase directly with `psql "$DATABASE_URL"`.
+
+## Schema / migrations
+
+`server/src/database/schema.pg.sql` is the single source of truth. It is
+idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), so
+`npm run migrate` is safe to re-run; it applies the schema and seeds the admin
+user, default club, achievements, subscription plans and invite codes.
+
+## Environment variables
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `BACKUP_STORAGE_URL` | Object storage endpoint for off-site backups (S3-compatible PUT URL) | No |
-| `DB_PATH` | Path to the SQLite database file | No (defaults to `data/sprint-society.db`) |
-
-## Verify Backup Integrity
-
-```bash
-# Check if backup is a valid SQLite database
-sqlite3 data/backups/sprint-society-2026-06-12.backup "SELECT COUNT(*) FROM users;"
-```
+| `DATABASE_URL` | Supabase Postgres connection string (pooler `:6543` in prod, direct `:5432` for restores/migrations) | Yes |
+| `BACKUP_DIR` | Override the CSV export directory (serverless writes to the OS temp dir) | No |
+| `CRON_SECRET` | Guards the Vercel Cron maintenance endpoint | Prod |
 
 ## Notes
 
-- Backups use SQLite's built-in `.backup()` which is safe even during concurrent writes
-- The scheduler job runs within the Node.js process — no external cron needed
-- WAL mode is enabled, so the main DB file + WAL are both required for a live database
-- After restoring, the server's `initializeDatabase()` will run migrations automatically on startup
+- The nightly Vercel Cron (`/api/cron/maintenance`) only runs idempotent SQL
+  maintenance (challenge/subscription expiry, streak decay, Kendu challenge
+  resolution). It does **not** create backups — Supabase covers durability.
+- After restoring, the server applies any pending idempotent schema changes on
+  the next `npm run migrate` (self-host applies them on boot via
+  `initializeDatabase()`).

@@ -1,6 +1,6 @@
 import { Pool, type PoolConfig } from 'pg';
 
-// Use SSL only for remote/managed Postgres (e.g. Railway). Local/test Postgres
+// Use SSL only for remote/managed Postgres (e.g. Supabase). Local/test Postgres
 // typically has no SSL, and forcing it throws "server does not support SSL connections".
 const dbUrl = process.env.DATABASE_URL || '';
 const isLocalDb =
@@ -9,12 +9,20 @@ const isLocalDb =
   process.env.NODE_ENV === 'test' ||
   process.env.PGSSL === 'false';
 
+// On Vercel each warm function instance keeps its own pool, and many instances
+// run concurrently — so keep the per-instance pool tiny to stay under Supabase's
+// connection ceiling. Point DATABASE_URL at Supabase's transaction pooler
+// (the "...pooler.supabase.com:6543" connection string) in production so these
+// short-lived connections are multiplexed by pgBouncer.
+const isServerless = !!process.env.VERCEL;
+
 const poolConfig: PoolConfig = {
   connectionString: process.env.DATABASE_URL,
-  max: 10,
+  max: isServerless ? 1 : 10,
   ssl: isLocalDb ? false : { rejectUnauthorized: false },
   connectionTimeoutMillis: 10000,
-  idleTimeoutMillis: 30000,
+  idleTimeoutMillis: isServerless ? 10000 : 30000,
+  allowExitOnIdle: isServerless,
 };
 
 export const pool = new Pool(poolConfig);

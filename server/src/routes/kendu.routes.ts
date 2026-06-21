@@ -621,13 +621,20 @@ router.post('/upkeep/reactivate', async (req: AuthRequest, res: Response) => {
   res.json(result);
 });
 
-// Resolve expired challenges every 5 minutes (instead of on every GET request)
-// Delayed start to allow initializeDatabase() to complete first
-setTimeout(() => {
-  try { resolveExpiredChallenges(); } catch {}
-  setInterval(() => {
+// Resolve expired challenges periodically.
+//
+// Self-hosted (always-on) only: a module-level timer would run on every cold
+// start in serverless and never clean up, so it is gated behind !VERCEL. On
+// Vercel this same work is driven by Vercel Cron via runMaintenance()
+// (server/src/scheduler/jobs.ts → /api/cron/maintenance).
+if (!process.env.VERCEL) {
+  // Delayed start to allow initializeDatabase() to complete first
+  setTimeout(() => {
     try { resolveExpiredChallenges(); } catch {}
-  }, 5 * 60 * 1000);
-}, 5000);
+    setInterval(() => {
+      try { resolveExpiredChallenges(); } catch {}
+    }, 5 * 60 * 1000);
+  }, 5000);
+}
 
 export default router;

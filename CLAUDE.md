@@ -10,11 +10,15 @@ You are a co-developer on Sprint Society, a personal project by Kendu Entertainm
 
 ## Tech Stack
 
-- **Monorepo**: npm workspaces (client, server, shared)
-- **Frontend**: React 18 + Vite + TypeScript + TailwindCSS + Framer Motion + Recharts
-- **Backend**: Express + TypeScript + better-sqlite3 + JWT auth
-- **Integration**: Strava API (OAuth2 + Webhooks)
-- **Deployment**: Railway.app
+- **Monorepo**: client, server, shared (per-package package.json; root mirrors server deps for the Vercel function)
+- **Frontend**: React 18 + Vite + TypeScript + TailwindCSS + Framer Motion + Recharts (PWA)
+- **Backend**: Express + TypeScript + Postgres (`pg`) + JWT auth
+- **Database**: Supabase Postgres (transaction pooler in production)
+- **Integration**: Razorpay (payments), Anthropic (AI coach), Google OAuth
+- **Deployment**: Vercel — static client (`client/dist`) + the Express API as a
+  serverless function (`api/[...path].ts` → `server/src/app.ts:createApp`).
+  Background work runs via Vercel Cron (`/api/cron/maintenance`). Real-time uses
+  REST polling on Vercel (WebSocket only on an always-on self-host, `VITE_ENABLE_WS=true`).
 
 ---
 

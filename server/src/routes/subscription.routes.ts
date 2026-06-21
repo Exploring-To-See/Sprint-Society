@@ -248,7 +248,7 @@ router.get('/history', authenticate, async (req: AuthRequest, res: Response) => 
 
 // POST /subscription/webhook — Razorpay webhook (no auth, verifies signature)
 router.post('/webhook', async (req, res: Response) => {
-  const webhookSecret = config.razorpayKeySecret;
+  const webhookSecret = config.razorpayWebhookSecret;
   if (!webhookSecret) return res.status(503).json({ error: 'Not configured' });
 
   const signature = req.headers['x-razorpay-signature'] as string;

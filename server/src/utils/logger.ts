@@ -1,10 +1,15 @@
 import pino from 'pino';
 
 const isProduction = process.env.NODE_ENV === 'production';
+// On Vercel the function is bundled, and pino's worker-thread transports
+// (pino-pretty) don't survive bundling — they throw at init. Always log plain
+// JSON to stdout there; Vercel captures it. pretty output stays for local dev.
+const isServerless = !!process.env.VERCEL;
+const usePretty = !isProduction && !isServerless;
 
 export const logger = pino({
   level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
-  transport: isProduction ? undefined : { target: 'pino-pretty', options: { colorize: true } },
+  transport: usePretty ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
   redact: {
     paths: ['req.headers.authorization', 'password', 'password_hash', 'token', 'credential'],
     censor: '[REDACTED]',

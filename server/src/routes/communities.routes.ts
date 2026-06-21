@@ -575,6 +575,45 @@ router.get('/:id/chat', async (req: AuthRequest, res: Response) => {
   res.json({ messages: messages.reverse(), has_more: messages.length === limit });
 });
 
+// POST /communities/:id/chat — send a chat message over REST.
+// Mirrors the WebSocket chat path so chat works on hosts without a persistent
+// WebSocket (e.g. Vercel serverless), where the client polls GET /:id/chat.
+router.post('/:id/chat', async (req: AuthRequest, res: Response) => {
+  const communityId = parseInt(req.params.id);
+  const body = (req.body?.body || '').trim();
+
+  if (!body || body.length > 1000) {
+    return res.status(400).json({ error: 'Message must be 1–1000 characters' });
+  }
+
+  const isMember = await db.queryOne(
+    'SELECT 1 FROM community_members WHERE community_id = $1 AND user_id = $2',
+    [communityId, req.userId]
+  );
+  if (!isMember) return res.status(403).json({ error: 'Not a member' });
+
+  const inserted = await db.queryOne(
+    'INSERT INTO community_chat_messages (community_id, user_id, body) VALUES ($1, $2, $3) RETURNING id, created_at',
+    [communityId, req.userId, body]
+  ) as any;
+
+  const author = await db.queryOne(
+    'SELECT name as user_name, profile_image_url FROM users WHERE id = $1',
+    [req.userId]
+  ) as any;
+
+  res.status(201).json({
+    message: {
+      id: inserted?.id,
+      body,
+      created_at: inserted?.created_at,
+      user_id: req.userId,
+      user_name: author?.user_name || 'Anonymous',
+      profile_image_url: author?.profile_image_url || null,
+    },
+  });
+});
+
 // GET /communities/:id/leaderboard — weekly leaderboard for community members
 router.get('/:id/leaderboard', async (req: AuthRequest, res: Response) => {
   const communityId = parseInt(req.params.id);

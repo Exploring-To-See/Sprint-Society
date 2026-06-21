@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { backendWsUrl } from '../lib/backend';
+import { backendWsUrl, WS_ENABLED, NOTIFICATION_POLL_MS } from '../lib/backend';
 
+/**
+ * Keeps notifications fresh.
+ *
+ * - WebSocket transport (always-on backend, VITE_ENABLE_WS=true): the server
+ *   pushes a `notification` event and we invalidate the notification queries.
+ * - Polling fallback (Vercel serverless, default): we re-fetch the notification
+ *   queries on an interval so badges/lists stay current without a socket.
+ */
 export function useNotificationSocket(enabled: boolean) {
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
@@ -10,6 +18,17 @@ export function useNotificationSocket(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
+
+    function refreshNotifications() {
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+
+    // Polling fallback — no persistent socket available (e.g. Vercel serverless).
+    if (!WS_ENABLED) {
+      const interval = setInterval(refreshNotifications, NOTIFICATION_POLL_MS);
+      return () => clearInterval(interval);
+    }
 
     function connect() {
       const token = localStorage.getItem('sprint_society_token');
@@ -24,8 +43,7 @@ export function useNotificationSocket(enabled: boolean) {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'notification') {
-            queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            refreshNotifications();
           }
         } catch {}
       };
