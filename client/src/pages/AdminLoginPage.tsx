@@ -79,6 +79,10 @@ export function AdminLoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Admin email"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="email"
             required
             className="w-full px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-[14px] text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none"
           />

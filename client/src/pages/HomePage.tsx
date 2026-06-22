@@ -368,7 +368,7 @@ export function HomePage() {
                   <span className="text-[11px] text-zinc-600 font-medium">or</span>
                   <div className="flex-1 h-px bg-bg-tertiary" />
                 </div>
-                <input type="text" placeholder="Email or phone number" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors" autoFocus />
+                <input type="text" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Email or phone number" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors" autoFocus />
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary text-white placeholder:text-zinc-600 focus:border-accent/40 focus:outline-none transition-colors" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
                 {error && <p className="text-red-400 text-sm text-center">{error}</p>}
                 <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>

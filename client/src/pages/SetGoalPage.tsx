@@ -260,7 +260,7 @@ export function SetGoalPage() {
                 Your AI coach built a {targetWeeks}-week plan. Check the Coach tab to see your daily sessions.
               </p>
               <button
-                onClick={() => navigate('/coach')}
+                onClick={() => navigate('/coach', { state: { tab: 'plan' } })}
                 className="w-full py-4 rounded-xl bg-accent text-white font-bold text-[14px] active:scale-[0.98] transition-all"
               >
                 View My Plan

@@ -202,6 +202,10 @@ export function RegistrationFlow() {
                     <div className="relative">
                       <input
                         type="email"
+                        inputMode="email"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         placeholder="Email"
                         value={form.email}
                         onChange={(e) => update('email', e.target.value)}

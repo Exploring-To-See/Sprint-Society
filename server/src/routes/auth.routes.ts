@@ -28,6 +28,9 @@ const registerSchema = z.object({
 router.post('/register', async (req, res: Response) => {
   try {
     const data = registerSchema.parse(req.body);
+    // Normalize email so lookups are case-insensitive (mobile keyboards often
+    // auto-capitalize, which otherwise makes a later login fail to match).
+    data.email = data.email.trim().toLowerCase();
 
     // Validate invite code (optional — used for referral tracking)
     let code: any = null;
@@ -46,7 +49,7 @@ router.post('/register', async (req, res: Response) => {
       }
     }
 
-    const existing = await db.queryOne('SELECT id FROM users WHERE email = $1', [data.email]);
+    const existing = await db.queryOne('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [data.email]);
     if (existing) {
       return res.status(409).json({ error: 'Email already registered' });
     }
@@ -123,7 +126,7 @@ router.post('/login', async (req, res: Response) => {
 
   const user = isPhone
     ? await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE phone = $1 OR phone = $2', [cleanPhone, `+91${cleanPhone}`])
-    : await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE email = $1', [identifier]);
+    : await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE LOWER(email) = LOWER($1)', [identifier]);
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
