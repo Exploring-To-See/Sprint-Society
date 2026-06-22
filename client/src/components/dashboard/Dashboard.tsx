@@ -124,6 +124,24 @@ export function Dashboard() {
           )}
         </motion.div>
 
+        {/* PENDING PROFILE — always-visible prompt to finish profiling (any account
+            without a completed profile, not just brand-new zero-run users) */}
+        {dashboard && !hasProfile && (
+          <motion.div variants={fadeUp}>
+            <button
+              onClick={() => navigate('/profiling')}
+              className="w-full flex items-center gap-3 rounded-xl bg-gradient-to-br from-accent/[0.12] via-bg-secondary to-bg-secondary border border-accent/25 p-4 text-left active:scale-[0.98] transition-transform"
+            >
+              <span className="text-[22px]">🧬</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-white">Complete your profile</p>
+                <p className="text-[11px] text-zinc-400">Unlock your AI coach, pace zones &amp; training plan.</p>
+              </div>
+              <span className="text-accent text-[18px]">→</span>
+            </button>
+          </motion.div>
+        )}
+
         {/* NEW USER STATE */}
         {isNewUser && (
           <motion.div variants={fadeUp}>

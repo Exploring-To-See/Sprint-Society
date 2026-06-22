@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
@@ -96,6 +96,7 @@ interface ProfilingData {
 
 export function AIProfilingPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<ProfilingData>({
     gender: '', age: 28, height_cm: 170, weight_kg: 70,
@@ -111,6 +112,9 @@ export function AIProfilingPage() {
   const mutation = useMutation({
     mutationFn: () => api.post('/profiling/generate', data),
     onSuccess: (res) => {
+      // Refresh the dashboard so the "Complete your profile" prompt clears now
+      // that profiling_complete is set.
+      queryClient.invalidateQueries({ queryKey: ['dashboard-batch'] });
       setTimeout(() => {
         setDna(res.data);
         setAnalyzing(false);
@@ -231,18 +235,18 @@ export function AIProfilingPage() {
                   <p className="text-zinc-500 text-[12px] mt-1">Real data = smarter AI coach. You can skip this and track runs later.</p>
                 </motion.div>
                 <motion.div variants={fadeUp} className="space-y-3 pt-2">
-                  <a
-                    href="/run/track"
-                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-accent/30 bg-accent/10 hover:border-accent/50 transition-all active:scale-[0.98]"
-                  >
+                  {/* Informational only — must NOT navigate away mid-profiling
+                      (that would abandon the flow and lose progress). The GPS
+                      tracker is available from the app after onboarding. */}
+                  <div className="w-full flex items-center gap-4 px-5 py-4 rounded-xl border border-accent/30 bg-accent/10">
                     <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
                       <span className="text-accent font-bold text-[14px]">📍</span>
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-[14px] font-semibold text-accent">GPS Run Tracker</p>
-                      <p className="text-[11px] text-zinc-500">Track runs with your phone's GPS</p>
+                      <p className="text-[11px] text-zinc-500">Track runs with your phone's GPS — available after setup</p>
                     </div>
-                  </a>
+                  </div>
                 </motion.div>
                 <motion.div variants={fadeUp} className="pt-2">
                   <div className="rounded-xl bg-accent/5 border border-accent/10 p-3">

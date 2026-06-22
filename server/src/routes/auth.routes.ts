@@ -98,7 +98,7 @@ router.post('/register', async (req, res: Response) => {
     }
 
     const token = signToken(userId);
-    res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email } });
+    res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email, role: 'runner' } });
   } catch (err: any) {
     if (err.name === 'ZodError') {
       return res.status(400).json({ error: 'Validation failed', details: err.errors });

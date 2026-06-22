@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
+import api from '../../lib/api';
 
 interface FormData {
   name: string;
@@ -106,6 +107,11 @@ export function RegistrationFlow() {
         phone: form.phone,
         password: form.password,
       });
+      // Upload the captured profile photo (non-fatal — it's collected here but
+      // was previously never sent; the user can still add it later from Profile).
+      if (form.profile_photo_preview) {
+        try { await api.patch('/profile/photo', { photo: form.profile_photo_preview }); } catch {}
+      }
       window.location.href = '/profiling';
     } catch (err: any) {
       setError(err?.message || err?.response?.data?.error || 'Registration failed');
@@ -170,7 +176,7 @@ export function RegistrationFlow() {
                 <motion.div variants={fadeUp}>
                   <GoogleSignInButton
                     text="signup_with"
-                    onSuccess={() => { window.location.href = '/profiling'; }}
+                    onSuccess={(isNew) => { window.location.href = isNew ? '/profiling' : '/dashboard'; }}
                     onError={(msg) => setError(msg)}
                   />
                 </motion.div>
