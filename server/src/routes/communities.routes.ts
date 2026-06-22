@@ -196,7 +196,7 @@ router.post('/:id/join', async (req: AuthRequest, res: Response) => {
     const ownerIdRow = await db.queryOne('SELECT owner_id FROM communities WHERE id = $1', [communityId]) as any;
     if (ownerIdRow) {
       const actorName = ((await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId])) as any)?.name || 'Someone';
-      createNotification(ownerIdRow.owner_id, 'community_join', `${actorName} joined ${community.name}`, undefined, req.userId, 'community', communityId);
+      await createNotification(ownerIdRow.owner_id, 'community_join', `${actorName} joined ${community.name}`, undefined, req.userId, 'community', communityId);
     }
     res.json({ success: true, is_member: true });
   } catch (e: any) {

@@ -7,30 +7,33 @@ import { generateWeeklySummary, generatePreRunBrief, generatePostRunAnalysis } f
 const router = Router();
 router.use(authenticate);
 
-router.get('/', (req: AuthRequest, res: Response) => {
-  const insights = generateInsights(req.userId!);
+// NOTE: all engine functions below are async. They must be awaited — returning
+// the Promise straight to res.json() serializes it as `{}` and the real insight
+// is lost. Errors propagate to the global errorHandler (express-async-errors).
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const insights = await generateInsights(req.userId!);
   res.json(insights);
 });
 
-router.get('/athlete-profile', (req: AuthRequest, res: Response) => {
-  const profile = getAthleteProfile(req.userId!);
+router.get('/athlete-profile', async (req: AuthRequest, res: Response) => {
+  const profile = await getAthleteProfile(req.userId!);
   res.json(profile);
 });
 
-router.get('/weekly-summary', (req: AuthRequest, res: Response) => {
-  const summary = generateWeeklySummary(req.userId!);
+router.get('/weekly-summary', async (req: AuthRequest, res: Response) => {
+  const summary = await generateWeeklySummary(req.userId!);
   res.json(summary);
 });
 
-router.get('/pre-run', (req: AuthRequest, res: Response) => {
-  const brief = generatePreRunBrief(req.userId!);
+router.get('/pre-run', async (req: AuthRequest, res: Response) => {
+  const brief = await generatePreRunBrief(req.userId!);
   res.json(brief);
 });
 
-router.get('/post-run/:activityId', (req: AuthRequest, res: Response) => {
+router.get('/post-run/:activityId', async (req: AuthRequest, res: Response) => {
   const activityId = parseInt(req.params.activityId);
   if (isNaN(activityId)) return res.status(400).json({ error: 'Invalid activity ID' });
-  const analysis = generatePostRunAnalysis(req.userId!, activityId);
+  const analysis = await generatePostRunAnalysis(req.userId!, activityId);
   res.json(analysis);
 });
 

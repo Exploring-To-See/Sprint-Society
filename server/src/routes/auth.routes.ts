@@ -84,9 +84,15 @@ router.post('/register', async (req, res: Response) => {
       await db.execute('UPDATE communities SET member_count = member_count + 1 WHERE id = $1', [socialClub.id]);
     }
 
-    // Award 25 starter Kendu + welcome notification
-    awardWelcomeBonus(userId);
-    createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+    // Award 25 starter Kendu + welcome notification. Awaited (not fire-and-forget)
+    // so they actually persist on serverless, where the function freezes the moment
+    // the response is sent; guarded so a bonus/notification failure never blocks signup.
+    try {
+      await awardWelcomeBonus(userId);
+      await createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+    } catch (e) {
+      console.error('[Register] welcome bonus/notification failed (non-fatal):', e);
+    }
 
     const token = signToken(userId);
     res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email } });

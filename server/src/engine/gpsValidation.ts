@@ -157,6 +157,11 @@ function parseSplitPace(split: unknown): number {
   // Format: { elapsed_time: seconds } (per-km split, distance is 1km)
   if (typeof s.elapsed_time === 'number') return Number(s.elapsed_time);
 
+  // Format: { km, time_seconds } — the shape the in-app GPS tracker produces.
+  // Per-km splits, so time_seconds IS the seconds-per-km pace. Without this,
+  // teleportation/low-variance spoof checks silently never fire on logged runs.
+  if (typeof s.time_seconds === 'number') return Number(s.time_seconds);
+
   // Format: { average_pace: seconds }
   if (typeof s.average_pace === 'number') return Number(s.average_pace);
 

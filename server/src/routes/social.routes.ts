@@ -79,7 +79,7 @@ router.post('/kudos/:activityId', async (req: AuthRequest, res: Response) => {
       const emoji = REACTION_EMOJIS[reactionType] || '\u{1F64C}';
       const actorRow = await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId]);
       const actorName = actorRow?.name || 'Someone';
-      createNotification(activity.user_id, 'kudos', `${actorName} reacted ${emoji}`, 'On your recent run', req.userId, 'activity', activityId);
+      await createNotification(activity.user_id, 'kudos', `${actorName} reacted ${emoji}`, 'On your recent run', req.userId, 'activity', activityId);
     }
 
     const count = await db.queryOne('SELECT COUNT(*) as count FROM kudos WHERE activity_id = $1', [activityId]);
@@ -131,7 +131,7 @@ router.post('/comments/:activityId', async (req: AuthRequest, res: Response) => 
     await db.execute('UPDATE user_xp SET total_xp = total_xp + 3 WHERE user_id = $1', [activity.user_id]);
     const actorRow = await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId]);
     const actorName = actorRow?.name || 'Someone';
-    createNotification(activity.user_id, 'comment', `${actorName} commented on your run`, body.trim().slice(0, 80), req.userId, 'activity', activityId);
+    await createNotification(activity.user_id, 'comment', `${actorName} commented on your run`, body.trim().slice(0, 80), req.userId, 'activity', activityId);
   }
 
   const comment = await db.queryOne(`
@@ -154,7 +154,7 @@ router.post('/follow/:userId', async (req: AuthRequest, res: Response) => {
     await db.execute('INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)', [req.userId, targetId]);
     const actorRow = await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId]);
     const actorName = actorRow?.name || 'Someone';
-    createNotification(targetId, 'follow', `${actorName} started following you`, undefined, req.userId, 'user', req.userId);
+    await createNotification(targetId, 'follow', `${actorName} started following you`, undefined, req.userId, 'user', req.userId);
     res.json({ success: true, following: true });
   } catch (e: any) {
     if (e.message?.includes('unique') || e.message?.includes('duplicate') || e.code === '23505') {

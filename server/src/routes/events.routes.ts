@@ -220,7 +220,7 @@ router.post('/:id/rsvp', async (req: AuthRequest, res: Response) => {
   if (status === 'going' && !wasGoing) {
     await awardXP(req.userId!, 15, 'event_rsvp', `RSVP'd to: ${event.title}`);
     const actorName = ((await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId])) as any)?.name || 'Someone';
-    createNotification(event.creator_id, 'event_rsvp', `${actorName} is going to your event`, event.title, req.userId, 'event', eventId);
+    await createNotification(event.creator_id, 'event_rsvp', `${actorName} is going to your event`, event.title, req.userId, 'event', eventId);
   }
 
   const attendee_count = (await db.queryOne('SELECT COUNT(*) as c FROM event_rsvps WHERE event_id = $1 AND status = $2', [eventId, 'going']) as any).c;
@@ -306,7 +306,7 @@ router.post('/:id/checkin', async (req: AuthRequest, res: Response) => {
   // Award Kendu for event attendance
   const kenduEarned = await awardKenduForEvent(req.userId!, eventId);
   if (kenduEarned > 0) {
-    createNotification(req.userId!, 'kendu_earned', `You earned ${kenduEarned} Kendu for attending ${event.title}!`, `+${kenduEarned} Kendu`);
+    await createNotification(req.userId!, 'kendu_earned', `You earned ${kenduEarned} Kendu for attending ${event.title}!`, `+${kenduEarned} Kendu`);
   }
 
   // Award 10 XP for attendance (on top of check-in XP)

@@ -117,6 +117,9 @@ export function AIProfilingPage() {
         setStep(totalSteps);
       }, 2500);
     },
+    // Without this the spinner spins forever on any server/DB error, trapping
+    // every brand-new user. Clear it so the retry screen below can show.
+    onError: () => setAnalyzing(false),
   });
 
   const handleNext = () => {
@@ -144,6 +147,24 @@ export function AIProfilingPage() {
 
   if (dna) {
     return <DNAReveal dna={dna} onContinue={() => navigate('/set-goal')} />;
+  }
+
+  if (mutation.isError && !analyzing) {
+    return (
+      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center px-8 text-center">
+        <span className="text-3xl mb-3">⚠️</span>
+        <h2 className="font-heading text-lg font-bold text-white">Couldn't build your profile</h2>
+        <p className="text-[13px] text-zinc-500 mt-2 max-w-xs">
+          Something went wrong analyzing your answers. Your responses are saved — try again.
+        </p>
+        <button
+          onClick={() => { setAnalyzing(true); mutation.mutate(); }}
+          className="mt-5 px-5 py-2.5 rounded-xl bg-accent text-white text-[13px] font-semibold active:scale-95"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
   if (analyzing) {

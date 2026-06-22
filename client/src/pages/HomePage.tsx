@@ -213,7 +213,7 @@ export function HomePage() {
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err?.message || err?.response?.data?.error || 'Login failed');
     }
     setLoading(false);
   };

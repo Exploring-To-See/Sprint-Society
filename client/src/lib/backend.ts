@@ -26,6 +26,13 @@ export const WS_ENABLED =
 export const CHAT_POLL_MS = 4000;
 export const NOTIFICATION_POLL_MS = 20000;
 
+// Admin-only deployment mode. When VITE_ADMIN_ONLY=true (set on a SEPARATE Vercel
+// project built from this same repo), the app boots straight to an admin login and
+// exposes only the admin panel — giving administrators their own URL while sharing
+// the same backend + Supabase database as the main app, so it controls everything.
+export const ADMIN_ONLY =
+  String(import.meta.env.VITE_ADMIN_ONLY ?? '').toLowerCase() === 'true';
+
 // Build a ws(s):// URL pointing at the backend. When VITE_API_URL is absolute we
 // derive the WebSocket host from it; otherwise we fall back to the current page
 // origin (same-host deploy).

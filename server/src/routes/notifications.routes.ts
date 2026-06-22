@@ -121,7 +121,10 @@ async function generateProactiveNotifications(userId: number) {
 }
 
 // Helper: create a notification (used by other route files)
-export function createNotification(
+// Async + awaited by callers so the INSERT actually flushes before a serverless
+// function freezes on res.json(). Wrapped so a notification failure is logged but
+// never throws into — and thus never breaks — the caller's primary action.
+export async function createNotification(
   userId: number,
   type: string,
   title: string,
@@ -129,16 +132,20 @@ export function createNotification(
   actorId?: number,
   targetType?: string,
   targetId?: number
-) {
+): Promise<void> {
   if (actorId === userId) return; // don't notify self
-  db.execute(`
-    INSERT INTO user_notifications (user_id, type, title, body, actor_id, target_type, target_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-  `, [userId, type, title, body || null, actorId || null, targetType || null, targetId || null]);
-
-  // Push via WebSocket
   try {
-    const { pushToUser } = require('../websocket');
-    pushToUser(userId, { type: 'notification', notification: { type, title, body } });
-  } catch {}
+    await db.execute(`
+      INSERT INTO user_notifications (user_id, type, title, body, actor_id, target_type, target_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [userId, type, title, body || null, actorId || null, targetType || null, targetId || null]);
+
+    // Push via WebSocket (best-effort; a no-op on serverless)
+    try {
+      const { pushToUser } = require('../websocket');
+      pushToUser(userId, { type: 'notification', notification: { type, title, body } });
+    } catch {}
+  } catch (e) {
+    console.error('[createNotification] failed (non-fatal):', e instanceof Error ? e.message : e);
+  }
 }

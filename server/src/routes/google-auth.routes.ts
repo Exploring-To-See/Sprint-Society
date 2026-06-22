@@ -138,8 +138,14 @@ router.post('/google', async (req: Request, res: Response) => {
       client.release();
     }
 
-    awardWelcomeBonus(userId);
-    createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+    // Awaited (not fire-and-forget) so the 25 starter Kendu + welcome notification
+    // actually persist before the serverless function freezes on the response.
+    try {
+      await awardWelcomeBonus(userId);
+      await createNotification(userId, 'welcome', 'Welcome to Sprint Society!', 'You received 25 starter Kendu. Start running to earn more!');
+    } catch (e) {
+      console.error('[Google Auth] welcome bonus/notification failed (non-fatal):', e);
+    }
 
     const token = signToken(userId);
     res.status(201).json({ token, user: { id: userId, name, email, role: 'runner' }, isNew: true });

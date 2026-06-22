@@ -1237,16 +1237,16 @@ function ModerationTab() {
       )}
 
       {queue.map((item: any) => (
-        <motion.div key={`${item.type}-${item.id}`} variants={fadeUp} className="card p-4">
+        <motion.div key={`${item.content_type}-${item.id}`} variants={fadeUp} className="card p-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
-                  item.type === 'comment' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
+                  item.content_type === 'comment' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
                 }`}>
-                  {item.type}
+                  {item.content_type === 'comment' ? 'comment' : 'post'}
                 </span>
-                <p className="text-[11px] text-zinc-500">{item.user_name || `User #${item.user_id}`}</p>
+                <p className="text-[11px] text-zinc-500">{item.author_name || `User #${item.user_id}`}</p>
               </div>
               <p className="text-[13px] text-zinc-300 mt-1.5 line-clamp-3">{item.content || item.body}</p>
               <p className="text-[10px] text-zinc-600 mt-1">
@@ -1254,7 +1254,7 @@ function ModerationTab() {
               </p>
             </div>
             <button
-              onClick={() => item.type === 'comment' ? hideCommentMutation.mutate(item.id) : hidePostMutation.mutate(item.id)}
+              onClick={() => item.content_type === 'comment' ? hideCommentMutation.mutate(item.id) : hidePostMutation.mutate(item.id)}
               className="ml-3 text-[11px] font-medium px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors shrink-0"
             >
               Hide

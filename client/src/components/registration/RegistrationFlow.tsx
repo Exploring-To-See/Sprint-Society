@@ -108,7 +108,7 @@ export function RegistrationFlow() {
       });
       window.location.href = '/profiling';
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err?.message || err?.response?.data?.error || 'Registration failed');
       setSubmitting(false);
     }
   };

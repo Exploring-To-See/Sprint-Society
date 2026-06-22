@@ -131,7 +131,7 @@ router.post('/challenges/:id/complete', authenticate, async (req: AuthRequest, r
   // Award Kendu for challenge completion
   const kenduEarned = await awardKenduForChallenge(req.userId!, challenge.id);
   if (kenduEarned > 0) {
-    createNotification(req.userId!, 'kendu_earned', `Challenge complete! +${kenduEarned} Kendu`, `Completed: ${challenge.title}`);
+    await createNotification(req.userId!, 'kendu_earned', `Challenge complete! +${kenduEarned} Kendu`, `Completed: ${challenge.title}`);
   }
 
   const xp = await db.queryOne('SELECT total_xp, current_level FROM user_xp WHERE user_id = $1', [req.userId]);

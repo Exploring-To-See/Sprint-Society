@@ -10,6 +10,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LandingPage } from './pages/LandingPage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { ADMIN_ONLY } from './lib/backend';
 
 // Lazy-loaded pages (code splitting)
 const RunHistoryPage = lazy(() => import('./pages/RunHistoryPage').then(m => ({ default: m.RunHistoryPage })));
@@ -80,7 +82,9 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!user) return <Navigate to="/" replace />;
-  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  // In the admin-only deployment there is no /dashboard, so send non-admins back
+  // to the login gate (which shows an "administrators only" message).
+  if (user.role !== 'admin') return <Navigate to={ADMIN_ONLY ? '/' : '/dashboard'} replace />;
   return <>{children}</>;
 }
 
@@ -102,6 +106,20 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const location = useLocation();
+
+  // Admin-only deployment (separate Vercel project, VITE_ADMIN_ONLY=true): expose
+  // only the admin login + panel. Shares the same backend/DB as the main app.
+  if (ADMIN_ONLY) {
+    return (
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<PageTransition><AdminLoginPage /></PageTransition>} />
+          <Route path="/admin" element={<AdminRoute><PageTransition><LazyLoad><AdminPage /></LazyLoad></PageTransition></AdminRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">

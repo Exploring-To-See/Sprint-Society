@@ -22,3 +22,7 @@ __pycache__/
 # Preview files (local design reference)
 preview-*.html
 .node/
+
+# Runtime DB backup output (contains user data — never commit)
+data/backups/
+server/data/backups/

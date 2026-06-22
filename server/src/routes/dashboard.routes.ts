@@ -75,10 +75,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   let planWeek = null;
   if (existingPlan) {
     const plan = safeJsonParse(existingPlan.plan_data, { weeks: [] });
+    const weeks = Array.isArray(plan.weeks) ? plan.weeks : [];
     const startDate = new Date(existingPlan.generated_at);
     const weeksSinceStart = Math.floor((Date.now() - startDate.getTime()) / (7 * 86400000));
-    const currentWeekIndex = Math.min(weeksSinceStart, plan.weeks.length - 1);
-    planWeek = { current_week: currentWeekIndex + 1, total_weeks: plan.weeks?.length || 0, week: plan.weeks?.[currentWeekIndex] || null };
+    const currentWeekIndex = weeks.length ? Math.min(weeksSinceStart, weeks.length - 1) : 0;
+    planWeek = { current_week: currentWeekIndex + 1, total_weeks: weeks.length, week: weeks[currentWeekIndex] || null };
   }
 
   // 6. Profiling status

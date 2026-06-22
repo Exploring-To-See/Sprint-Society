@@ -263,15 +263,18 @@ export function RunTrackerPage() {
           map_polyline: routeCoords.length > 1 ? JSON.stringify(routeCoords) : null,
         }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.cascade) {
-          setCascadeData(data.cascade);
-          setKenduEarned(data.cascade.kendu?.awarded || 0);
-        }
-        generateAnalysis();
-        setState('ANALYSIS');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Without this branch a non-2xx response (e.g. a server/DB error) was
+        // silently swallowed: the run was lost with no message and no retry.
+        throw new Error(data?.error?.message || data?.error || `Save failed (${res.status})`);
       }
+      if (data.cascade) {
+        setCascadeData(data.cascade);
+        setKenduEarned(data.cascade.kendu?.awarded || 0);
+      }
+      generateAnalysis();
+      setState('ANALYSIS');
     } catch (err) {
       console.error('Failed to save run:', err);
       setSaving(false);

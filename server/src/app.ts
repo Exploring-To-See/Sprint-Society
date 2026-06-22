@@ -1,3 +1,8 @@
+// Patches Express 4 so rejected promises from async route handlers are forwarded
+// to the error handler. Without this, any DB rejection (e.g. a Supabase pooler
+// hiccup) leaves the request hanging until the serverless function times out
+// (504) instead of returning a clean JSON 500. MUST be imported before routes.
+import 'express-async-errors';
 import express from 'express';
 import path from 'path';
 import jwt from 'jsonwebtoken';
