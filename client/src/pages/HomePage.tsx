@@ -360,7 +360,7 @@ export function HomePage() {
                 </div>
                 <GoogleSignInButton
                   text="signin_with"
-                  onSuccess={() => { window.location.href = '/dashboard'; }}
+                  onSuccess={(isNew) => { window.location.href = isNew ? '/profiling' : '/dashboard'; }}
                   onError={(msg) => setError(msg)}
                 />
                 <div className="flex items-center gap-3">

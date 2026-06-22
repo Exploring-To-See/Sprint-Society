@@ -14,19 +14,43 @@ router.use(authenticate);
 
 // POST /profiling/generate — generate runner DNA from profiling answers
 router.post('/generate', async (req: AuthRequest, res: Response) => {
-  const { dream_race, running_why, run_feeling, bad_run_response, preferred_time, training_days, recent_5k_time } = req.body;
+  const {
+    dream_race, running_why, run_feeling, bad_run_response, preferred_time, training_days, recent_5k_time,
+    gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history,
+  } = req.body;
 
   // Get user's basic info
   const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
+  // Prefer the physical answers captured in the profiling flow over the stored
+  // user row (which is just registration defaults). Persist them back so the DNA,
+  // /profiling/dna and classification (which re-read users) all stay consistent.
+  const phys = {
+    gender: gender ?? user.gender,
+    age: age ?? user.age,
+    height_cm: height_cm ?? user.height_cm,
+    weight_kg: weight_kg ?? user.weight_kg,
+    fitness_level: fitness_level ?? user.fitness_level,
+    running_experience: running_experience ?? user.running_experience,
+  };
+  if (gender || age || height_cm || weight_kg || fitness_level || running_experience || injury_history !== undefined) {
+    await db.execute(
+      `UPDATE users SET gender=$1, age=$2, height_cm=$3, weight_kg=$4, fitness_level=$5,
+         running_experience=$6, injury_history=COALESCE($7, injury_history), updated_at=NOW()
+       WHERE id=$8`,
+      [phys.gender, phys.age, phys.height_cm, phys.weight_kg, phys.fitness_level, phys.running_experience,
+       injury_history !== undefined ? JSON.stringify(injury_history) : null, req.userId]
+    );
+  }
+
   const input: ProfilingInput = {
-    age: user.age,
-    gender: user.gender,
-    weight_kg: user.weight_kg,
-    height_cm: user.height_cm,
-    fitness_level: user.fitness_level,
-    running_experience: user.running_experience,
+    age: phys.age,
+    gender: phys.gender,
+    weight_kg: phys.weight_kg,
+    height_cm: phys.height_cm,
+    fitness_level: phys.fitness_level,
+    running_experience: phys.running_experience,
     dream_race: dream_race || '',
     running_why: running_why || '',
     run_feeling: run_feeling || '',

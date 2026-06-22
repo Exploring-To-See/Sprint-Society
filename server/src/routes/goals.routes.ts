@@ -69,6 +69,24 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Prevent duplicate active goals from a retry (e.g. the user re-runs plan
+  // generation after a transient failure). If an identical active goal already
+  // exists, return it instead of inserting another.
+  const dup = await db.queryOne(`
+    SELECT id, name FROM user_goals
+     WHERE user_id = $1 AND status = 'active' AND type = $2
+       AND COALESCE(distance_meters,0) = COALESCE($3,0)
+       AND COALESCE(target_time_seconds,0) = COALESCE($4,0)
+       AND COALESCE(target_pace_per_km,0) = COALESCE($5,0)
+       AND COALESCE(target_km,0) = COALESCE($6,0)
+       AND COALESCE(target_period,'') = COALESCE($7,'')
+       AND COALESCE(event_id,0) = COALESCE($8,0)
+     LIMIT 1
+  `, [req.userId, type, distance_meters || null, target_time_seconds || null, target_pace_per_km || null, target_km || null, target_period || null, event_id || null]) as any;
+  if (dup) {
+    return res.status(200).json({ id: dup.id, name: dup.name, type, deduped: true, message: 'Goal already set.' });
+  }
+
   const result = await db.execute(`
     INSERT INTO user_goals (user_id, type, distance_meters, target_time_seconds, target_pace_per_km, target_date, target_km, target_period, event_id, name)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)

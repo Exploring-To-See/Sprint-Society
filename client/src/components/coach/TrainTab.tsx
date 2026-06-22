@@ -182,7 +182,7 @@ export function TrainTab() {
                         {status === 'done' ? '✓ ' : status === 'today' ? '→ ' : ''}{dayLabels[expandedDay]} — {session.title || session.name || session.type}
                       </p>
                       <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-                        <span className="text-white font-medium">Target:</span> {session.target_pace || session.description || 'Follow coach guidance'}<br/>
+                        <span className="text-white font-medium">Target:</span> {session.target_pace_per_km ? `${Math.floor(session.target_pace_per_km / 60)}:${String(Math.round(session.target_pace_per_km % 60)).padStart(2, '0')}/km` : (session.description || 'Follow coach guidance')}<br/>
                         {session.why && <><span className="text-white font-medium">Why:</span> {session.why}<br/></>}
                         {(session.duration_minutes || session.duration) && <><span className="text-white font-medium">Duration:</span> ~{session.duration_minutes || session.duration}min</>}
                         {session.distance_km && <><br/><span className="text-white font-medium">Distance:</span> {session.distance_km}km</>}

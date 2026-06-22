@@ -153,13 +153,13 @@ export function PlanPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-[12px] font-bold text-white">Week {weekNum}</span>
-                        <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded ${phaseStyle.bg} ${phaseStyle.text}`}>{phase}</span>
+                        <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded ${phaseStyle.bg} ${phaseStyle.text}`}>{weekData?.phase_name || weekData?.phase || phase}</span>
                       </div>
                       <span className="text-[10px] text-zinc-600">{isExpanded ? '▾' : '▸'}</span>
                     </div>
                     {weekData && (
                       <p className="text-[10px] text-zinc-500 mt-1">
-                        {weekData.total_km ? `${weekData.total_km}km` : ''} · Key: {weekData.key_session || weekData.sessions?.[0]?.name || 'Easy runs'}
+                        {weekData.total_distance_km ? `${weekData.total_distance_km}km` : ''} · Focus: {weekData.focus || weekData.sessions?.[0]?.title || 'Easy runs'}
                       </p>
                     )}
                   </div>
@@ -186,11 +186,13 @@ export function PlanPage() {
                                 session.type === 'tempo' || session.type === 'interval' ? 'text-accent' :
                                 'text-white'
                               }`}>
-                                {session.name || session.type || 'Rest'}
+                                {session.title || session.type || 'Rest'}
                               </span>
-                              {session.target_pace && (
-                                <span className="text-[9px] text-zinc-600 ml-auto">{session.target_pace}</span>
-                              )}
+                              {session.target_pace_per_km ? (
+                                <span className="text-[9px] text-zinc-600 ml-auto">
+                                  {Math.floor(session.target_pace_per_km / 60)}:{String(Math.round(session.target_pace_per_km % 60)).padStart(2, '0')}/km
+                                </span>
+                              ) : null}
                             </div>
                           );
                         })}
