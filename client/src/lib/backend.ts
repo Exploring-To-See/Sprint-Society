@@ -26,12 +26,19 @@ export const WS_ENABLED =
 export const CHAT_POLL_MS = 4000;
 export const NOTIFICATION_POLL_MS = 20000;
 
-// Admin-only deployment mode. When VITE_ADMIN_ONLY=true (set on a SEPARATE Vercel
-// project built from this same repo), the app boots straight to an admin login and
-// exposes only the admin panel — giving administrators their own URL while sharing
-// the same backend + Supabase database as the main app, so it controls everything.
+// Admin-only mode — the app boots straight to an admin login and exposes only the
+// admin panel, sharing the same backend + Supabase DB as the main app (so it
+// controls everything). Enabled in two ways:
+//   1. Build flag VITE_ADMIN_ONLY=true (for a dedicated/separate Vercel project), OR
+//   2. Runtime hostname — when the site is opened on a host containing "admin"
+//      (e.g. sprint-society-admin.vercel.app or admin.sprintsociety.in). This lets a
+//      SINGLE project serve both: the normal app on the main domain and the admin
+//      portal on the admin domain, from one build.
+const adminHostHint =
+  typeof window !== 'undefined' && /(^|[.-])admin([.-]|$)/.test(window.location.hostname);
+
 export const ADMIN_ONLY =
-  String(import.meta.env.VITE_ADMIN_ONLY ?? '').toLowerCase() === 'true';
+  String(import.meta.env.VITE_ADMIN_ONLY ?? '').toLowerCase() === 'true' || adminHostHint;
 
 // Build a ws(s):// URL pointing at the backend. When VITE_API_URL is absolute we
 // derive the WebSocket host from it; otherwise we fall back to the current page
