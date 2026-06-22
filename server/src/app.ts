@@ -76,6 +76,11 @@ export interface CreateAppOptions {
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
 
+  // Behind Vercel/any reverse proxy: trust X-Forwarded-For so req.ip is the real
+  // client IP. Without this every request shares the proxy's IP, so the per-IP
+  // rate limiter becomes a single GLOBAL bucket and locks out all users at once.
+  app.set('trust proxy', true);
+
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors({ origin: config.clientUrl, credentials: true }));
   app.use(express.json({ limit: '2mb' }));

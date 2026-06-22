@@ -90,14 +90,16 @@ function createRateLimiter(config: RateLimitConfig) {
 // --- Pre-configured limiters ---
 
 /**
- * Auth routes: 5 requests per 15 minutes per IP
- * Protects login, register, forgot-password from brute force
+ * Auth routes: 10 requests per 10 minutes per IP
+ * Protects login/register/forgot-password from brute force while still allowing
+ * a real user to mistype their password a few times. (Per-IP only works because
+ * `trust proxy` is set so req.ip is the real client, not the shared proxy IP.)
  */
 export const authLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 3,
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  maxRequests: 10,
   keyGenerator: (req) => `auth:${req.ip}`,
-  message: 'Too many attempts. Please wait 15 minutes before trying again.',
+  message: 'Too many attempts. Please wait a few minutes before trying again.',
 });
 
 /**
