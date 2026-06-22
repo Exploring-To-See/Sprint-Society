@@ -328,19 +328,8 @@ export function HomePage() {
                   ))}
                 </div>
 
-                {/* CTA */}
+                {/* CTA — Google sign-in lives on the Join (register) and Log in pages, not here */}
                 <div className="pt-4 space-y-2.5">
-                  <GoogleSignInButton
-                    text="continue_with"
-                    onSuccess={(isNew) => { window.location.href = isNew ? '/profiling' : '/dashboard'; }}
-                    onError={(msg) => setError(msg)}
-                  />
-                  {error && <p className="text-red-400 text-[11px] text-center">{error}</p>}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-bg-tertiary" />
-                    <span className="text-[11px] text-zinc-600 font-medium">or</span>
-                    <div className="flex-1 h-px bg-bg-tertiary" />
-                  </div>
                   <Button fullWidth size="lg" onClick={() => window.location.href = '/register'}>
                     Join with Email
                   </Button>

@@ -65,7 +65,7 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'continue_with' 
       width: buttonRef.current.offsetWidth,
       text,
       shape: 'pill',
-      logo_alignment: 'left',
+      logo_alignment: 'center',
     });
   }, [scriptLoaded]);
 
