@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Society — Home · C3 Journey-Spine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08080F; --bg2:#0B0A16; --glass:rgba(255,255,255,.045); --glass-2:rgba(255,255,255,.07);
+    --hair:rgba(255,255,255,.09); --fg:#F4F4F8; --muted:#9A9CB0; --muted-2:#62657C;
+    --accent:#F97316; --accent-2:#FB923C; --violet:#7C6BF0; --violet-2:#A78BFA;
+    --green:#34D399; --amber:#FBBF24;
+    --head:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;font-family:var(--body);display:flex;flex-direction:column;align-items:center;gap:14px;padding:28px 12px;min-height:100dvh}
+  .label{color:#71757e;font:600 12px/1 var(--body);letter-spacing:.04em;text-transform:uppercase}
+  .device{width:390px;height:844px;background:var(--bg);border-radius:46px;border:1px solid #1c1c22;
+    box-shadow:0 0 0 10px #0b0b0e,0 30px 80px rgba(0,0,0,.6);overflow:hidden;position:relative;color:var(--fg)}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;
+    background:
+     radial-gradient(90% 60% at 80% -5%,rgba(124,107,240,.22),transparent 60%),
+     radial-gradient(80% 50% at 0% 8%,rgba(249,115,22,.14),transparent 55%),
+     linear-gradient(180deg,var(--bg2),var(--bg) 40%)}
+  .blob{position:absolute;border-radius:50%;filter:blur(48px);opacity:.5;pointer-events:none;animation:drift 14s ease-in-out infinite}
+  .blob.v{width:220px;height:220px;background:rgba(124,107,240,.4);top:-40px;right:-50px}
+  .blob.o{width:180px;height:180px;background:rgba(249,115,22,.32);top:120px;left:-70px;animation-delay:-6s}
+  @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(18px,22px)}}
+  .status{height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font:600 14px var(--body);flex:none;position:relative;z-index:2}
+  .topbar{height:50px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:relative;z-index:2}
+  .brand{font:700 16px var(--head);letter-spacing:-.01em}
+  .brand b{background:linear-gradient(90deg,var(--accent),var(--violet-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .icons{display:flex;align-items:center;gap:11px}
+  .iconbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--hair);display:grid;place-items:center;background:var(--glass);backdrop-filter:blur(10px);position:relative}
+  .badge{position:absolute;top:1px;right:1px;min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:#fff;font:700 10px var(--mono);display:grid;place-items:center;padding:0 4px;border:2px solid var(--bg)}
+  .avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--violet));display:grid;place-items:center;font:700 13px var(--head);color:#fff}
+
+  .body{flex:1;overflow-y:auto;padding:14px 16px 96px;display:flex;flex-direction:column;position:relative;z-index:2}
+  .body::-webkit-scrollbar{display:none}
+
+  /* ── HEADER STRIP ───────────────────────────────── */
+  .greet h1{font:600 23px var(--head);letter-spacing:-.02em}
+  .greet .date{color:var(--muted);font:500 12px var(--body);margin-top:3px}
+  .hdrstrip{display:flex;gap:8px;margin-top:13px}
+  .trendcard{flex:1;background:var(--glass);border:1px solid var(--hair);border-radius:16px;padding:11px 12px;backdrop-filter:blur(12px);display:flex;gap:14px;align-items:center}
+  .tc{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .tc .tl{font:600 9px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+  .tc .tv{font:700 15px var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px;white-space:nowrap}
+  .tc .tv small{font:600 9px var(--body);color:var(--muted)}
+  .tc .tv .up{color:var(--green);font:700 9px var(--mono)}
+  .momchip{flex:none;background:var(--glass);border:1px solid var(--hair);border-radius:16px;padding:11px 12px;backdrop-filter:blur(12px);display:flex;flex-direction:column;justify-content:center;gap:4px}
+  .momchip .row{display:flex;align-items:center;gap:7px;font:700 12px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .momchip .flame{color:var(--amber)}
+  .momchip .lv{color:var(--violet-2)}
+  .momchip .xp{color:var(--muted)}
+  .momchip .lab{font:600 8px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted-2);white-space:nowrap}
+
+  /* ── SPINE ──────────────────────────────────────── */
+  .spinehd{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 2px}
+  .spinehd h4{font:600 13px var(--head)}
+  .spinehd .ph{font:600 10px var(--mono);color:var(--muted);letter-spacing:.04em}
+
+  .spine{position:relative;margin-top:6px;padding-left:42px}
+  /* central rail */
+  .rail{position:absolute;left:19px;top:6px;bottom:6px;width:2px;
+    background:linear-gradient(180deg,
+      rgba(255,255,255,.05) 0%,
+      var(--accent) 22%,
+      var(--violet) 38%,
+      rgba(124,107,240,.25) 60%,
+      rgba(124,107,240,.06) 100%)}
+
+  .node{position:relative;margin-bottom:16px}
+  .node:last-child{margin-bottom:0}
+  /* dot on rail */
+  .dot{position:absolute;left:-30px;top:16px;width:16px;height:16px;border-radius:50%;
+    background:var(--bg2);border:2px solid var(--muted-2);display:grid;place-items:center;z-index:2}
+  .dot svg{width:9px;height:9px}
+  /* day tag */
+  .daytag{position:absolute;left:-31px;top:36px;width:18px;text-align:center;
+    font:700 8px var(--mono);color:var(--muted-2);letter-spacing:.02em}
+
+  .card{border-radius:18px;border:1px solid var(--hair);padding:14px;background:var(--glass)}
+
+  /* PAST: dimmed but sharp, checkmarked */
+  .past .dot{border-color:var(--green);background:rgba(52,211,153,.14)}
+  .past .dot svg{stroke:var(--green)}
+  .past .card{opacity:.62;background:rgba(255,255,255,.025);border-color:rgba(255,255,255,.06)}
+  .past .ctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .past .ttl{font:600 14px var(--body);display:flex;align-items:center;gap:7px}
+  .prtag{font:700 9px var(--body);text-transform:uppercase;color:var(--amber);background:rgba(251,191,36,.16);padding:2px 5px;border-radius:5px}
+  .past .when{font:600 10px var(--mono);color:var(--muted)}
+  .past .mrow{font:600 12px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);display:flex;gap:14px}
+  .past .mrow b{color:var(--fg);font-weight:600}
+
+  /* TODAY: raised hero, glowing, materialize on enter */
+  .today{position:relative}
+  .today .dot{left:-32px;top:14px;width:20px;height:20px;border-color:var(--accent);
+    background:radial-gradient(circle,var(--accent),var(--accent-2));
+    box-shadow:0 0 0 4px rgba(249,115,22,.16),0 6px 20px -4px rgba(249,115,22,.7)}
+  .today .dot svg{width:10px;height:10px;stroke:#fff;fill:#fff}
+  .todaycard{position:relative;overflow:hidden;border-radius:20px;border:1px solid var(--glass-2);
+    padding:16px;background:linear-gradient(160deg,rgba(249,115,22,.16),var(--glass) 55%);
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 18px 44px -20px rgba(249,115,22,.5);
+    animation:materialize .36s var(--ease) both}
+  @keyframes materialize{from{opacity:0;transform:translateY(12px);filter:blur(4px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+  .todaycard .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+  .pill{display:inline-flex;align-items:center;gap:5px;background:rgba(249,115,22,.18);color:var(--accent-2);font:700 10px var(--body);text-transform:uppercase;letter-spacing:.05em;padding:5px 10px;border-radius:9px}
+  .wbadge{font:600 11px var(--mono);color:var(--muted)}
+  .todaycard h2{font:700 23px var(--head);letter-spacing:-.02em;margin-bottom:3px}
+  .todaycard .sub{color:var(--muted);font:400 12.5px/1.5 var(--body);margin-bottom:13px}
+  .metrics{display:flex;gap:18px;margin-bottom:14px}
+  .metrics .m .mv{font:700 17px var(--mono);font-variant-numeric:tabular-nums}
+  .metrics .m .mv small{font:600 10px var(--body);color:var(--muted)}
+  .metrics .m .ml{font:600 9px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted-2);margin-top:3px}
+
+  /* coach annotation inside today */
+  .annot{display:flex;gap:10px;align-items:flex-start;background:linear-gradient(135deg,rgba(124,107,240,.18),rgba(124,107,240,.05));
+    border:1px solid rgba(124,107,240,.22);border-radius:13px;padding:10px 11px;margin-bottom:14px}
+  .coachmark{width:30px;height:30px;border-radius:9px;flex:none;background:linear-gradient(135deg,var(--violet),var(--accent));display:grid;place-items:center;box-shadow:0 5px 14px -5px rgba(124,107,240,.7)}
+  .annot .ac .nm{font:600 11px var(--body);display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .annot .ac .nm .tg{font:700 8px var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--violet-2);background:rgba(124,107,240,.2);padding:2px 5px;border-radius:5px}
+  .annot .ac p{font:400 12px/1.45 var(--body);color:#E4E4EE}
+  .annot .ac p b{color:#fff;font-weight:600}
+
+  .cta{display:flex;gap:10px}
+  .btn{height:50px;border-radius:15px;border:none;font:600 15px var(--head);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .12s var(--ease)}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 10px 30px -8px rgba(249,115,22,.6)}
+  .btn-ghost{flex:none;width:50px;background:var(--glass);border:1px solid var(--hair);color:var(--muted)}
+
+  /* FUTURE: faint, slightly blurred, materializing as you approach */
+  .future .dot{border-color:rgba(124,107,240,.45);background:rgba(124,107,240,.08)}
+  .future .dot svg{stroke:var(--violet-2)}
+  .future .card{opacity:.5;filter:blur(.6px);background:rgba(124,107,240,.04);border-color:rgba(124,107,240,.12)}
+  .future.far .card{opacity:.34;filter:blur(1.4px)}
+  .future .ctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .future .ttl{font:600 13px var(--body)}
+  .future .when{font:600 10px var(--mono);color:var(--muted)}
+  .future .mrow{font:500 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+
+  /* horizon cap */
+  .horizon{position:relative;margin-top:4px;text-align:center}
+  .horizon .dot{left:-30px;top:2px;width:12px;height:12px;border-color:rgba(124,107,240,.3);background:transparent}
+  .horizon span{display:inline-block;font:600 9px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted-2);opacity:.6}
+
+  /* ── NAV (LOCKED) ───────────────────────────────── */
+  .nav{position:absolute;left:0;right:0;bottom:0;height:78px;background:rgba(11,10,22,.6);backdrop-filter:blur(22px);border-top:1px solid var(--hair);display:flex;align-items:flex-start;justify-content:space-around;padding:9px 8px 0;z-index:3}
+  .nav .it{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;color:var(--muted-2);font:600 10px var(--body)}
+  .nav .it.on{color:var(--fg)}
+  .nav .it.on svg{color:var(--accent-2)}
+  .nav .it svg{width:21px;height:21px}
+  .fab{flex:none;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));margin-top:-22px;display:grid;place-items:center;box-shadow:0 10px 30px -6px rgba(249,115,22,.75);border:4px solid #0b0a16}
+  .fab span{font:700 9px var(--body);position:absolute;margin-top:64px;color:var(--accent-2)}
+  .caption{position:fixed;top:14px;left:14px;background:rgba(11,10,22,.82);border:1px solid var(--hair);color:#c9cbe0;font:600 11px var(--mono);letter-spacing:.02em;padding:6px 11px;border-radius:10px;backdrop-filter:blur(8px);z-index:50}
+
+  @media (prefers-reduced-motion:reduce){
+    .blob{animation:none}
+    .todaycard{animation:none}
+    .future .card,.future.far .card{filter:none;opacity:.62}
+    .btn{transition:none}
+    *{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+  <div class="caption">C3 · Journey-Spine</div>
+  <div class="device"><div class="screen">
+    <div class="blob v"></div><div class="blob o"></div>
+    <div class="status"><span>9:41</span><span>▮▮ 30</span></div>
+
+    <div class="topbar">
+      <div class="brand"><b>Sprint</b> Society</div>
+      <div class="icons">
+        <div class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A9CB0" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge">3</span></div>
+        <div class="avatar">MI</div>
+      </div>
+    </div>
+
+    <div class="body">
+      <!-- HEADER STRIP -->
+      <div class="greet"><h1>Evening, Maya</h1><div class="date">Tuesday, 23 June · Week 1 of 16</div></div>
+      <div class="hdrstrip">
+        <div class="trendcard">
+          <div class="tc"><div class="tl">Distance</div><div class="tv">18.2<small>km</small> <span class="up">▲24%</span></div></div>
+          <div class="tc"><div class="tl">Runs</div><div class="tv">3 <span class="up">▲1</span></div></div>
+          <div class="tc"><div class="tl">Pace</div><div class="tv">7:32 <span class="up">▲11s</span></div></div>
+        </div>
+        <div class="momchip">
+          <div class="row"><span class="flame">🔥3</span><span class="lv">L1</span><span class="xp">42XP</span></div>
+          <div class="lab">Momentum</div>
+        </div>
+      </div>
+
+      <!-- SPINE -->
+      <div class="spinehd"><h4>Your transformation</h4><span class="ph">Base phase</span></div>
+
+      <div class="spine">
+        <div class="rail"></div>
+
+        <!-- PAST · Saturday -->
+        <div class="node past">
+          <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div class="daytag">SAT</div>
+          <div class="card">
+            <div class="ctop"><div class="ttl">Easy Run</div><div class="when">Sat</div></div>
+            <div class="mrow"><span><b>4.0</b> km</span><span><b>7:49</b> /km</span><span><b>31:16</b></span></div>
+          </div>
+        </div>
+
+        <!-- PAST · Today's earlier sync, with PR -->
+        <div class="node past">
+          <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div class="daytag">MON</div>
+          <div class="card">
+            <div class="ctop"><div class="ttl">Tempo Run <span class="prtag">PR · 5K</span></div><div class="when">Mon</div></div>
+            <div class="mrow"><span><b>5.2</b> km</span><span><b>7:21</b> /km</span><span><b>38:11</b></span></div>
+          </div>
+        </div>
+
+        <!-- TODAY · hero -->
+        <div class="node today">
+          <div class="dot"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg></div>
+          <div class="todaycard">
+            <div class="top"><span class="pill">▲ Today · in focus</span><span class="wbadge">W1 / 16</span></div>
+            <h2>Long Run — 5 km</h2>
+            <div class="sub">Start easy, hold a steady conversational effort, and bank a strong aerobic base.</div>
+            <div class="metrics">
+              <div class="m"><div class="mv">7:50<small> /km</small></div><div class="ml">Target pace</div></div>
+              <div class="m"><div class="mv">5.0<small> km</small></div><div class="ml">Distance</div></div>
+              <div class="m"><div class="mv">RPE 4</div><div class="ml">Effort</div></div>
+            </div>
+
+            <div class="annot">
+              <div class="coachmark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 3l1.8 4.6L18.5 9l-3.7 3 1 5L12 14.7 8.2 17l1-5L5.5 9l4.7-1.4z"/></svg></div>
+              <div class="ac">
+                <div class="nm">Your Coach <span class="tg">AI</span></div>
+                <p>You <b>recovered well</b> — hold <b>7:50</b> and you'll bank a strong aerobic base.</p>
+              </div>
+            </div>
+
+            <div class="cta">
+              <button class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><polygon points="6 4 20 12 6 20"/></svg> Start run</button>
+              <button class="btn btn-ghost" aria-label="Adjust session"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M12 8v8" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FUTURE · Thursday -->
+        <div class="node future">
+          <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/></svg></div>
+          <div class="daytag">THU</div>
+          <div class="card">
+            <div class="ctop"><div class="ttl">Easy Run</div><div class="when">Thu</div></div>
+            <div class="mrow">4 km · 8:05 /km · RPE 3</div>
+          </div>
+        </div>
+
+        <!-- FUTURE · Tuesday next, far -->
+        <div class="node future far">
+          <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/></svg></div>
+          <div class="daytag">TUE</div>
+          <div class="card">
+            <div class="ctop"><div class="ttl">Intervals</div><div class="when">Next Tue</div></div>
+            <div class="mrow">5 × 800m · 7:05 /km · RPE 7</div>
+          </div>
+        </div>
+
+        <div class="horizon">
+          <div class="dot"></div>
+          <span>Week 2 materializing…</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .7-3.6 3.5.9 5L12 19l-4.2 2.2.9-5L5 8.7 10 8z"/></svg>AI Coach</div>
+      <div class="fab"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><polygon points="6 4 20 12 6 20"/></svg><span>Run</span></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c0-3 2.5-4.5 5-4.5S13 16 13 19M14.5 15c2.3 0 4.5 1.2 4.5 4"/></svg>Community</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Events</div>
+    </div>
+  </div></div>
+</body>
+</html>

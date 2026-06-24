@@ -26,3 +26,15 @@ preview-*.html
 # Runtime DB backup output (contains user data — never commit)
 data/backups/
 server/data/backups/
+
+# Vendored third-party design skills (reinstall via design/reference/INSTALLED-SKILLS.md)
+.claude/skills/canvas-design/
+.claude/skills/design-review/
+.claude/skills/taste/
+.claude/skills/taste-redesign/
+.claude/skills/transitions-dev/
+.claude/skills/ui-ux-design-pro/
+.claude/skills/ui-ux-pro-max/
+.claude/skills/ux-designer/
+.claude/skills/ux-redesign/
+.claude/skills/web-artifacts-builder/
