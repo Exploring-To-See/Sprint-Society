@@ -16,6 +16,12 @@
     --head:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
     --ease:cubic-bezier(0.16,1,0.3,1);
     --num:"tnum" 1; font-variant-numeric:tabular-nums;
+    /* TYPE SCALE — locked. 4 metric steps, 1 label step. tabular everywhere. */
+    --m-hero:26px;   /* gauge readiness — the single hero number */
+    --m-lg:19px;     /* primary tile metric (h2, pace, streak, week sum) */
+    --m-md:15px;     /* secondary metric (hero chips, level n, week stats) */
+    --lbl:9.5px;     /* every caps label */
+    --trk:.07em;     /* every caps label tracking — one value */
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:#000;font-family:var(--body);display:flex;flex-direction:column;align-items:center;gap:14px;padding:28px 12px;min-height:100dvh}
@@ -78,18 +84,18 @@
   .body::-webkit-scrollbar{display:none}
 
   /* compact greeting line */
-  .greet{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:13px;padding:0 2px}
-  .greet h1{font:600 19px var(--head);letter-spacing:-.02em;white-space:nowrap}
+  .greet{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:16px;padding:0 2px}
+  .greet h1{font:600 var(--m-lg) var(--head);letter-spacing:-.02em;white-space:nowrap}
   .greet .date{color:var(--muted);font:500 11.5px var(--body);white-space:nowrap}
 
   /* ===== BENTO GRID — 4-col base. Atomic stats live in SMALL dense tiles (2-col each = 2-up).
      LARGE tiles (hero, wide trend) span the full 4 cols. Real density. ===== */
-  .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .tspan{grid-column:1 / -1}     /* full-width large tile */
   .thalf{grid-column:span 2}     /* small dense tile, 2-up */
 
   /* TRUE LIQUID GLASS — backdrop-blur + DUAL edge layers. Static once laid out. */
-  .tile{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:18px;padding:13px;
+  .tile{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:18px;padding:14px;
     background:var(--glass);
     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     border:1px solid rgba(255,255,255,.07);
@@ -103,10 +109,10 @@
     background:radial-gradient(120% 90% at 50% -10%,transparent 52%,rgba(8,8,15,.26));}
 
   /* tile head: ONE distinct icon per tile */
-  .thead{display:flex;align-items:center;gap:7px;margin-bottom:9px;position:relative;z-index:1}
+  .thead{display:flex;align-items:center;gap:8px;margin-bottom:10px;position:relative;z-index:1}
   .ticon{width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;
     background:rgba(255,255,255,.05);border:1px solid var(--hair)}
-  .tlbl{font:600 9.5px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+  .tlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk);color:var(--muted);white-space:nowrap}
   .tile>*{position:relative;z-index:1}
 
   /* ---- HERO SESSION TILE — clearly FLOATS: brightest glass edge, soft realistic cast below ---- */
@@ -123,14 +129,14 @@
   .hero .ticon{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.28)}
   .hero-top{display:flex;gap:14px;align-items:center}
   .hero-info{flex:1;min-width:0}
-  .hero h2{font:700 22px var(--head);letter-spacing:-.02em;margin:3px 0 9px}
+  .hero h2{font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin:3px 0 10px}
   /* hero metric chips — number FRAMED by label, mono tabular */
   .hero-stats{display:flex;gap:8px}
   .hstat{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:11px;padding:8px 9px;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-  .hstat .v{font:700 16px var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:2px}
+  .hstat .v{font:600 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:2px}
   .hstat .v small{font:600 10px var(--body);color:var(--muted)}
-  .hstat .k{font:600 9px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);margin-top:3px;white-space:nowrap}
+  .hstat .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk);color:var(--muted-2);margin-top:4px;white-space:nowrap}
 
   /* hero readiness gauge — animated radial, number INSIDE (the wow moment) */
   .gauge{position:relative;width:88px;height:88px;flex:none}
@@ -140,8 +146,8 @@
     stroke-dasharray:226;stroke-dashoffset:226;animation:gaugefill 1s var(--ease) .35s forwards}
   @keyframes gaugefill{to{stroke-dashoffset:50}} /* 226*(1-78/100)≈50 → 78% sweep */
   .gauge .gctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .gauge .gnum{font:700 26px var(--mono);font-variant-numeric:tabular-nums;line-height:1}
-  .gauge .gcap{font:600 8.5px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-top:2px}
+  .gauge .gnum{font:700 var(--m-hero) var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+  .gauge .gcap{font:700 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk);color:var(--green);margin-top:3px}
 
   .cta{display:flex;gap:9px;margin-top:13px}
   .btn{height:48px;border-radius:13px;border:none;font:600 15px var(--head);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .12s var(--ease)}
@@ -152,7 +158,7 @@
   /* ---- COACH NUDGE — mid-depth, AI-signature violet, compact waveform coach-mark, less prose ---- */
   .nudge{
     background:linear-gradient(150deg,rgba(124,107,240,.16),rgba(124,107,240,.05) 60%,var(--glass) 100%);
-    border:1px solid rgba(167,139,250,.18);padding:13px 14px;
+    border:1px solid rgba(167,139,250,.18);padding:14px;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 16px 30px -24px rgba(124,107,240,.45)}
   .nudge .ticon{background:linear-gradient(135deg,var(--violet),var(--accent));border:none;box-shadow:0 6px 16px -6px rgba(124,107,240,.7)}
   .nudge .tlbl{color:var(--violet-2)}
@@ -165,14 +171,14 @@
   .nudge p b{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
 
   /* ---- SMALL TILE: READINESS removed (now in hero). PACE TREND — real SVG curve + target line ---- */
-  .pace-val{font:700 19px var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
+  .pace-val{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
   .pace-val small{font:600 10px var(--body);color:var(--muted)}
-  .pace-delta{font:700 9.5px var(--mono);color:var(--green);white-space:nowrap;margin:2px 0 7px}
+  .pace-delta{font:600 var(--lbl) var(--mono);color:var(--muted);white-space:nowrap;margin:3px 0 8px}
   .pace .spark{margin-top:auto;display:block}
 
   /* ---- SMALL TILE: STREAK — row of 7 segment pips, today = flame, no "🔥3" text ---- */
-  .streak-num{font:700 19px var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
-  .streak-num small{font:600 9.5px var(--body);text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .streak-num{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
+  .streak-num small{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk);color:var(--muted)}
   .pips{display:flex;gap:4px;margin-top:auto}
   .pip{flex:1;height:20px;border-radius:5px;display:grid;place-items:center;
     background:rgba(255,255,255,.05);border:1px solid var(--hair)}
@@ -184,9 +190,9 @@
 
   /* ---- WIDE TILE: WEEKLY LOAD — 7-bar micro-chart, today highlighted, target line ---- */
   .wk-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-  .wk-sum{font:700 17px var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
+  .wk-sum{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
   .wk-sum small{font:600 10px var(--body);color:var(--muted)}
-  .wk-sum em{font:700 9.5px var(--mono);color:var(--green);font-style:normal;margin-left:5px}
+  .wk-sum em{font:600 var(--lbl) var(--mono);color:var(--muted);font-style:normal;margin-left:5px}
   .wk-chart{position:relative;margin-top:11px;height:78px;display:flex;align-items:flex-end;gap:8px}
   /* dashed target line drawn across the chart */
   .wk-target{position:absolute;left:0;right:0;height:0;border-top:1px dashed rgba(167,139,250,.4);z-index:1}
@@ -195,8 +201,7 @@
   .wk-bar .col{width:100%;border-radius:5px 5px 3px 3px;background:rgba(167,139,250,.22);
     border:1px solid rgba(167,139,250,.28);min-height:4px}
   .wk-bar.rest .col{background:rgba(255,255,255,.05);border-color:var(--hair)}
-  .wk-bar.today .col{background:linear-gradient(180deg,var(--accent-2),var(--accent));border-color:rgba(249,115,22,.5);
-    box-shadow:0 0 0 1px rgba(249,115,22,.25)}
+  .wk-bar.today .col{background:linear-gradient(180deg,rgba(251,146,60,.55),rgba(249,115,22,.42));border-color:rgba(249,115,22,.4)}
   .wk-bar .lab{font:600 8.5px var(--mono);color:var(--muted-2)}
   .wk-bar.today .lab{color:var(--accent-2)}
 
@@ -205,11 +210,11 @@
   .lvring{position:relative;width:52px;height:52px;flex:none}
   .lvring svg{transform:rotate(-90deg)}
   .lvring .lvtrack{stroke:rgba(255,255,255,.08);fill:none}
-  .lvring .lvfill{fill:none;stroke:url(#lvGrad);stroke-linecap:round;stroke-dasharray:138;stroke-dashoffset:52.4} /* 62% */
-  .lvring .lvn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 16px var(--mono);font-variant-numeric:tabular-nums}
+  .lvring .lvfill{fill:none;stroke:rgba(167,139,250,.55);stroke-linecap:round;stroke-dasharray:138;stroke-dashoffset:52.4} /* 62% */
+  .lvring .lvn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 var(--m-md) var(--mono);font-variant-numeric:tabular-nums}
   .lv-meta .lvk{font:600 11px var(--head)}
-  .lv-meta .lvc{font:700 8.5px var(--body);text-transform:uppercase;letter-spacing:.04em;color:var(--green);margin-top:2px}
-  .lv-meta .lvx{font:600 9.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-top:5px;white-space:nowrap}
+  .lv-meta .lvc{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk);color:var(--muted-2);margin-top:3px}
+  .lv-meta .lvx{font:600 var(--lbl) var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-top:5px;white-space:nowrap}
 
   /* ---- WIDE TILE: RECENT RUNS — tiny stat row w/ PR marker ---- */
   .run{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair)}
@@ -276,9 +281,6 @@
     <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
       <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#FBBF24"/>
-      </linearGradient>
-      <linearGradient id="lvGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#F97316"/><stop offset="1" stop-color="#A78BFA"/>
       </linearGradient>
     </defs></svg>
 
@@ -416,10 +418,10 @@
             <span class="ticon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2 5 4-12 2 7h7"/></svg></span>
             <span class="tlbl">Week</span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:7px;margin-top:1px">
-            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="tlbl">Runs</span><span class="pace-val" style="font-size:16px">3<em style="font:700 9px var(--mono);color:var(--green);font-style:normal;margin-left:5px">▲1</em></span></div>
-            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="tlbl">Avg pace</span><span class="pace-val" style="font-size:16px">7:32</span></div>
-            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="tlbl">Active</span><span class="pace-val" style="font-size:16px">2h11<small>m</small></span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:2px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="tlbl">Runs</span><span class="pace-val" style="font-size:var(--m-md)">3<em style="font:600 var(--lbl) var(--mono);color:var(--muted);font-style:normal;margin-left:5px">▲1</em></span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="tlbl">Avg pace</span><span class="pace-val" style="font-size:var(--m-md)">7:32</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="tlbl">Active</span><span class="pace-val" style="font-size:var(--m-md)">2h11<small>m</small></span></div>
           </div>
         </section>
 
