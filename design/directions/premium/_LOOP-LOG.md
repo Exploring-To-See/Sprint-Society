@@ -24,3 +24,5 @@ Council agent + matching skill builds; orchestrator QAs the locked perf gates + 
 | 0 | baseline (v2 wow pass) | metrics→viz, bento rhythm, mesh+grain aurora, floating hero |
 | 1 | Taste & hierarchy | hero number now sole focal; type locked 4sz/2wt; accent demoted out of secondary metrics |
 | 2 | Motion & micro-interactions | bento entrance cascade; one-time count-ups/draws; tactile :active everywhere; animated tab indicator; reduced-motion pins final state |
+| 3 | Depth & material craft | 3 clear planes; glass refracts aurora via blur+saturate; one realistic hero cast; edge vignette; finer grain |
+| 4 | UX heuristics & a11y | in progress |
