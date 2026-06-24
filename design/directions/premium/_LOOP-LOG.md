@@ -26,4 +26,6 @@ Council agent + matching skill builds; orchestrator QAs the locked perf gates + 
 | 2 | Motion & micro-interactions | bento entrance cascade; one-time count-ups/draws; tactile :active everywhere; animated tab indicator; reduced-motion pins final state |
 | 3 | Depth & material craft | 3 clear planes; glass refracts aurora via blur+saturate; one realistic hero cast; edge vignette; finer grain |
 | 4 | UX heuristics & a11y | a11y ~6.5→9.4: landmarks, ARIA on data-viz, AA contrast (neutral lightness), 44px hit areas, AI announced to SR |
-| 5 | Data-viz polish | in progress |
+| 5 | Data-viz polish | honest encoding: rest days=flat 0km ticks; pace end-dot anchors "now" (redundant label removed); streak=neutral dots vs flame, no weekday clash; aria-labels updated | 
+
+**Loop complete — 5/5 lenses. C6 locked, ready to roll across the app.**
