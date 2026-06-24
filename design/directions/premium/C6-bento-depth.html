@@ -289,8 +289,6 @@
 
   /* pointer-only hover lift on tiles + nav hover affordance */
   @media (hover:hover){
-    .tile.hero,.tile.nudge,.tile.pace,.tile.recess{
-      transition:transform var(--press-dur) var(--ease)}
     .tile.hero:hover,.tile.nudge:hover,
     .tile.pace:hover,.tile.recess:hover{transform:translateY(-2px)}
     .tile.hero:active,.tile.nudge:active,
@@ -344,7 +342,7 @@
   <div class="caption-chip">C6 · Bento-Depth</div>
   <div class="label">Direction C — AI Coaching Premium · Home</div>
 
-  <div class="device"><div class="screen">
+  <div class="device"><div class="screen" id="screen">
     <!-- SCULPTED AURORA FIELD — layered mesh + conic sweep + god-ray + grain -->
     <div class="aurora">
       <div class="mesh"></div>
@@ -416,7 +414,7 @@
           </div>
           <div class="nudge-body">
             <div class="wave" aria-hidden="true">
-              <i style="height:8px"></i><i style="height:16px"></i><i style="height:24px"></i><i style="height:14px"></i><i style="height:20px"></i><i style="height:10px"></i><i style="height:18px"></i>
+              <i style="height:8px;--w:0"></i><i style="height:16px;--w:1"></i><i style="height:24px;--w:2"></i><i style="height:14px;--w:3"></i><i style="height:20px;--w:4"></i><i style="height:10px;--w:5"></i><i style="height:18px;--w:6"></i>
             </div>
             <p>Hold <b>7:50</b> — you recovered well. Keep it conversational and bank base for the Sub-270 build.</p>
           </div>
@@ -428,7 +426,7 @@
             <span class="ticon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FB923C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 8-9"/><path d="M16 6h4v4"/></svg></span>
             <span class="tlbl">Pace trend</span>
           </div>
-          <div class="pace-val">7:32<small>/km</small></div>
+          <div class="pace-val numland" style="--n:0">7:32<small>/km</small></div>
           <div class="pace-delta">▲ 11s faster · 4 wk</div>
           <svg class="spark" width="100%" height="40" viewBox="0 0 130 40" preserveAspectRatio="none" fill="none" aria-hidden="true">
             <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34D399" stop-opacity=".28"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/></linearGradient></defs>
@@ -467,17 +465,17 @@
           <div class="thead">
             <span class="ticon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="4" height="9" rx="1"/><rect x="10" y="6" width="4" height="14" rx="1"/><rect x="17" y="13" width="4" height="7" rx="1"/></svg></span>
             <span class="tlbl">This week · Load</span>
-            <div class="wk-sum" style="margin-left:auto">18.2<small>km</small><em>▲24%</em></div>
+            <div class="wk-sum numland" style="margin-left:auto;--n:1">18.2<small>km</small><em>▲24%</em></div>
           </div>
           <div class="wk-chart">
             <div class="wk-target" style="bottom:54px"><span>target</span></div>
-            <div class="wk-bar"><div class="col" style="height:46%"></div><div class="lab">M</div></div>
-            <div class="wk-bar rest"><div class="col" style="height:8%"></div><div class="lab">T</div></div>
-            <div class="wk-bar"><div class="col" style="height:62%"></div><div class="lab">W</div></div>
-            <div class="wk-bar rest"><div class="col" style="height:8%"></div><div class="lab">T</div></div>
-            <div class="wk-bar"><div class="col" style="height:78%"></div><div class="lab">F</div></div>
-            <div class="wk-bar rest"><div class="col" style="height:8%"></div><div class="lab">S</div></div>
-            <div class="wk-bar today"><div class="col" style="height:54%"></div><div class="lab">S</div></div>
+            <div class="wk-bar"><div class="col" style="height:46%;--b:0"></div><div class="lab">M</div></div>
+            <div class="wk-bar rest"><div class="col" style="height:8%;--b:1"></div><div class="lab">T</div></div>
+            <div class="wk-bar"><div class="col" style="height:62%;--b:2"></div><div class="lab">W</div></div>
+            <div class="wk-bar rest"><div class="col" style="height:8%;--b:3"></div><div class="lab">T</div></div>
+            <div class="wk-bar"><div class="col" style="height:78%;--b:4"></div><div class="lab">F</div></div>
+            <div class="wk-bar rest"><div class="col" style="height:8%;--b:5"></div><div class="lab">S</div></div>
+            <div class="wk-bar today"><div class="col" style="height:54%;--b:6"></div><div class="lab">S</div></div>
           </div>
         </section>
 
@@ -493,9 +491,9 @@
             <span class="pip"><span class="d">T</span></span>
             <span class="pip"><span class="d">W</span></span>
             <span class="pip"><span class="d">T</span></span>
-            <span class="pip on"><svg viewBox="0 0 24 24" fill="#FBBF24"><path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/></svg></span>
-            <span class="pip on"><svg viewBox="0 0 24 24" fill="#FBBF24"><path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/></svg></span>
-            <span class="pip today"><svg viewBox="0 0 24 24" fill="#F97316"><path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/></svg></span>
+            <span class="pip on" style="--p:0"><svg viewBox="0 0 24 24" fill="#FBBF24"><path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/></svg></span>
+            <span class="pip on" style="--p:1"><svg viewBox="0 0 24 24" fill="#FBBF24"><path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/></svg></span>
+            <span class="pip today" style="--p:2"><svg viewBox="0 0 24 24" fill="#F97316"><path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/></svg></span>
           </div>
         </section>
 
@@ -542,5 +540,14 @@
     </div>
   </div></div>
   <div class="caption"><b style="color:#9aa">C6 · Bento-Depth.</b> A floating hero session tile — readiness as an animated gauge — over a sculpted violet+orange mesh field with grain and a soft god-ray. Atomic stats live as dense data-viz tiles: a pace curve with a target line, a 7-bar weekly load chart, streak pips, a level ring. Numbers stay mono; the visual frames them. Single column on phones.</div>
+  <script>
+    /* One-time entrance trigger: add .go after first paint so the cascade + draw-ins play.
+       All .go-gated motion is independently neutralized by prefers-reduced-motion in CSS. */
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        document.getElementById('screen').classList.add('go');
+      });
+    });
+  </script>
 </body>
 </html>
