@@ -188,10 +188,11 @@
   .gauge{position:relative;width:88px;height:88px;flex:none}
   .gauge svg{transform:rotate(-90deg);overflow:visible}
   .gauge .grtrack{stroke:rgba(255,255,255,.09);fill:none}
+  /* full circumference = 2π·36 = 226.19. 78% sweep → offset 226.19·.22 = 49.76 */
   .gauge .grfill{fill:none;stroke:url(#gaugeGrad);stroke-linecap:round;
-    stroke-dasharray:226;stroke-dashoffset:226}
+    stroke-dasharray:226.19;stroke-dashoffset:226.19}
   .screen.go .gauge .grfill{animation:gaugefill 1s var(--ease) .42s forwards}
-  @keyframes gaugefill{to{stroke-dashoffset:50}} /* 226*(1-78/100)≈50 → 78% sweep */
+  @keyframes gaugefill{to{stroke-dashoffset:49.76}} /* 226.19·(1−78/100)=49.76 → exact 78% sweep */
   /* gauge number count-up: starts dim+down, settles with the draw (one-time) */
   .gauge .gnum{opacity:0;transform:translateY(6px)}
   .screen.go .gauge .gnum{animation:numpop .5s var(--ease-pop) .55s both}
@@ -227,7 +228,16 @@
   .pace-val{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
   .pace-val small{font:600 10px var(--body);color:var(--muted)}
   .pace-delta{font:600 var(--lbl) var(--mono);color:var(--muted);white-space:nowrap;margin:3px 0 8px}
-  .pace .spark{margin-top:auto;display:block}
+  /* pace chart wrapper holds the spark + HTML labels (labels stay undistorted by the
+     stretched SVG viewBox). target value + "now" anchor aid honest reading. */
+  .pace-chart{position:relative;margin-top:auto}
+  .pace .spark{display:block}
+  /* labels anchored to the 40px-tall spark: target sits on the y=13 dashed row;
+     "now" sits just left of the y=7 end-dot. */
+  .pace-tgt{position:absolute;top:13px;right:0;font:600 8px var(--mono);font-variant-numeric:tabular-nums;
+    color:var(--violet-2);background:var(--bg2);padding:0 3px;border-radius:3px;transform:translateY(-50%)}
+  .pace-now{position:absolute;top:7px;right:11px;font:600 7.5px var(--mono);
+    color:var(--green);letter-spacing:.05em;text-transform:uppercase;transform:translateY(-50%)}
   /* pace spark line draws on once, in step with the bento cascade (stroke-only) */
   .pace .spark path:last-of-type{stroke-dasharray:200;stroke-dashoffset:200}
   .screen.go .pace .spark path:last-of-type{animation:sparkdraw .85s var(--ease) .6s forwards}
@@ -275,10 +285,11 @@
   .lv-body{display:flex;align-items:center;gap:11px;margin-top:1px}
   .lvring{position:relative;width:52px;height:52px;flex:none}
   .lvring svg{transform:rotate(-90deg)}
-  .lvring .lvtrack{stroke:rgba(255,255,255,.08);fill:none}
-  .lvring .lvfill{fill:none;stroke:rgba(167,139,250,.55);stroke-linecap:round;stroke-dasharray:138;stroke-dashoffset:52.4} /* 62% — final */
-  .screen.go .lvring .lvfill{stroke-dashoffset:138;animation:lvfill .9s var(--ease) .5s forwards}
-  @keyframes lvfill{to{stroke-dashoffset:52.4}}
+  .lvring .lvtrack{stroke:rgba(255,255,255,.09);fill:none}
+  /* full circumference = 2π·22 = 138.23. 62% fill → offset 138.23·.38 = 52.53 */
+  .lvring .lvfill{fill:none;stroke:rgba(167,139,250,.55);stroke-linecap:round;stroke-dasharray:138.23;stroke-dashoffset:52.53} /* 62% — final */
+  .screen.go .lvring .lvfill{stroke-dashoffset:138.23;animation:lvfill .9s var(--ease) .5s forwards}
+  @keyframes lvfill{to{stroke-dashoffset:52.53}}
   .lvring .lvn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 var(--m-md) var(--mono);font-variant-numeric:tabular-nums}
   .lv-meta .lvk{font:600 11px var(--head)}
   .lv-meta .lvc{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk);color:var(--muted-2);margin-top:3px}
@@ -347,12 +358,12 @@
     /* entrance: greeting + every tile fully present */
     .greet,.bento>.tile{opacity:1!important;transform:none!important;filter:none!important}
     /* gauge: drawn to 78% sweep, number shown */
-    .gauge .grfill{stroke-dashoffset:50!important}
+    .gauge .grfill{stroke-dashoffset:49.76!important}
     .gauge .gnum{opacity:1!important;transform:none!important}
     /* weekly bars: full height (final values held by inline height) */
     .wk-bar .col{transform:none!important}
     /* XP ring: filled to 62% */
-    .lvring .lvfill{stroke-dashoffset:52.4!important}
+    .lvring .lvfill{stroke-dashoffset:52.53!important}
     /* pace spark: fully drawn */
     .pace .spark path:last-of-type{stroke-dashoffset:0!important}
     /* streak pips: lit fills shown */
@@ -461,14 +472,22 @@
           </div>
           <div class="pace-val numland" style="--n:0">7:32<small>/km</small></div>
           <div class="pace-delta">▲ 11s faster · 4 wk</div>
+          <!-- Honest encoding: faster pace plots HIGHER (lower y). The data line ends above the
+               dashed 7:50 target line → current 7:32 is faster than target. role="img" carries the values. -->
+          <div class="pace-chart" role="img" aria-label="Pace trend over 4 weeks: improving from 7:43 to 7:32 per kilometre, now 11 seconds faster than the 7:50 per kilometre target.">
           <svg class="spark" width="100%" height="40" viewBox="0 0 130 40" preserveAspectRatio="none" fill="none" aria-hidden="true">
-            <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34D399" stop-opacity=".28"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/></linearGradient></defs>
-            <!-- dashed target pace line (7:50 → higher row = slower) -->
-            <line x1="2" y1="13" x2="128" y2="13" stroke="#A78BFA" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
+            <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34D399" stop-opacity=".26"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/></linearGradient></defs>
+            <!-- dashed 7:50 target line — violet, clearly distinct from the solid green data stroke -->
+            <line x1="2" y1="13" x2="116" y2="13" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3" opacity=".55"/>
             <path d="M2 30 L23 28 L44 31 L65 21 L86 22 L107 11 L128 7 L128 40 L2 40 Z" fill="url(#sg)"/>
             <path d="M2 30 L23 28 L44 31 L65 21 L86 22 L107 11 L128 7" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- "now" anchor: filled dot + soft halo ring -->
+            <circle cx="128" cy="7" r="5" fill="#34D399" opacity=".18"/>
             <circle cx="128" cy="7" r="2.8" fill="#34D399"/>
           </svg>
+          <span class="pace-tgt" aria-hidden="true">7:50</span>
+          <span class="pace-now" aria-hidden="true">now</span>
+          </div>
         </section>
 
         <!-- SMALL: LEVEL — progress ring + XP -->
