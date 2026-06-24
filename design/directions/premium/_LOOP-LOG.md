@@ -29,3 +29,10 @@ Council agent + matching skill builds; orchestrator QAs the locked perf gates + 
 | 5 | Data-viz polish | honest encoding: rest days=flat 0km ticks; pace end-dot anchors "now" (redundant label removed); streak=neutral dots vs flame, no weekday clash; aria-labels updated | 
 
 **Loop complete — 5/5 lenses. C6 locked, ready to roll across the app.**
+
+## Fix — blank body on device/preview
+The bento tiles started at `opacity:0` and only revealed when JS added `.go` after first
+paint. In viewers that don't run the page script (file preview / Quick Look), `.go` never
+landed → header + aurora visible, body blank. Fix: ungated the entrance animations so they
+run on CSS load (same mechanism as the aurora drift, which always worked), removed the now-
+dead JS. Content no longer depends on JS; reduced-motion pins still force the static final state.
