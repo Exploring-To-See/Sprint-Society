@@ -13,5 +13,13 @@
   ],
   "crons": [
     { "path": "/api/cron/maintenance", "schedule": "0 3 * * *" }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "feature/*": false,
+      "claude/*": false,
+      "railway/*": false,
+      "vercel-*": false
+    }
+  }
 }
