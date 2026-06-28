@@ -1,0 +1,19 @@
+# Headless one-way AI coach — dependencies for shipping into a host app.
+# The coaching ENGINE (engine/run_state, engine/run_cues, engine/run_analysis,
+# coaching/cue_library, coaching/one_way_coach) is PURE PYTHON — no third-party
+# deps — so it drops into any app and is trivial to test.
+
+# --- Text-to-speech (optional; pick one path) ------------------------------
+# Recommended: Kokoro-82M (Apache-2.0, offline, high quality, per-persona voices)
+kokoro-onnx>=0.4.9        # needs model files: models/kokoro-v1.0.onnx + voices-v1.0.bin
+onnxruntime>=1.17.0
+soundfile>=0.12.1
+numpy>=1.24.0
+# Fallback (offline OS voices, no model download):
+pyttsx3>=2.90
+
+# --- Evaluation harness (optional; dev/CI only) ----------------------------
+# The eval/ metrics are deterministic and need NO extra packages or API key.
+# To add LLM-judge metrics for the FUTURE Pro free-text chat, install:
+# deepeval>=1.0.0
+# ragas>=0.1.0

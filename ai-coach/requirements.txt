@@ -1,0 +1,11 @@
+# Backend / RAG / legacy-system dependencies (headless — no Streamlit).
+# For the shippable one-way coach + TTS + eval, see requirements-coach.txt
+# (the coach engine itself is pure-python and needs nothing here).
+openai>=1.6.0
+faiss-cpu>=1.7.4
+sentence-transformers>=2.2.2
+bcrypt>=4.1.0
+python-dotenv>=1.0.0
+numpy>=1.24.0
+rank-bm25>=0.2.2
+scikit-learn>=1.2.0

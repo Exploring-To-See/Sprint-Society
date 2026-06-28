@@ -1,0 +1,51 @@
+name: Keep Streamlit app awake
+
+# Streamlit Community Cloud puts apps to sleep after a period with no traffic.
+# This workflow pings the deployed app on a schedule so the inactivity timer
+# keeps resetting and the app stays awake 24/7.
+#
+# SET YOUR URL: add a repository *variable* named APP_URL
+#   (Repo → Settings → Secrets and variables → Actions → Variables → New variable)
+#   APP_URL = https://your-app.streamlit.app
+# If APP_URL is not set, the default below is used — edit it to your real URL.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes (UTC)
+  workflow_dispatch:          # lets you run it manually from the Actions tab
+
+# Avoid overlapping runs if one is slow.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve app URL
+        id: url
+        run: |
+          URL="${{ vars.APP_URL }}"
+          if [ -z "$URL" ]; then
+            URL="https://sprint-society-ai-coach.streamlit.app"
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Using URL: $URL"
+
+      - name: Ping the app (with retries)
+        run: |
+          URL="${{ steps.url.outputs.url }}"
+          ok=0
+          for i in 1 2 3 4 5; do
+            code=$(curl -sSL -A "keep-alive-bot" -o /dev/null -w "%{http_code}" --max-time 90 "$URL" || echo "000")
+            echo "Attempt $i -> HTTP $code"
+            if [ "$code" = "200" ]; then ok=1; break; fi
+            sleep 20
+          done
+          # Also nudge the Streamlit health endpoint (helps wake a sleeping app).
+          curl -sSL -o /dev/null -w "health endpoint -> %{http_code}\n" --max-time 60 "$URL/_stcore/health" || true
+          if [ "$ok" != "1" ]; then
+            echo "::warning::App did not return HTTP 200; it may be waking up or the URL/APP_URL is wrong."
+          fi
