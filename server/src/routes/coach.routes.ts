@@ -79,7 +79,9 @@ router.post('/pre-run', authenticate, async (req: AuthRequest, res: Response) =>
   if (!ctx) return res.status(404).json({ error: 'User not found' });
   const planned = asPlanned(req.body);
   const persona = asPersona(req.body?.persona, ctx.coachStyle);
-  res.json({ persona, brief: preRunBrief(planned, ctx.zones, ctx.profile, persona) });
+  // Return zones + profile too, so the client can run the live during-run cue
+  // engine on-device (shared/coach) without another round-trip per GPS tick.
+  res.json({ persona, brief: preRunBrief(planned, ctx.zones, ctx.profile, persona), zones: ctx.zones, profile: ctx.profile });
 });
 
 // POST /api/coach/run-cues — { planned fields, persona?, samples: RunSnapshot[] }
