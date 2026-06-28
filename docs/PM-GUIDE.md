@@ -393,6 +393,14 @@ Server-side feature gate system with admin toggle UI.
 | `live_events` | Event creation/RSVPs | ON |
 | `communities` | Community chat/creation | ON |
 | `razorpay_payments` | Payment processing | ON |
+
+> ⚠️ **Frontend note:** the social surface (Feed / Communities / Events) is currently
+> **hidden in the live client** regardless of these flags. The client does not gate
+> social on `social_feed` / `live_events` / `communities` yet — instead the entry
+> points were removed directly: the **Social** bottom-nav tab is gone and the
+> `/social`, `/feed`, `/events*`, `/communities*` routes redirect to `/dashboard`.
+> The page/component code is retained in the repo (WIP); re-enable by restoring the
+> nav button + real route elements in `client/src/App.tsx` and `BottomNav.tsx`.
 | `strava_sync` | Strava OAuth + webhooks | ON |
 | `ai_chat` | Sonnet chat coach (Pro) | OFF (reserved) |
 | `ai_voice` | Voice coaching (future) | OFF (reserved) |

@@ -55,6 +55,12 @@ Your daily hub, prioritized for action:
 - **Weekly Challenges** — tap to complete, earn XP
 - **Quick Stats** — total runs, distance, best pace
 
+> ⚠️ **Temporarily unavailable.** The social surface — **Communities**, **Events**,
+> and the activity **Feed** — is hidden in the current live app while the backend
+> is still in progress. The Social tab has been removed from the bottom nav and the
+> related links are disabled. The sections below describe the feature as designed
+> and will apply again once it's re-enabled.
+
 ### 🏘️ Communities
 
 Join or create run clubs:

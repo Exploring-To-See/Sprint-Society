@@ -22,14 +22,12 @@ const ProgressPage = lazy(() => import('./pages/ProgressPage').then(m => ({ defa
 const HRZonesPage = lazy(() => import('./pages/HRZonesPage').then(m => ({ default: m.HRZonesPage })));
 const RecordsPage = lazy(() => import('./pages/RecordsPage').then(m => ({ default: m.RecordsPage })));
 const CoachPage = lazy(() => import('./pages/CoachPage').then(m => ({ default: m.CoachPage })));
-const SocialPage = lazy(() => import('./pages/SocialPage').then(m => ({ default: m.SocialPage })));
+// Social feature (Feed / Communities / Events) is hidden from the live app but kept
+// in the repo (WIP). Its pages are intentionally not imported/routed; the routes
+// below redirect to /dashboard so deep links and old bookmarks don't reach it.
+// To re-enable: restore the lazy imports + real route elements.
 const SetGoalPage = lazy(() => import('./pages/SetGoalPage').then(m => ({ default: m.SetGoalPage })));
 const PlanPage = lazy(() => import('./pages/PlanPage').then(m => ({ default: m.PlanPage })));
-const EventsPage = lazy(() => import('./pages/EventsPage').then(m => ({ default: m.EventsPage })));
-const EventDetailPage = lazy(() => import('./pages/EventDetailPage').then(m => ({ default: m.EventDetailPage })));
-const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage').then(m => ({ default: m.CommunitiesPage })));
-const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage').then(m => ({ default: m.CommunityDetailPage })));
-const CreateCommunityPage = lazy(() => import('./pages/CreateCommunityPage').then(m => ({ default: m.CreateCommunityPage })));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
 const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })));
@@ -134,7 +132,8 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminRoute><PageTransition><LazyLoad><AdminPage /></LazyLoad></PageTransition></AdminRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><PageTransition><LazyLoad><CoachPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/social" element={<ProtectedRoute><PageTransition><LazyLoad><SocialPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        {/* Social feature hidden from live app — redirect to dashboard (code kept in repo) */}
+        <Route path="/social" element={<Navigate to="/dashboard" replace />} />
         <Route path="/set-goal" element={<ProtectedRoute><PageTransition><LazyLoad><SetGoalPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/plan" element={<ProtectedRoute><PageTransition><LazyLoad><PlanPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         {/* Redirects for old routes */}
@@ -146,12 +145,12 @@ function AppRoutes() {
         <Route path="/share" element={<ProtectedRoute><PageTransition><LazyLoad><SharePage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/heart-rate" element={<ProtectedRoute><PageTransition><LazyLoad><HRZonesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/records" element={<ProtectedRoute><PageTransition><LazyLoad><RecordsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/feed" element={<Navigate to="/social" replace />} />
-        <Route path="/events" element={<ProtectedRoute><PageTransition><LazyLoad><EventsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/events/:id" element={<ProtectedRoute><PageTransition><LazyLoad><EventDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/communities" element={<ProtectedRoute><PageTransition><LazyLoad><CommunitiesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/communities/create" element={<ProtectedRoute><PageTransition><LazyLoad><CreateCommunityPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/communities/:id" element={<ProtectedRoute><PageTransition><LazyLoad><CommunityDetailPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/feed" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/events" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/events/:id" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/communities" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/communities/create" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/communities/:id" element={<Navigate to="/dashboard" replace />} />
         <Route path="/chat" element={<Navigate to="/coach" replace />} />
         <Route path="/challenges" element={<ProtectedRoute><PageTransition><LazyLoad><ChallengesPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/rewards" element={<ProtectedRoute><PageTransition><LazyLoad><RewardsPage /></LazyLoad></PageTransition></ProtectedRoute>} />

@@ -30,9 +30,8 @@ function formatTimeAgo(date: string): string {
 }
 
 function getNotificationLink(n: any): string | null {
-  if (n.target_type === 'activity') return '/feed';
-  if (n.target_type === 'event') return `/events/${n.target_id}`;
-  if (n.target_type === 'community') return `/communities/${n.target_id}`;
+  // Social targets (feed/events/communities) are not linkable while the social
+  // feature is hidden from the live app — they'd redirect to the dashboard.
   if (n.target_type === 'user') return `/user/${n.target_id}`;
   return null;
 }

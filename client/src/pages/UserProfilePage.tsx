@@ -103,23 +103,12 @@ export function UserProfilePage() {
           </div>
         </div>
 
-        {/* Follow + Gift buttons */}
+        {/* Gift button (Follow hidden while social feature is off the live app) */}
         {!isOwnProfile && (
           <div className="flex gap-2">
             <button
-              onClick={() => followMutation.mutate(profile.is_following)}
-              disabled={followMutation.isPending}
-              className={`flex-1 py-2.5 rounded-xl font-semibold text-[13px] active:scale-[0.98] transition-all ${
-                profile.is_following
-                  ? 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
-                  : 'bg-accent text-white'
-              }`}
-            >
-              {profile.is_following ? 'Following' : 'Follow'}
-            </button>
-            <button
               onClick={() => setShowGift(true)}
-              className="px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 font-semibold text-[13px] active:scale-[0.98] transition-all"
+              className="flex-1 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 font-semibold text-[13px] active:scale-[0.98] transition-all"
             >
               Gift Kendu
             </button>
@@ -136,14 +125,7 @@ export function UserProfilePage() {
             <p className="font-mono font-bold text-[16px] text-white">{profile.total_distance_km}</p>
             <p className="text-[11px] text-zinc-600 uppercase tracking-wider">km</p>
           </div>
-          <div className="flex-1 p-3 text-center">
-            <p className="font-mono font-bold text-[16px] text-white">{profile.followers_count}</p>
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Followers</p>
-          </div>
-          <div className="flex-1 p-3 text-center">
-            <p className="font-mono font-bold text-[16px] text-white">{profile.following_count}</p>
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Following</p>
-          </div>
+          {/* Followers / Following hidden while social feature is off the live app */}
         </div>
 
         {/* Achievements */}
@@ -161,23 +143,7 @@ export function UserProfilePage() {
           </div>
         )}
 
-        {/* Communities */}
-        {profile.communities?.length > 0 && (
-          <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mb-2">Communities</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.communities.map((c: any) => (
-                <button
-                  key={c.id}
-                  onClick={() => navigate(`/communities/${c.id}`)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-bg-secondary border border-bg-tertiary active:scale-95 transition-all"
-                >
-                  <span className="text-[11px] text-zinc-400">{c.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Communities hidden while social feature is off the live app */}
 
         {/* Member since */}
         <p className="text-[10px] text-zinc-700 text-center pt-2">

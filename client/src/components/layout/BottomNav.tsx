@@ -34,10 +34,6 @@ export function BottomNav() {
         <NavButton active={isActive('/coach')} onClick={() => navigate('/coach')} label="AI Coach">
           <CoachIcon active={isActive('/coach')} />
         </NavButton>
-
-        <NavButton active={isActive('/social') || isActive('/communities')} onClick={() => navigate('/social')} label="Social">
-          <SocialIcon active={isActive('/social') || isActive('/communities')} />
-        </NavButton>
       </div>
     </nav>
   );
@@ -69,17 +65,6 @@ function HomeIcon({ active }: { active: boolean }) {
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}
       />
       <path d="M8 17V11H12V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function SocialIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={active ? 'text-accent' : 'text-zinc-600'}>
-      <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5" fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0} />
-      <circle cx="14" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0} />
-      <path d="M2.5 16c0-2.2 2-3.5 4.5-3.5s4.5 1.3 4.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M12.5 13c2-.2 5 .8 5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

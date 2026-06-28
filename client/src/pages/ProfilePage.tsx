@@ -752,8 +752,8 @@ export function ProfilePage() {
           <AchievementShowcase achievements={achievements} />
         )}
 
-        {/* === COMMUNITIES === */}
-        <CommunitiesList communities={profile?.communities || []} />
+        {/* === COMMUNITIES === hidden while social feature is off the live app
+            (CommunitiesList kept below for re-enable) */}
 
         {/* === SETTINGS === */}
         <SettingsSection />

@@ -10,16 +10,13 @@ import { AppShell } from '../components/layout/AppShell';
 
 type Tab = 'marketplace' | 'actions' | 'history';
 
+// Social-feature spend actions (Create Community, Host Event, Priority RSVP) are
+// omitted while the social feature is hidden from the live app. Re-add when it ships.
 const SPEND_ACTIONS = [
-  { key: 'community', icon: '🏘️', label: 'Create Community', cost: 200, description: 'Start your own run club', route: '/communities/create' },
-  { key: 'event', icon: '📅', label: 'Host Event', cost: 75, description: 'Create an event for runners', route: '/events' },
   { key: 'challenge', icon: '⚔️', label: '1v1 Challenge', cost: '5-50', description: 'Stake Kendu, compete head-to-head', route: '/challenges' },
   { key: 'card-skin', icon: '🎨', label: 'Premium Card Skin', cost: 40, description: 'Unlock exclusive share templates', route: null },
   { key: 'ai-dive', icon: '🧠', label: 'AI Deep Dive', cost: 30, description: 'Extended AI coach session', route: null },
-  { key: 'boost', icon: '🚀', label: 'Boost Post', cost: 10, description: 'Pin your post to top for 24h', route: null },
-  { key: 'rsvp', icon: '🎟️', label: 'Priority RSVP', cost: 15, description: 'Guaranteed spot in limited events', route: '/events' },
   { key: 'group-challenge', icon: '👥', label: 'Group Challenge', cost: 50, description: 'Challenge multiple runners at once', route: null },
-  { key: 'sponsor', icon: '🏆', label: 'Sponsor Leaderboard', cost: 500, description: 'Your name on community board 7 days', route: null },
 ] as const;
 
 export function RewardsPage() {
