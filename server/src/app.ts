@@ -44,6 +44,7 @@ import wellnessRoutes from './routes/wellness.routes';
 import goalsRoutes from './routes/goals.routes';
 import dashboardBatchRoutes from './routes/dashboard.routes';
 import insightsBatchRoutes from './routes/insights.batch.routes';
+import coachRoutes from './routes/coach.routes';
 import adminAnalyticsRoutes from './routes/admin-analytics.routes';
 import adminFlagsRoutes from './routes/admin-flags.routes';
 import adminSegmentsRoutes from './routes/admin-segments.routes';
@@ -127,6 +128,8 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use('/api/insights', insightsRoutes);
   app.use('/api/dashboard', dashboardBatchRoutes);
   app.use('/api/coach/insights', insightsBatchRoutes);
+  // One-way (Rs.9) AI coach: pre-run brief, during-run cue stream, post-run report.
+  app.use('/api/coach', coachRoutes);
 
   // Scheduled-job endpoints (challenge expiry, streak decay, backup). On Vercel
   // these are driven by Vercel Cron (see vercel.json "crons"); on a self-hosted
