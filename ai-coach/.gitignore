@@ -1,0 +1,16 @@
+﻿.env
+.env.txt
+__pycache__/
+*.pyc
+*.pyo
+data/
+*.db
+knowledge/index/
+.streamlit/secrets.toml
+venv/
+.venv/
+.claude/
+models/
+*.onnx
+*.wav
+eval/eval_history.jsonl
