@@ -4,7 +4,8 @@
 // during-run cue engine ON-DEVICE (no network per GPS tick). The Express SERVER
 // keeps an identical copy under server/src/engine/coach because its tsconfig
 // `rootDir: ./src` forbids importing files outside server/src — keep the two in
-// sync (both are mechanical ports of the canonical Python in ai-coach/).
+// sync (both are mechanical ports of the canonical Python preserved on the
+// `ai-coach-assets` branch).
 //
 // Pure TypeScript, no I/O: feed it telemetry + the user's pace zones and it returns
 // persona-voiced, grounded coaching for before / during / after a run.
