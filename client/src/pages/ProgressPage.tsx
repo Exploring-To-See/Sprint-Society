@@ -4,9 +4,53 @@ import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
+import { SSSeg } from '../components/ss/SSSeg';
+import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
+import { Chart } from '../components/ss/icons';
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
+
+// --- Period (Week / Month / All-time) report types, mirroring generateProgressReport ---
+type Period = 'weekly' | 'monthly' | 'all_time';
+
+interface PeriodPR {
+  category: string;
+  formatted: string;
+  date: string;
+  is_new: boolean;
+}
+interface PeriodReport {
+  period: Period;
+  summary: {
+    total_runs: number;
+    total_distance_km: number;
+    total_time_minutes: number;
+    avg_pace_per_km: number;
+    best_pace_per_km: number;
+  };
+  comparison?: {
+    runs_change: number;
+    distance_change_percent: number;
+    pace_change_seconds: number;
+    pace_improved: boolean;
+    message: string;
+  };
+  personal_records: PeriodPR[];
+  improvement_velocity: {
+    pace_improvement_per_week: number;
+    distance_growth_per_week: number;
+    projected_5k_time_in_4_weeks: number;
+  };
+  next_milestone: { name: string; progress_percent: number; remaining: string };
+}
+
+const PERIODS: { key: Period; label: string; endpoint: string }[] = [
+  { key: 'weekly', label: 'Week', endpoint: '/progress/weekly' },
+  { key: 'monthly', label: 'Month', endpoint: '/progress/monthly' },
+  { key: 'all_time', label: 'All-time', endpoint: '/progress/all-time' },
+];
+const PERIOD_NOUN: Record<Period, string> = { weekly: 'week', monthly: 'month', all_time: 'all-time' };
 
 function formatPace(seconds: number): string {
   if (!seconds) return '--:--';
@@ -17,18 +61,28 @@ function formatPace(seconds: number): string {
 
 export function ProgressPage() {
   const [view, setView] = useState<'stats' | 'journey'>('stats');
+  const [period, setPeriod] = useState<Period>('weekly');
 
   const { data: improvement, isLoading: loadingImprovement } = useQuery({
     queryKey: ['progress-improvement'],
     queryFn: () => api.get('/progress/improvement').then(r => r.data),
   });
 
-  const { data: weekly, isLoading: loadingWeekly } = useQuery({
-    queryKey: ['progress-weekly'],
-    queryFn: () => api.get('/progress/weekly').then(r => r.data),
+  // Period report — Week / Month / All-time. Separate query key per period so each
+  // caches independently. All three share the generateProgressReport shape.
+  const activePeriod = PERIODS.find(p => p.key === period)!;
+  const {
+    data: report,
+    isLoading: loadingReport,
+    isError: reportError,
+    refetch: refetchReport,
+  } = useQuery<PeriodReport>({
+    queryKey: ['progress-report', period],
+    queryFn: () => api.get(activePeriod.endpoint).then(r => r.data),
   });
 
-  const isLoading = loadingImprovement || loadingWeekly;
+  // Weekly-only: improvement + chart and the report skeleton gate the first paint.
+  const isLoading = loadingImprovement || (period === 'weekly' && loadingReport);
 
   const { data: journey } = useQuery({
     queryKey: ['progress-journey'],
@@ -107,9 +161,38 @@ export function ProgressPage() {
         {view === 'stats' && (
           <>
 
+        {/* Period switch — Week · Month · All-time */}
+        <motion.div variants={fadeUp}>
+          <SSSeg<Period>
+            items={PERIODS.map(p => ({ key: p.key, label: p.label }))}
+            value={period}
+            onChange={setPeriod}
+            layoutId="progress-period-pill"
+            ariaLabel="Select progress period"
+            testid="progress-period"
+          />
+        </motion.div>
 
-        {/* Before → After card */}
-        {improvement?.has_data && (
+        {/* Period report — loading / error states (empty handled inline below) */}
+        {loadingReport && (
+          <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SSSkeleton height={84} style={{ borderRadius: 18 }} />
+            <SSSkeleton height={108} style={{ borderRadius: 18 }} />
+            <SSSkeleton height={92} style={{ borderRadius: 18 }} />
+          </motion.div>
+        )}
+        {!loadingReport && reportError && (
+          <motion.div variants={fadeUp}>
+            <SSError
+              onRetry={() => refetchReport()}
+              message="We couldn’t load your progress for this period. Check your connection and try again."
+              testid="progress-period-error"
+            />
+          </motion.div>
+        )}
+
+        {/* Weekly-only: Before → After card (global improvement, not period-scoped) */}
+        {period === 'weekly' && improvement?.has_data && (
           <motion.div variants={fadeUp} className="card p-5">
             <p className="label mb-4 text-center">Your Improvement</p>
             <div className="flex items-center justify-center gap-5">
@@ -144,8 +227,8 @@ export function ProgressPage() {
           </motion.div>
         )}
 
-        {/* Pace trend chart */}
-        {improvement?.trend && improvement.trend.length > 2 && (
+        {/* Weekly-only: Pace trend chart (global pace history) */}
+        {period === 'weekly' && improvement?.trend && improvement.trend.length > 2 && (
           <motion.div variants={fadeUp}>
             <h3 className="font-heading font-semibold text-[15px] mb-3">Pace over time</h3>
             <div className="card p-4">
@@ -186,90 +269,115 @@ export function ProgressPage() {
           </motion.div>
         )}
 
-        {/* Weekly summary */}
-        {weekly && (
+        {/* Period summary (Week / Month / All-time) — same report shape for all three */}
+        {report && !loadingReport && !reportError && (
           <>
-            {/* Comparison message */}
-            {weekly.comparison && (
-              <motion.div variants={fadeUp} className={`card p-4 border ${
-                weekly.comparison.pace_improved ? 'border-accent-green/20 bg-accent-green/5' : 'border-bg-tertiary'
-              }`}>
-                <p className={`text-[13px] font-medium ${weekly.comparison.pace_improved ? 'text-accent-green' : 'text-zinc-300'}`}>
-                  {weekly.comparison.message}
-                </p>
-                <div className="flex gap-4 mt-2">
-                  <span className="text-[11px] text-zinc-500">
-                    {weekly.comparison.runs_change > 0 ? '+' : ''}{weekly.comparison.runs_change} runs
-                  </span>
-                  <span className="text-[11px] text-zinc-500">
-                    {weekly.comparison.distance_change_percent > 0 ? '+' : ''}{weekly.comparison.distance_change_percent}% distance
-                  </span>
-                </div>
-              </motion.div>
-            )}
+            {report.summary.total_runs > 0 ? (
+              <>
+                {/* Headline stats for the selected period */}
+                <motion.div variants={fadeUp} className="flex gap-2" data-testid="progress-period-summary">
+                  <div className="sstat">
+                    <div className="v">{report.summary.total_runs}</div>
+                    <div className="k">Runs</div>
+                  </div>
+                  <div className="sstat">
+                    <div className="v">{report.summary.total_distance_km.toFixed(1)}<small>km</small></div>
+                    <div className="k">Distance</div>
+                  </div>
+                  <div className="sstat">
+                    <div className="v">{formatPace(report.summary.avg_pace_per_km)}<small>/km</small></div>
+                    <div className="k">Avg pace</div>
+                  </div>
+                </motion.div>
 
-            {/* PRs */}
-            {weekly.personal_records && weekly.personal_records.length > 0 && (
-              <motion.div variants={fadeUp}>
-                <h3 className="font-heading font-semibold text-[15px] mb-3">Personal Records</h3>
-                <div className="space-y-2">
-                  {weekly.personal_records.map((pr: any) => (
-                    <div key={pr.category} className="card p-3.5 flex items-center justify-between">
-                      <div>
-                        <p className="text-[13px] font-medium">{pr.category}</p>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">
-                          {new Date(pr.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-mono text-[15px] font-bold text-white">{pr.formatted}</p>
-                        {pr.is_new && <span className="text-[11px] font-medium text-accent-gold">NEW PR!</span>}
-                      </div>
+                {/* Comparison message — only weekly/monthly carry a previous period */}
+                {report.comparison && (
+                  <motion.div variants={fadeUp} className={`card p-4 border ${
+                    report.comparison.pace_improved ? 'border-accent-green/20 bg-accent-green/5' : 'border-bg-tertiary'
+                  }`}>
+                    <p className={`text-[13px] font-medium ${report.comparison.pace_improved ? 'text-accent-green' : 'text-zinc-300'}`}>
+                      {report.comparison.message}
+                    </p>
+                    <div className="flex gap-4 mt-2">
+                      <span className="text-[11px] text-zinc-500">
+                        {report.comparison.runs_change > 0 ? '+' : ''}{report.comparison.runs_change} runs
+                      </span>
+                      <span className="text-[11px] text-zinc-500">
+                        {report.comparison.distance_change_percent > 0 ? '+' : ''}{report.comparison.distance_change_percent}% distance
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+                  </motion.div>
+                )}
 
-            {/* Milestones */}
-            {weekly.next_milestone && (
-              <motion.div variants={fadeUp} className="card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="label">Next Milestone</p>
-                  <span className="text-[11px] font-mono text-accent">{weekly.next_milestone.progress_percent}%</span>
-                </div>
-                <p className="text-[13px] font-medium">{weekly.next_milestone.name}</p>
-                <p className="text-[11px] text-zinc-500 mt-0.5">{weekly.next_milestone.remaining}</p>
-                <div className="h-1.5 rounded-full bg-bg-tertiary overflow-hidden mt-3">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-accent to-accent-gold"
-                    style={{ width: `${weekly.next_milestone.progress_percent}%` }}
-                  />
-                </div>
-              </motion.div>
-            )}
+                {/* PRs */}
+                {report.personal_records.length > 0 && (
+                  <motion.div variants={fadeUp}>
+                    <h3 className="font-heading font-semibold text-[15px] mb-3">Personal Records</h3>
+                    <div className="space-y-2">
+                      {report.personal_records.map((pr) => (
+                        <div key={pr.category} className="card p-3.5 flex items-center justify-between">
+                          <div>
+                            <p className="text-[13px] font-medium">{pr.category}</p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5">
+                              {new Date(pr.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-mono text-[15px] font-bold text-white">{pr.formatted}</p>
+                            {pr.is_new && <span className="text-[11px] font-medium text-accent-gold">NEW PR!</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
 
-            {/* Improvement velocity */}
-            {weekly.improvement_velocity && weekly.improvement_velocity.pace_improvement_per_week !== 0 && (
-              <motion.div variants={fadeUp} className="card p-4 text-center">
-                <p className="label mb-1">Improvement Rate</p>
-                <p className="font-mono text-xl font-bold text-accent">
-                  {weekly.improvement_velocity.pace_improvement_per_week > 0 ? '-' : '+'}
-                  {Math.abs(weekly.improvement_velocity.pace_improvement_per_week)}s
-                </p>
-                <p className="text-[11px] text-zinc-500 mt-0.5">per km, per week</p>
+                {/* Next milestone */}
+                {report.next_milestone && (
+                  <motion.div variants={fadeUp} className="card p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="label">Next Milestone</p>
+                      <span className="text-[11px] font-mono text-accent">{report.next_milestone.progress_percent}%</span>
+                    </div>
+                    <p className="text-[13px] font-medium">{report.next_milestone.name}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">{report.next_milestone.remaining}</p>
+                    <div className="h-1.5 rounded-full bg-bg-tertiary overflow-hidden mt-3">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-accent to-accent-gold"
+                        style={{ width: `${report.next_milestone.progress_percent}%` }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Improvement velocity — global, weekly-only (rate is per-week) */}
+                {period === 'weekly' && report.improvement_velocity && report.improvement_velocity.pace_improvement_per_week !== 0 && (
+                  <motion.div variants={fadeUp} className="card p-4 text-center">
+                    <p className="label mb-1">Improvement Rate</p>
+                    <p className="font-mono text-xl font-bold text-accent">
+                      {report.improvement_velocity.pace_improvement_per_week > 0 ? '-' : '+'}
+                      {Math.abs(report.improvement_velocity.pace_improvement_per_week)}s
+                    </p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">per km, per week</p>
+                  </motion.div>
+                )}
+              </>
+            ) : (
+              /* No runs in the selected period */
+              <motion.div variants={fadeUp}>
+                <SSEmpty
+                  icon={<Chart width={22} height={22} />}
+                  title={period === 'all_time' ? 'No runs logged yet' : `No runs this ${PERIOD_NOUN[period]}`}
+                  body={
+                    period === 'all_time'
+                      ? 'Complete a few runs and your stats will appear here automatically.'
+                      : `You haven’t logged a run this ${PERIOD_NOUN[period]} yet. Switch to All-time to see your full history.`
+                  }
+                  testid="progress-period-empty"
+                />
               </motion.div>
             )}
           </>
-        )}
-
-        {/* Empty state */}
-        {!improvement?.has_data && (
-          <motion.div variants={fadeUp} className="text-center py-16">
-            <p className="text-3xl mb-3">📈</p>
-            <p className="text-zinc-400 text-sm">Complete a few runs to see your progress</p>
-            <p className="text-zinc-600 text-xs mt-1">We track every improvement automatically</p>
-          </motion.div>
         )}
           </>
         )}

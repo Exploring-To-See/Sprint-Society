@@ -6,6 +6,8 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AppShell } from '../components/layout/AppShell';
 import { Button } from '../components/ui/Button';
+import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
+import { Spark } from '../components/ss/icons';
 import type { Achievement, PersonalRecord, UserXP } from '../../../shared/types';
 
 // --- Animations ---
@@ -545,6 +547,100 @@ function SettingsSection() {
   );
 }
 
+// --- XP History (last 50 xp_transactions from GET /gamification/history) ---
+
+interface XpTransaction {
+  id: number;
+  amount: number;
+  source: string;
+  description: string | null;
+  created_at: string;
+}
+
+// Humanize the machine `source` (e.g. "run_completed" → "Run completed") so a row
+// always has a readable label even when `description` is empty.
+function humanizeSource(source: string): string {
+  if (!source) return 'XP earned';
+  return source
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatXpDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function XpHistorySection() {
+  const { data, isLoading, isError, refetch } = useQuery<XpTransaction[]>({
+    queryKey: ['xp-history'],
+    queryFn: () => api.get('/gamification/history').then((r) => r.data),
+  });
+
+  return (
+    <motion.div variants={fadeUp} className="space-y-2" data-testid="profile-xp-history">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">XP History</h3>
+
+      {isLoading && (
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <SSSkeleton key={i} height={52} style={{ borderRadius: 14 }} />
+          ))}
+        </div>
+      )}
+
+      {!isLoading && isError && (
+        <SSError onRetry={() => refetch()} message="We couldn’t load your XP history just now." testid="profile-xp-history-error" />
+      )}
+
+      {!isLoading && !isError && (!data || data.length === 0) && (
+        <SSEmpty
+          icon={<Spark width={22} height={22} />}
+          title="No XP yet"
+          body="Log a run or unlock an achievement and your XP will start stacking up here."
+          testid="profile-xp-history-empty"
+        />
+      )}
+
+      {!isLoading && !isError && data && data.length > 0 && (
+        <div className="ss-surface ss-recess ss-rise" style={{ borderRadius: 16, overflow: 'hidden' }}>
+          {data.map((tx, i) => {
+            const label = tx.description?.trim() || humanizeSource(tx.source);
+            const positive = tx.amount >= 0;
+            return (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+                style={{ borderTop: i === 0 ? 'none' : '1px solid var(--hair)' }}
+              >
+                <div className="min-w-0">
+                  <p style={{ font: '600 12.5px var(--body)', color: 'var(--fg)' }} className="truncate">
+                    {label}
+                  </p>
+                  <p style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)', marginTop: 2 }}>
+                    {humanizeSource(tx.source)} · {formatXpDate(tx.created_at)}
+                  </p>
+                </div>
+                <span
+                  className="flex-none"
+                  style={{
+                    font: '700 12.5px var(--mono)',
+                    fontVariantNumeric: 'tabular-nums',
+                    color: positive ? 'var(--green)' : 'var(--amber)',
+                  }}
+                >
+                  {positive ? '+' : ''}{tx.amount} XP
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // --- Main Profile Page ---
 
 export function ProfilePage() {
@@ -751,6 +847,9 @@ export function ProfilePage() {
         {achievements && achievements.length > 0 && (
           <AchievementShowcase achievements={achievements} />
         )}
+
+        {/* === XP HISTORY === */}
+        <XpHistorySection />
 
         {/* === COMMUNITIES === */}
         <CommunitiesList communities={profile?.communities || []} />
