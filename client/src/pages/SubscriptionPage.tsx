@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { AppShell } from '../components/layout/AppShell';
+import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
+import { Clock, Bolt } from '../components/ss/icons';
 
 declare global {
   interface Window {
@@ -17,6 +19,49 @@ const PLAN_STYLES: Record<string, { gradient: string; badge: string; icon: strin
   pro: { gradient: 'from-accent-gold/20 to-accent-gold/5', badge: 'bg-accent-gold/20 text-accent-gold', icon: '👑' },
 };
 
+// Shape returned by POST /subscription/create-order and POST /subscription/upgrade.
+// upgrade omits plan_key (only plan_name); create-order includes both — plan_key is optional here.
+interface RazorpayOrder {
+  order_id: string;
+  amount: number; // paise
+  currency: string;
+  key_id: string;
+  plan_name: string;
+  plan_key?: string;
+}
+
+// Row shape from GET /subscription/history (bare array). amount_inr is in RUPEES (stored
+// directly as price_inr in payment_history), unlike the Razorpay order.amount which is paise.
+interface PaymentRecord {
+  id: number;
+  plan_key: string;
+  plan_name: string;
+  amount_inr: number;
+  status: string;
+  razorpay_order_id: string | null;
+  created_at: string;
+}
+
+// GET /subscription/status — current user's plan (free fallback when no active sub).
+interface CurrentSub {
+  plan_key: string;
+  plan_name: string;
+  status: string;
+  expires_at: string | null;
+  auto_renew: boolean;
+  days_remaining: number | null;
+}
+
+const STATUS_CHIP: Record<string, 'good' | 'warn' | 'neutral'> = {
+  success: 'good',
+  pending: 'warn',
+  failed: 'neutral',
+};
+
+function fmtHistoryDate(d: string): string {
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export function SubscriptionPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -28,56 +73,86 @@ export function SubscriptionPage() {
     queryFn: () => api.get('/subscription/plans').then(r => r.data),
   });
 
-  const { data: currentSub } = useQuery({
+  const { data: currentSub } = useQuery<CurrentSub>({
     queryKey: ['subscription-status'],
     queryFn: () => api.get('/subscription/status').then(r => r.data),
   });
+
+  const {
+    data: history,
+    isLoading: historyLoading,
+    isError: historyError,
+    refetch: refetchHistory,
+  } = useQuery<PaymentRecord[]>({
+    queryKey: ['subscription-history'],
+    queryFn: () => api.get('/subscription/history').then(r => r.data),
+  });
+
+  // Shared Razorpay checkout — the single source of truth for the order → verify flow,
+  // used by both new-plan purchases (create-order) and Base → Pro upgrades (upgrade).
+  const openRazorpay = (order: RazorpayOrder) => {
+    const options = {
+      key: order.key_id,
+      amount: order.amount,
+      currency: order.currency,
+      name: 'Sprint Society',
+      description: `${order.plan_name} Plan - Monthly`,
+      order_id: order.order_id,
+      handler: async (response: any) => {
+        try {
+          await api.post('/subscription/verify', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+          queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
+          queryClient.invalidateQueries({ queryKey: ['subscription-history'] });
+          navigate('/dashboard');
+        } catch {
+          setError('Payment verification failed. Contact support.');
+        }
+      },
+      prefill: {},
+      theme: { color: '#f97316' },
+    };
+
+    if (typeof window.Razorpay === 'undefined') {
+      setError('Payment gateway loading... Please try again.');
+      setProcessing(null);
+      return;
+    }
+
+    const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', () => {
+      setError('Payment failed. Please try again.');
+      setProcessing(null);
+    });
+    rzp.open();
+  };
 
   const handleSubscribe = async (planKey: string) => {
     setProcessing(planKey);
     setError('');
 
     try {
-      const { data: order } = await api.post('/subscription/create-order', { plan_key: planKey });
-
-      const options = {
-        key: order.key_id,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'Sprint Society',
-        description: `${order.plan_name} Plan - Monthly`,
-        order_id: order.order_id,
-        handler: async (response: any) => {
-          try {
-            await api.post('/subscription/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-            navigate('/dashboard');
-          } catch {
-            setError('Payment verification failed. Contact support.');
-          }
-        },
-        prefill: {},
-        theme: { color: '#f97316' },
-      };
-
-      if (typeof window.Razorpay === 'undefined') {
-        setError('Payment gateway loading... Please try again.');
-        setProcessing(null);
-        return;
-      }
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', () => {
-        setError('Payment failed. Please try again.');
-        setProcessing(null);
-      });
-      rzp.open();
+      const { data: order } = await api.post<RazorpayOrder>('/subscription/create-order', { plan_key: planKey });
+      openRazorpay(order);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Something went wrong');
+      setError(err.response?.data?.error || err?.message || 'Something went wrong');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    setProcessing('upgrade');
+    setError('');
+
+    try {
+      const { data: order } = await api.post<RazorpayOrder>('/subscription/upgrade');
+      openRazorpay(order);
+    } catch (err: any) {
+      setError(err.response?.data?.error || err?.message || 'Something went wrong');
     } finally {
       setProcessing(null);
     }
@@ -87,6 +162,9 @@ export function SubscriptionPage() {
     mutationFn: () => api.post('/subscription/cancel'),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription-status'] }),
   });
+
+  // Only Base subscribers can upgrade to Pro (not free, not already-Pro).
+  const canUpgrade = currentSub?.plan_key === 'base';
 
   return (
     <AppShell>
@@ -117,6 +195,59 @@ export function SubscriptionPage() {
               </button>
             )}
           </div>
+        )}
+
+        {/* Upgrade to Pro — only for active Base subscribers */}
+        {canUpgrade && (
+          <button
+            type="button"
+            data-testid="sub-upgrade"
+            onClick={handleUpgrade}
+            disabled={processing === 'upgrade'}
+            className="ss-surface ss-rise"
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              cursor: processing === 'upgrade' ? 'not-allowed' : 'pointer',
+              opacity: processing === 'upgrade' ? 0.6 : 1,
+              borderRadius: 18,
+              padding: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              fontFamily: 'inherit',
+              color: 'inherit',
+            }}
+          >
+            <span
+              className="ticon"
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 13,
+                flex: 'none',
+                background: 'rgba(251,191,36,.14)',
+                borderColor: 'rgba(251,191,36,.28)',
+                color: 'var(--amber)',
+              }}
+            >
+              <Bolt width={20} height={20} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ font: '600 14px var(--head)', color: 'var(--fg)', letterSpacing: '-.01em' }}>
+                  Upgrade to Pro
+                </span>
+                <span className="ss-tag maybe">Best value</span>
+              </span>
+              <span style={{ display: 'block', font: '400 11.5px/1.45 var(--body)', color: 'var(--muted)', marginTop: 3 }}>
+                Unlock every Pro feature for the rest of this billing period.
+              </span>
+            </span>
+            <span style={{ font: '600 12px var(--head)', color: 'var(--accent-2)', flex: 'none', whiteSpace: 'nowrap' }}>
+              {processing === 'upgrade' ? 'Processing…' : 'Upgrade'}
+            </span>
+          </button>
         )}
 
         {/* Plans */}
@@ -209,6 +340,60 @@ export function SubscriptionPage() {
         {error && (
           <p className="text-[12px] text-red-400 text-center">{error}</p>
         )}
+
+        {/* Payment history */}
+        <section data-testid="sub-history" style={{ marginTop: 4 }}>
+          <p className="tlbl" style={{ marginBottom: 9, paddingLeft: 2 }}>Payment history</p>
+
+          {historyLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[0, 1, 2].map(i => <SSSkeleton key={i} height={58} style={{ borderRadius: 16 }} />)}
+            </div>
+          ) : historyError ? (
+            <SSError onRetry={() => refetchHistory()} testid="sub-history-error" />
+          ) : !history || history.length === 0 ? (
+            <SSEmpty
+              icon={<Clock width={22} height={22} />}
+              title="No payments yet"
+              body="Once you subscribe or upgrade, every payment will be listed here for your records."
+              testid="sub-history-empty"
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {history.map((p, i) => {
+                const tone = STATUS_CHIP[p.status] || 'neutral';
+                return (
+                  <motion.div
+                    key={p.id}
+                    data-testid="sub-history-row"
+                    className="ss-surface ss-recess"
+                    style={{ borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.04 + i * 0.04, type: 'spring', stiffness: 240, damping: 26 }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ font: '600 13px var(--body)', color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.plan_name}
+                      </div>
+                      <div style={{ font: '500 10.5px var(--mono)', color: 'var(--muted-2)', marginTop: 2 }}>
+                        {fmtHistoryDate(p.created_at)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flex: 'none' }}>
+                      <div style={{ font: '700 14px var(--mono)', color: 'var(--fg)', fontVariantNumeric: 'tabular-nums' }}>
+                        ₹{p.amount_inr}
+                      </div>
+                      <span className={`ss-dchip ${tone}`} style={{ textTransform: 'capitalize' }}>
+                        {p.status}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         {/* Info */}
         <div className="text-center space-y-1 pt-2">

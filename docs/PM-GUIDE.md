@@ -604,3 +604,28 @@ The **AI Coach** route (`/coach`) and the standalone `/plan`, `/heart-rate`, `/r
 - **Coach sub-tabs** are content components in `client/src/components/coach/` (`CoachChat`, `CoachPlan`, `CoachInsights`, `CoachZones`, `CoachRecords`), each wired to the real Express routes (chat, training, goals, insights, heartrate, records, kendu).
 - **Gate status**: zero emoji, orange-only primary, violet reserved for AI/secondary, neutral-glass chrome, mono tabular metrics, one segmented control per surface, one living centerpiece per screen, reduced-motion safe.
 - **Remaining (not yet redesigned)**: Run/track, Run history & detail, Progress, Events (list/map/detail), Social/Community, Profile/Account, Goals, Share cards, Auth/Landing/Onboarding, Admin. These still use the pre-V1 styling (and still contain emoji) until migrated to the `ss/` kit.
+
+---
+
+## Audit-gaps wave — backend capabilities given UI (branch `fix/audit-gaps`)
+
+Closes the "backend exists, no UI" gaps from `docs/FEATURE-WIRING-AUDIT.md`. All new calls were source-verified against route field names (2 silent-data bugs found + fixed in audit: CoachInsights `predicted_seconds`, CoachZones `lt_heartrate`). Client typecheck + Vite build green.
+
+**Delivered:**
+- **Coach → Recovery** (new 6th sub-tab, `client/src/components/coach/CoachRecovery.tsx`): wellness log (`POST /wellness/log`), today/week summary, `GET /wellness/recovery-factor`, HRV (`POST /heartrate/hrv`, `GET /heartrate/hrv/trend`). Tap-first inputs.
+- **Coach → Zones**: lactate-threshold test (`GET/POST /training/lt-test`).
+- **Coach → Plan / Insights**: pre-run brief now uses real `/insights/pre-run` (warmupTip/focusArea/conditions); pace trajectory now plots real `/runs/chart-data`.
+- **Progress**: Week/Month/All-time (`/progress/monthly` `/all-time`).
+- **Events**: My / Nearby tabs (`/events/my` `/events/nearby`).
+- **Subscription**: upgrade flow (`/subscription/upgrade`) + payment history (`/subscription/history`).
+- **Profile**: XP history (`/gamification/history`).
+- **Run history**: per-run HR analysis (`/heartrate/analysis/:id`) + post-run recap (`/insights/post-run/:id`).
+- **Social** (rebuilt `SocialPage` to 5 lanes): Feed · Discover · Following · Followers · Leaderboard (`/social/discover|following|followers`, follow/unfollow, `/gamification/leaderboard` `/gamification/friend-streaks`). The old "Communities" sub-tab was dropped — Communities stays reachable via the bottom nav.
+
+**Deferred (contextual — wire into existing flows, not standalone screens):**
+- Kendu spends without UI: `spend/community` (community-create flow), `spend/event` + `spend/rsvp` (event host/RSVP), `spend/group-challenge`, `upkeep/reactivate`.
+- `GET /records/check/:activityId` PR-celebration → fire from the run-complete flow.
+- Proactive insights (`GET /insights`, `/insights/athlete-profile`, `/insights/weekly-summary`) → candidate Coach Insights section.
+- `GET /adaptive/load` `/this-week` `/vdot-progression` → already surfaced via the `/coach/insights` batch; no dedicated screen.
+
+See `docs/AUDIT-GAPS-HANDOFF.md` for the engineer wiring checklist.

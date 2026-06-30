@@ -9,7 +9,7 @@ import { SSSkeleton, SSError, SSEmpty } from '../ss/SSStates';
 import { Bolt, Chart } from '../ss/icons';
 
 interface Readiness { score?: number; label?: string; color?: string; recommendation?: string; coach_tip?: string }
-interface Prediction { predicted_time?: number }
+interface Prediction { predicted_seconds?: number; predicted_formatted?: string }
 interface Insights {
   adaptive?: { training_stress_balance?: number; injury_risk?: string | { level?: string }; acute_chronic_ratio?: number };
   summary?: { vdot?: number; readiness?: Readiness; pace_trend?: string; improvement_per_week?: number; compliance?: number };
@@ -32,6 +32,20 @@ function fmtPace(s?: number): string {
   return `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 }
 
+// Build a real pace sparkline (W=300, H=46). Faster pace (lower s/km) sits higher on the chart.
+function buildSpark(paces: number[]): { line: string; area: string; lastY: number } | null {
+  const pts = paces.slice(-24);
+  if (pts.length < 2) return null;
+  const min = Math.min(...pts), max = Math.max(...pts);
+  const span = max - min || 1;
+  const x = (i: number) => (i / (pts.length - 1)) * 300;
+  const y = (p: number) => 4 + ((p - min) / span) * 38; // faster→top
+  const coords = pts.map((p, i) => [x(i), y(p)] as const);
+  const line = coords.map(([cx, cy], i) => `${i === 0 ? 'M' : 'L'}${cx.toFixed(1)} ${cy.toFixed(1)}`).join(' ');
+  const area = `${line} L300 46 L0 46 Z`;
+  return { line, area, lastY: coords[coords.length - 1][1] };
+}
+
 export function CoachInsights() {
   const { data: insights, isLoading, isError, refetch } = useQuery<Insights>({
     queryKey: ['coach-insights-batch'],
@@ -41,6 +55,10 @@ export function CoachInsights() {
   const { data: readinessData } = useQuery<Readiness>({
     queryKey: ['training-readiness'],
     queryFn: () => api.get('/training/readiness').then((r) => r.data).catch(() => null),
+  });
+  const { data: paceSeries } = useQuery<Array<{ average_pace_per_km?: number; start_date?: string }>>({
+    queryKey: ['pace-series-30d'],
+    queryFn: () => api.get('/runs/chart-data?weeks=5').then((r) => r.data).catch(() => []),
   });
 
   if (isLoading) {
@@ -85,6 +103,8 @@ export function CoachInsights() {
     );
   }
 
+  const spark = buildSpark((paceSeries || []).map((p) => p.average_pace_per_km).filter((x): x is number => typeof x === 'number' && x > 0));
+
   const loadTone: Tone = tsb === undefined ? 'plain' : tsb > 0 ? 'good' : tsb > -10 ? 'warn' : 'warn';
   const loadLabel = tsb === undefined ? '—' : tsb > 5 ? 'Fresh' : tsb > -5 ? 'Optimal' : 'Fatigued';
   const injTone: Tone = injury === 'Low' ? 'good' : injury ? 'warn' : 'plain';
@@ -127,7 +147,7 @@ export function CoachInsights() {
             <div key={d} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ font: '600 11px var(--body)', color: 'var(--muted)' }}>{d}</span>
               <span style={{ font: '700 13px var(--mono)', color: 'var(--fg)', fontVariantNumeric: 'tabular-nums' }}>
-                {fmtTime(insights?.predictions?.[d]?.predicted_time)}
+                {insights?.predictions?.[d]?.predicted_formatted || fmtTime(insights?.predictions?.[d]?.predicted_seconds)}
               </span>
             </div>
           ))}
@@ -142,12 +162,16 @@ export function CoachInsights() {
             {summary?.pace_trend === 'improving' ? '▲ Improving' : summary?.pace_trend === 'declining' ? '▼ Declining' : '→ Stable'}
           </span>
         </div>
-        <svg width="100%" height="46" viewBox="0 0 300 46" preserveAspectRatio="none" style={{ marginTop: 8, display: 'block' }} aria-hidden="true">
-          <defs><linearGradient id="ins-sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#34D399" stopOpacity=".22" /><stop offset="1" stopColor="#34D399" stopOpacity="0" /></linearGradient></defs>
-          <path d="M0 38 C75 33 150 24 225 16 L300 11 L300 46 L0 46 Z" fill="url(#ins-sg)" />
-          <path d="M0 38 C75 33 150 24 225 16 L300 11" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="300" cy="11" r="3" fill="#34D399" />
-        </svg>
+        {spark ? (
+          <svg width="100%" height="46" viewBox="0 0 300 46" preserveAspectRatio="none" style={{ marginTop: 8, display: 'block' }} aria-hidden="true">
+            <defs><linearGradient id="ins-sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#34D399" stopOpacity=".22" /><stop offset="1" stopColor="#34D399" stopOpacity="0" /></linearGradient></defs>
+            <path d={spark.area} fill="url(#ins-sg)" />
+            <path d={spark.line} fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="300" cy={spark.lastY} r="3" fill="#34D399" />
+          </svg>
+        ) : (
+          <p style={{ font: '400 11px var(--body)', color: 'var(--muted-2)', marginTop: 8 }}>Log a few more runs to chart your pace trend.</p>
+        )}
         {stats?.avg_pace && <p style={{ font: '500 11px var(--mono)', color: 'var(--muted)', marginTop: 2 }}>Current avg {fmtPace(stats.avg_pace)}/km</p>}
       </section>
     </div>

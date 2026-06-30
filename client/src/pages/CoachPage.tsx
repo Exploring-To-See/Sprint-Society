@@ -10,13 +10,15 @@ import { CoachPlan } from '../components/coach/CoachPlan';
 import { CoachInsights } from '../components/coach/CoachInsights';
 import { CoachZones } from '../components/coach/CoachZones';
 import { CoachRecords } from '../components/coach/CoachRecords';
+import { CoachRecovery } from '../components/coach/CoachRecovery';
 
-type CoachSubTab = 'chat' | 'plan' | 'insights' | 'zones' | 'records';
+type CoachSubTab = 'chat' | 'plan' | 'insights' | 'zones' | 'records' | 'recovery';
 
 const TABS: { key: CoachSubTab; label: string }[] = [
   { key: 'chat', label: 'Chat' },
   { key: 'plan', label: 'Plan' },
   { key: 'insights', label: 'Insights' },
+  { key: 'recovery', label: 'Recovery' },
   { key: 'zones', label: 'Zones' },
   { key: 'records', label: 'Records' },
 ];
@@ -37,6 +39,7 @@ export function CoachPage() {
       {tab === 'chat' && <CoachChat />}
       {tab === 'plan' && <CoachPlan />}
       {tab === 'insights' && <CoachInsights />}
+      {tab === 'recovery' && <CoachRecovery />}
       {tab === 'zones' && <CoachZones />}
       {tab === 'records' && <CoachRecords />}
     </SSScreen>

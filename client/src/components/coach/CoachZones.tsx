@@ -1,15 +1,27 @@
 // AI Coach · Zones — personalized HR zones. Data from heartrate.routes.ts
 // (GET /heartrate/zones, GET /heartrate/trends). The 5-color HR-zone palette appears ONLY
 // inside the chart bars (§27); every card surface is neutral glass, metrics are mono.
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'framer-motion';
 import api from '../../lib/api';
 import { SSSkeleton, SSEmpty, SSError } from '../ss/SSStates';
-import { Pulse } from '../ss/icons';
+import { Pulse, Bolt } from '../ss/icons';
 
 interface Zone { zone: number; name: string; min_bpm: number; max_bpm: number; feel?: string; training_effect?: string }
 interface Profile { source?: string; tip?: string; max_hr?: number; hr_reserve?: number; lactate_threshold_hr?: number; zones?: Zone[] }
 interface Trends { summary?: { message?: string; improvement_percent?: number }; trends?: unknown[] }
+interface LtTest { has_test?: boolean; message?: string; lt_pace?: number; lt_heartrate?: number; test_date?: string; days_since?: number; stale?: boolean; stale_message?: string | null }
+
+function paceToSec(mmss: string): number | null {
+  const m = mmss.match(/^(\d{1,2}):([0-5]?\d)$/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+function fmtPaceSec(s?: number): string {
+  if (!s) return '—';
+  return `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+}
 
 const ZONE_PALETTE = ['#60A5FA', '#34D399', '#FBBF24', '#FB923C', '#F87171'];
 
@@ -17,6 +29,17 @@ export function CoachZones() {
   const reduce = useReducedMotion();
   const { data: profile, isLoading, isError, refetch } = useQuery<Profile>({ queryKey: ['hr-zones'], queryFn: () => api.get('/heartrate/zones').then((r) => r.data) });
   const { data: trends } = useQuery<Trends | null>({ queryKey: ['hr-trends'], queryFn: () => api.get('/heartrate/trends').then((r) => r.data).catch(() => null) });
+
+  const qc = useQueryClient();
+  const lt = useQuery<LtTest | null>({ queryKey: ['lt-test'], queryFn: () => api.get('/training/lt-test').then((r) => r.data).catch(() => null) });
+  const [ltPace, setLtPace] = useState('');
+  const [ltMin, setLtMin] = useState(20);
+  const [ltHr, setLtHr] = useState('');
+  const [ltOpen, setLtOpen] = useState(false);
+  const saveLt = useMutation({
+    mutationFn: () => api.post('/training/lt-test', { avg_pace_per_km: paceToSec(ltPace), duration_seconds: ltMin * 60, avg_heartrate: ltHr ? Number(ltHr) : undefined }),
+    onSuccess: () => { setLtOpen(false); setLtPace(''); setLtHr(''); qc.invalidateQueries({ queryKey: ['lt-test'] }); },
+  });
 
   if (isLoading) {
     return (
@@ -96,6 +119,58 @@ export function CoachZones() {
           )}
         </section>
       )}
+
+      {/* LACTATE THRESHOLD */}
+      <section className="ss-surface ss-recess ss-rise" style={{ borderRadius: 18, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }} aria-label="Lactate threshold" data-testid="coach-lt-test">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="ticon" style={{ width: 30, height: 30, borderRadius: 10, color: 'var(--accent-2)' }}><Bolt width={15} height={15} /></span>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ font: '600 14px var(--head)', color: 'var(--fg)' }}>Lactate threshold</h3>
+            <p style={{ font: '500 10.5px var(--mono)', color: 'var(--muted-2)' }}>20-min field test</p>
+          </div>
+          {lt.data?.stale && <span className="ss-dchip warn">Stale</span>}
+        </div>
+
+        {lt.data?.has_test ? (
+          <>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="sstat" style={{ flex: 1 }}><div className="v">{fmtPaceSec(lt.data.lt_pace)}<small>/km</small></div><div className="k">LT pace</div></div>
+              {lt.data.lt_heartrate != null && (
+                <div className="sstat" style={{ flex: 1 }}><div className="v">{lt.data.lt_heartrate}<small>bpm</small></div><div className="k">LT HR</div></div>
+              )}
+            </div>
+            {lt.data.stale_message && <p style={{ font: '400 11.5px/1.4 var(--body)', color: 'var(--amber)' }}>{lt.data.stale_message}</p>}
+          </>
+        ) : (
+          <p style={{ font: '400 12px/1.5 var(--body)', color: 'var(--muted)' }}>{lt.data?.message || 'Run an all-out 20-min effort, then log your average pace to set threshold paces.'}</p>
+        )}
+
+        {ltOpen ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="ss-input" value={ltPace} onChange={(e) => setLtPace(e.target.value)} placeholder="Avg pace m:ss" aria-label="Average pace per km" data-testid="lt-pace" />
+              <input className="ss-input" value={ltHr} onChange={(e) => setLtHr(e.target.value.replace(/[^0-9]/g, ''))} inputMode="numeric" placeholder="Avg HR" aria-label="Average heart rate" style={{ maxWidth: 110 }} data-testid="lt-hr" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span className="tlbl">Duration</span>
+                <span style={{ font: '700 13px var(--mono)', color: 'var(--fg)' }}>{ltMin}<span style={{ color: 'var(--muted-2)' }}> min</span></span>
+              </div>
+              <input type="range" min={15} max={25} step={1} value={ltMin} onChange={(e) => setLtMin(Number(e.target.value))} aria-label="Test duration minutes" style={{ width: '100%', accentColor: 'var(--accent)' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="ss-btn ss-btn-soft" style={{ height: 42, flex: 'none', padding: '0 16px' }} onClick={() => setLtOpen(false)}>Cancel</button>
+              <button className="ss-btn ss-btn-primary" style={{ height: 42, flex: 1 }} disabled={!paceToSec(ltPace) || saveLt.isPending} onClick={() => saveLt.mutate()} data-testid="lt-save">
+                {saveLt.isPending ? 'Saving…' : 'Save test'}
+              </button>
+            </div>
+            {!paceToSec(ltPace) && ltPace.length > 0 && <p style={{ font: '500 10.5px var(--body)', color: 'var(--amber)' }}>Pace format m:ss (e.g. 4:45)</p>}
+            {saveLt.isError && <p style={{ font: '500 11px var(--body)', color: 'var(--amber)' }}>Couldn’t save. Pace + 15–25 min duration required.</p>}
+          </div>
+        ) : (
+          <button className="ss-btn ss-btn-soft" style={{ height: 40 }} onClick={() => setLtOpen(true)} data-testid="lt-open">{lt.data?.has_test ? 'Log new test' : 'Log a test'}</button>
+        )}
+      </section>
     </div>
   );
 }

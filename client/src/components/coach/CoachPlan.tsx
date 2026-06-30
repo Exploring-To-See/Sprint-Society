@@ -17,6 +17,10 @@ interface Session {
 }
 interface Goal { id: number | string; name?: string; type?: string; target_date?: string }
 interface Plan { race_name?: string; goal_name?: string; current_week?: number; total_weeks?: number; current_phase?: string }
+interface PreRun {
+  suggestedDistance?: number; suggestedPace?: string; warmupTip?: string; focusArea?: string;
+  environment?: { has_alert?: boolean; temperature_warning?: string | null; aqi_warning?: string | null; tips?: string[] };
+}
 interface Week { current_week?: number; total_weeks?: number; sessions?: Session[]; week?: { sessions?: Session[] } }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -35,7 +39,7 @@ export function CoachPlan() {
   const { data: plan, isLoading: planLoading } = useQuery<Plan>({ queryKey: ['training-plan'], queryFn: () => api.get('/training/plan').then((r) => r.data).catch(() => null) });
   const { data: week, isLoading: weekLoading } = useQuery<Week>({ queryKey: ['training-week'], queryFn: () => api.get('/training/week').then((r) => r.data).catch(() => null) });
   const { data: goals } = useQuery<{ active?: Goal[] }>({ queryKey: ['user-goals'], queryFn: () => api.get('/goals').then((r) => r.data).catch(() => ({ active: [] })) });
-  const { data: preRun } = useQuery({ queryKey: ['pre-run-brief'], queryFn: () => api.get('/insights/pre-run').then((r) => r.data).catch(() => null) });
+  const { data: preRun } = useQuery<PreRun | null>({ queryKey: ['pre-run-brief'], queryFn: () => api.get('/insights/pre-run').then((r) => r.data).catch(() => null) });
 
   const isLoading = planLoading || weekLoading;
   const activeGoals = goals?.active || [];
@@ -179,10 +183,20 @@ export function CoachPlan() {
                     </p>
                   )}
 
-                  {openStatus === 'today' && preRun && (
+                  {openStatus === 'today' && preRun && (preRun.warmupTip || preRun.focusArea) && (
                     <div style={{ display: 'grid', gap: 8 }}>
-                      <Brief title="Pre-run" lines={['5-min walk warm-up', 'Relaxed shoulders, quick turnover', 'Hydrate 500ml 30min before']} />
-                      <Brief title="Post-run" lines={['Cool-down walk 5 min', 'Stretch hamstrings + calves', 'Protein within 30 min']} />
+                      <Brief
+                        title="Coach brief"
+                        lines={[preRun.warmupTip, preRun.focusArea, ...(preRun.environment?.tips || [])].filter(Boolean) as string[]}
+                      />
+                      {preRun.environment?.has_alert && (preRun.environment.temperature_warning || preRun.environment.aqi_warning) && (
+                        <div className="ss-surface" style={{ borderRadius: 12, padding: '10px 12px', borderLeft: '2px solid var(--amber)' }} data-testid="plan-env-alert">
+                          <p className="tlbl" style={{ marginBottom: 4, color: 'var(--amber)' }}>Conditions</p>
+                          <p style={{ font: '400 11px/1.4 var(--body)', color: 'var(--muted)' }}>
+                            {[preRun.environment.temperature_warning, preRun.environment.aqi_warning].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 

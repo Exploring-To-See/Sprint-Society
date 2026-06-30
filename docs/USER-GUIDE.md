@@ -316,3 +316,18 @@ Your coach now lives under one **AI Coach** tab with a single segmented control 
 - **Records** — Personal bests across every distance, recent-PR flags, effort records and a PR timeline.
 
 Everything is mobile-first and matches the locked Sprint Society look (liquid-glass surfaces, the Glide-Pill nav, tabular metrics). Each tab shows tidy loading, empty and error states — nothing breaks if data is still warming up.
+
+---
+
+## What's new — surfaced features (Design V1, audit-gaps)
+
+A wave of features your data already supported now have screens:
+
+- **Coach → Recovery (new tab):** Log today's sleep, stress and energy with taps (no typing needed), see your 7-day averages and sleep debt, and your **recovery factor** for the day. Log your **morning HRV** (rMSSD) and track it against your 30-day baseline with a recovery read-out.
+- **Coach → Zones → Lactate threshold:** Log a 20-min threshold test (pace + optional HR) to anchor your training paces; stale tests (>60 days) get a re-test nudge.
+- **Progress:** Switch between **Week · Month · All-time** to see how you're trending over any window.
+- **Events:** New **My events** and **Nearby** tabs (Nearby asks for location once and shows events within range).
+- **Subscription:** **Upgrade to Pro** directly from Base, and a full **payment history**.
+- **Profile:** Your **XP history** — every point you've earned and why.
+- **Run history:** Open a run to see its **heart-rate analysis** and a **coach recap**.
+- **Social:** **Discover** runners, see who you're **Following / Followers**, the **XP leaderboard**, and a **friend-streaks** strip of who ran today.
