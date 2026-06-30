@@ -26,3 +26,9 @@ preview-*.html
 # Runtime DB backup output (contains user data — never commit)
 data/backups/
 server/data/backups/
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
