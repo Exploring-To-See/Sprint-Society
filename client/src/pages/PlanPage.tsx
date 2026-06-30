@@ -1,201 +1,134 @@
+// /plan — the full multi-week training plan timeline. Look from Home/ss-base; data from
+// training.routes.ts (GET /training/plan) + goals.routes.ts (GET /goals). Phases are neutral
+// caps tags (never hue surfaces); week status shows via the timeline dot only.
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import { Target, ChevronDown, Check, Flag } from '../components/ss/icons';
 
-const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  base: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
-  build: { bg: 'bg-accent/10', text: 'text-accent', border: 'border-accent/20' },
-  peak: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-  taper: { bg: 'bg-accent-green/10', text: 'text-accent-green', border: 'border-accent-green/20' },
-  recovery: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20' },
-};
+interface Session { type?: string; title?: string; target_pace_per_km?: number }
+interface WeekData { phase_name?: string; phase?: string; total_distance_km?: number; focus?: string; sessions?: Session[] }
+interface Plan { current_week?: number; total_weeks?: number; weeks?: WeekData[]; goal?: { race_name?: string; race_date?: string }; race_name?: string; race_date?: string; predicted_time?: string }
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+function phaseFor(week: number, total: number): string {
+  const r = week / total;
+  if (r <= 0.25) return 'Base'; if (r <= 0.6) return 'Build'; if (r <= 0.85) return 'Peak'; return 'Taper';
+}
+function pace(s?: number): string | null {
+  if (!s) return null;
+  return `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}/km`;
+}
 
 export function PlanPage() {
   const navigate = useNavigate();
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const reduce = useReducedMotion();
+  const [openWeek, setOpenWeek] = useState<number | null>(null);
 
-  const { data: plan, isLoading } = useQuery({
-    queryKey: ['training-plan-full'],
-    queryFn: () => api.get('/training/plan').then(r => r.data),
-  });
-
-  const { data: goals } = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => api.get('/goals').then(r => r.data).catch(() => ({ active: [] })),
-  });
+  const { data: plan, isLoading } = useQuery<Plan>({ queryKey: ['training-plan-full'], queryFn: () => api.get('/training/plan').then((r) => r.data) });
+  const { data: goals } = useQuery<{ active?: { name?: string }[] }>({ queryKey: ['goals'], queryFn: () => api.get('/goals').then((r) => r.data).catch(() => ({ active: [] })) });
 
   if (isLoading) {
     return (
-      <AppShell>
-        <div className="space-y-4 animate-pulse">
-          <div className="h-20 rounded-xl bg-bg-secondary" />
-          <div className="h-40 rounded-xl bg-bg-secondary" />
-          <div className="h-40 rounded-xl bg-bg-secondary" />
+      <SSScreen active="coach" bodyLabel="Training plan">
+        <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SSSkeleton height={96} style={{ borderRadius: 18 }} />
+          {[0, 1, 2, 3].map((i) => <SSSkeleton key={i} height={64} style={{ borderRadius: 16 }} />)}
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   if (!plan || !plan.weeks) {
     return (
-      <AppShell>
-        <div className="text-center py-16">
-          <span className="text-3xl mb-3 block">🎯</span>
-          <h2 className="text-[16px] font-bold text-white mb-2">No plan yet</h2>
-          <p className="text-[12px] text-zinc-500 mb-6">Set a goal to generate your training plan.</p>
-          <button onClick={() => navigate('/set-goal')} className="px-6 py-3 rounded-xl bg-accent text-white text-[12px] font-bold">
-            Set Goal →
-          </button>
+      <SSScreen active="coach" bodyLabel="Training plan">
+        <div className="ss-pad">
+          <SSEmpty
+            icon={<Target width={22} height={22} />}
+            title="No plan yet"
+            body="Set a goal and your coach will build a periodized, week-by-week training plan."
+            cta={<button className="ss-btn ss-btn-primary" style={{ height: 44, padding: '0 22px', flex: 'none' }} onClick={() => navigate('/set-goal')} data-testid="plan-full-set-goal">Set a goal</button>}
+            testid="plan-full-empty"
+          />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   const currentWeek = plan.current_week || 1;
-  const totalWeeks = plan.total_weeks || plan.weeks?.length || 8;
-  const progressPercent = Math.round((currentWeek / totalWeeks) * 100);
+  const totalWeeks = plan.total_weeks || plan.weeks.length || 8;
   const goalName = plan.goal?.race_name || plan.race_name || goals?.active?.[0]?.name || 'Training Plan';
   const raceDate = plan.goal?.race_date || plan.race_date;
   const daysLeft = raceDate ? Math.ceil((new Date(raceDate).getTime() - Date.now()) / 86400000) : null;
 
-  function getPhaseForWeek(weekNum: number): string {
-    const ratio = weekNum / totalWeeks;
-    if (ratio <= 0.25) return 'base';
-    if (ratio <= 0.6) return 'build';
-    if (ratio <= 0.85) return 'peak';
-    return 'taper';
-  }
-
-  function getWeekStatus(weekNum: number): 'done' | 'current' | 'upcoming' {
-    if (weekNum < currentWeek) return 'done';
-    if (weekNum === currentWeek) return 'current';
-    return 'upcoming';
-  }
-
   return (
-    <AppShell>
-      <div className="pb-8">
-        {/* Header */}
-        <div className="mb-5">
-          <button onClick={() => navigate('/coach', { state: { tab: 'plan' } })} className="text-[11px] text-zinc-500 mb-2 flex items-center gap-1">
-            <span>←</span> Back to Coach
-          </button>
-          <h1 className="text-[18px] font-bold text-white">{goalName}</h1>
-          <div className="flex items-center gap-3 mt-2">
-            {daysLeft && <span className="text-[11px] text-accent font-semibold">{daysLeft} days to go</span>}
-            <span className="text-[11px] text-zinc-500">Week {currentWeek} of {totalWeeks}</span>
+    <SSScreen active="coach" bodyLabel="Training plan">
+      <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* header */}
+        <section className="ss-surface ss-rise" style={{ borderRadius: 18, padding: 14 }} data-testid="plan-full-header">
+          <button onClick={() => navigate('/coach', { state: { tab: 'plan' } })} style={{ font: '600 11px var(--body)', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 6 }}>← Back to coach</button>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+            <h1 style={{ font: '600 20px var(--head)', letterSpacing: '-.02em' }}>{goalName}</h1>
+            {daysLeft != null && daysLeft >= 0 && <span className="ss-dchip neutral" style={{ flex: 'none' }}>{daysLeft}d to go</span>}
           </div>
-          {/* Progress bar */}
-          <div className="h-[4px] rounded-full bg-bg-tertiary mt-3 overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-accent to-accent-gold"
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-            />
+          <p style={{ font: '500 11.5px var(--mono)', color: 'var(--muted)', marginTop: 4 }}>Week {currentWeek} of {totalWeeks}</p>
+          <div style={{ height: 4, borderRadius: 3, background: 'rgba(255,255,255,.07)', marginTop: 10, overflow: 'hidden' }}>
+            <motion.div style={{ height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,var(--accent),var(--accent-2))' }} initial={{ width: reduce ? `${Math.round((currentWeek / totalWeeks) * 100)}%` : 0 }} animate={{ width: `${Math.round((currentWeek / totalWeeks) * 100)}%` }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
           </div>
-        </div>
+        </section>
 
-        {/* Timeline */}
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-4 top-0 bottom-0 w-[2px] bg-bg-tertiary" />
-
+        {/* timeline */}
+        <div style={{ position: 'relative', paddingLeft: 4 }}>
+          <div style={{ position: 'absolute', left: 19, top: 6, bottom: 60, width: 2, background: 'var(--hair)' }} aria-hidden="true" />
           {Array.from({ length: totalWeeks }).map((_, i) => {
             const weekNum = i + 1;
-            const phase = getPhaseForWeek(weekNum);
-            const status = getWeekStatus(weekNum);
-            const phaseStyle = PHASE_COLORS[phase] || PHASE_COLORS.base;
-            const weekData = plan.weeks?.[i];
-            const isExpanded = expandedWeek === weekNum;
-
-            // Show phase label at phase transitions
-            const prevPhase = i > 0 ? getPhaseForWeek(i) : '';
-            const showPhaseLabel = phase !== prevPhase;
-
+            const phase = phaseFor(weekNum, totalWeeks);
+            const status = weekNum < currentWeek ? 'done' : weekNum === currentWeek ? 'current' : 'upcoming';
+            const w = plan.weeks?.[i];
+            const isOpen = openWeek === weekNum;
+            const showPhase = phase !== (i > 0 ? phaseFor(i, totalWeeks) : '');
             return (
               <div key={weekNum}>
-                {/* Phase label */}
-                {showPhaseLabel && (
-                  <div className="flex items-center gap-2 ml-8 mb-2 mt-4">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${phaseStyle.text}`}>
-                      {phase} phase
-                    </span>
-                    <div className={`flex-1 h-[1px] ${phaseStyle.bg}`} />
+                {showPhase && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 8px', paddingLeft: 36 }}>
+                    <span className="slbl">{phase} phase</span>
+                    <div style={{ flex: 1, height: 1, background: 'var(--hair)' }} />
                   </div>
                 )}
-
-                {/* Week card */}
-                <button
-                  onClick={() => setExpandedWeek(isExpanded ? null : weekNum)}
-                  className="relative flex items-start gap-3 w-full text-left mb-2 active:scale-[0.99] transition-transform"
-                >
-                  {/* Timeline dot */}
-                  <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    status === 'done' ? 'bg-accent-green/20 border-2 border-accent-green/40' :
-                    status === 'current' ? 'bg-accent/20 border-2 border-accent' :
-                    'bg-bg-tertiary/50 border-2 border-bg-tertiary'
-                  }`}>
-                    {status === 'done' && <span className="text-[10px] text-accent-green">✓</span>}
-                    {status === 'current' && <span className="text-[9px] font-bold text-accent">{weekNum}</span>}
-                    {status === 'upcoming' && <span className="text-[9px] text-zinc-600">{weekNum}</span>}
-                  </div>
-
-                  {/* Card */}
-                  <div className={`flex-1 rounded-xl p-3 border transition-all ${
-                    status === 'current' ? 'bg-accent/[0.04] border-accent/30' :
-                    status === 'done' ? 'bg-bg-secondary/50 border-bg-tertiary/50' :
-                    'bg-bg-secondary border-bg-tertiary'
-                  } ${isExpanded ? 'ring-1 ring-accent/30' : ''}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[12px] font-bold text-white">Week {weekNum}</span>
-                        <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded ${phaseStyle.bg} ${phaseStyle.text}`}>{weekData?.phase_name || weekData?.phase || phase}</span>
+                <button onClick={() => setOpenWeek(isOpen ? null : weekNum)} style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 12, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px' }} data-testid={`plan-week-${weekNum}`}>
+                  <span style={{ position: 'relative', zIndex: 1, width: 30, height: 30, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center', background: status === 'current' ? 'rgba(249,115,22,.16)' : 'var(--bg2)', border: `2px solid ${status === 'done' ? 'rgba(52,211,153,.5)' : status === 'current' ? 'var(--accent)' : 'var(--hair)'}` }}>
+                    {status === 'done' ? <Check width={12} height={12} style={{ color: 'var(--green)' }} /> : <span style={{ font: '700 11px var(--mono)', color: status === 'current' ? 'var(--accent-2)' : 'var(--muted-2)' }}>{weekNum}</span>}
+                  </span>
+                  <div className="ss-surface ss-recess" style={{ flex: 1, borderRadius: 14, padding: '11px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ font: '600 13px var(--head)', color: 'var(--fg)' }}>Week {weekNum}</span>
+                        <span className="ss-tag full">{w?.phase_name || w?.phase || phase}</span>
                       </div>
-                      <span className="text-[10px] text-zinc-600">{isExpanded ? '▾' : '▸'}</span>
+                      <ChevronDown width={14} height={14} style={{ color: 'var(--muted-2)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
                     </div>
-                    {weekData && (
-                      <p className="text-[10px] text-zinc-500 mt-1">
-                        {weekData.total_distance_km ? `${weekData.total_distance_km}km` : ''} · Focus: {weekData.focus || weekData.sessions?.[0]?.title || 'Easy runs'}
+                    {w && (w.total_distance_km || w.focus) && (
+                      <p style={{ font: '500 10.5px var(--body)', color: 'var(--muted)', marginTop: 4 }}>
+                        {w.total_distance_km ? <span style={{ fontFamily: 'var(--mono)' }}>{w.total_distance_km}km</span> : ''}{w.total_distance_km && (w.focus || w.sessions?.[0]?.title) ? ' · ' : ''}{w.focus || w.sessions?.[0]?.title || ''}
                       </p>
                     )}
                   </div>
                 </button>
-
-                {/* Expanded detail */}
-                <AnimatePresence>
-                  {isExpanded && weekData && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden ml-11 mb-3"
-                    >
-                      <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-3 space-y-2">
-                        {(weekData.sessions || []).map((session: any, si: number) => {
-                          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                          return (
-                            <div key={si} className="flex items-center gap-2">
-                              <span className="text-[9px] text-zinc-600 w-7">{days[si] || ''}</span>
-                              <span className={`text-[10px] font-medium ${
-                                session.type === 'rest' ? 'text-zinc-600' :
-                                session.type === 'easy' || session.type === 'recovery' ? 'text-accent-green' :
-                                session.type === 'tempo' || session.type === 'interval' ? 'text-accent' :
-                                'text-white'
-                              }`}>
-                                {session.title || session.type || 'Rest'}
-                              </span>
-                              {session.target_pace_per_km ? (
-                                <span className="text-[9px] text-zinc-600 ml-auto">
-                                  {Math.floor(session.target_pace_per_km / 60)}:{String(Math.round(session.target_pace_per_km % 60)).padStart(2, '0')}/km
-                                </span>
-                              ) : null}
-                            </div>
-                          );
-                        })}
+                <AnimatePresence initial={false}>
+                  {isOpen && w && (
+                    <motion.div initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={reduce ? undefined : { height: 0, opacity: 0 }} style={{ overflow: 'hidden', marginLeft: 42, marginBottom: 10 }}>
+                      <div className="ss-surface ss-recess" style={{ borderRadius: 14, padding: 12, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        {(w.sessions || []).map((s, si) => (
+                          <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ font: '600 9.5px var(--mono)', color: 'var(--muted-2)', width: 26, flex: 'none' }}>{DAYS[si] || ''}</span>
+                            <span style={{ font: '500 11px var(--body)', color: s.type === 'rest' ? 'var(--muted-2)' : 'var(--fg)' }}>{s.title || s.type || 'Rest'}</span>
+                            {pace(s.target_pace_per_km) && <span style={{ marginLeft: 'auto', font: '600 10px var(--mono)', color: 'var(--muted)' }}>{pace(s.target_pace_per_km)}</span>}
+                          </div>
+                        ))}
                       </div>
                     </motion.div>
                   )}
@@ -204,23 +137,17 @@ export function PlanPage() {
             );
           })}
 
-          {/* Race Day */}
-          <div className="relative flex items-start gap-3 mt-4">
-            <div className="relative z-10 w-8 h-8 rounded-full bg-accent-gold/20 border-2 border-accent-gold flex items-center justify-center flex-shrink-0">
-              <span className="text-[12px]">🏁</span>
-            </div>
-            <div className="flex-1 rounded-xl p-4 bg-gradient-to-r from-accent-gold/[0.06] to-accent/[0.04] border border-accent-gold/20">
-              <p className="text-[13px] font-bold text-white">Race Day</p>
-              <p className="text-[11px] text-zinc-500 mt-1">
-                {goalName} {daysLeft ? `· ${daysLeft} days away` : ''}
-              </p>
-              {plan.predicted_time && (
-                <p className="text-[11px] text-accent-gold mt-1 font-semibold">Predicted: {plan.predicted_time}</p>
-              )}
+          {/* race day */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 8 }}>
+            <span style={{ position: 'relative', zIndex: 1, width: 30, height: 30, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(251,191,36,.14)', border: '2px solid rgba(251,191,36,.5)', color: 'var(--amber)' }}><Flag width={14} height={14} /></span>
+            <div className="ss-surface" style={{ flex: 1, borderRadius: 14, padding: 14 }}>
+              <p style={{ font: '600 14px var(--head)', color: 'var(--fg)' }}>Race day</p>
+              <p style={{ font: '500 11px var(--body)', color: 'var(--muted)', marginTop: 3 }}>{goalName}{daysLeft != null ? ` · ${daysLeft} days away` : ''}</p>
+              {plan.predicted_time && <p style={{ font: '600 11px var(--mono)', color: 'var(--amber)', marginTop: 4 }}>Predicted {plan.predicted_time}</p>}
             </div>
           </div>
         </div>
       </div>
-    </AppShell>
+    </SSScreen>
   );
 }

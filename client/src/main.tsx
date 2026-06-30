@@ -6,6 +6,7 @@ import App from './App';
 import './lib/sentry';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
+import './styles/ss-base.css';
 
 // Admin host hardening: the PWA service worker can serve a stale (runner-app)
 // shell on the admin domain (e.g. sprint-society-admin.vercel.app) if it was

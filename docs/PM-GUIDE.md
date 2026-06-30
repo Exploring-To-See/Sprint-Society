@@ -593,3 +593,14 @@ Week of [DATE]
 □ Saturday/Sunday — Run the session, mark attendance
 □ Sunday evening — Review week, plan next week's session
 ```
+
+---
+
+## Design V1 rollout — AI Coach cluster (June 2026)
+
+The **AI Coach** route (`/coach`) and the standalone `/plan`, `/heart-rate`, `/records` pages have been rebuilt to the locked Design V1 language (`docs/design-v1/ss-base.css` + the sealed Home). Notes for ongoing work:
+
+- **Shared shell**: `client/src/components/ss/` now holds the reusable kit — `SSScreen` (aurora + sticky chrome + Glide-Pill nav), `SSNav`, `SSSeg` (the one segmented sub-tab control), `Gauge` (readiness orb), `SSStates` (skeleton/empty/error) and crafted inline-SVG `icons`. Reuse these on every future page; do **not** re-author surfaces per page.
+- **Coach sub-tabs** are content components in `client/src/components/coach/` (`CoachChat`, `CoachPlan`, `CoachInsights`, `CoachZones`, `CoachRecords`), each wired to the real Express routes (chat, training, goals, insights, heartrate, records, kendu).
+- **Gate status**: zero emoji, orange-only primary, violet reserved for AI/secondary, neutral-glass chrome, mono tabular metrics, one segmented control per surface, one living centerpiece per screen, reduced-motion safe.
+- **Remaining (not yet redesigned)**: Run/track, Run history & detail, Progress, Events (list/map/detail), Social/Community, Profile/Account, Goals, Share cards, Auth/Landing/Onboarding, Admin. These still use the pre-V1 styling (and still contain emoji) until migrated to the `ss/` kit.

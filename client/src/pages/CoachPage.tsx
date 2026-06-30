@@ -1,12 +1,15 @@
-import { useState, lazy, Suspense } from 'react';
+// AI Coach (/coach) — the locked shell + a single segmented sub-tab control
+// (Chat · Plan · Insights · Zones · Records). Look from Home/ss-base; data/behavior from
+// the real routes wired inside each sub-tab component. Readiness is the centerpiece of Insights.
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AppShell } from '../components/layout/AppShell';
-import { TrainTab } from '../components/coach/TrainTab';
-import { ChatTab } from '../components/coach/ChatTab';
-import { AIAnalyticsTab } from '../components/coach/AIAnalyticsTab';
-
-const HRZonesPage = lazy(() => import('./HRZonesPage').then(m => ({ default: m.HRZonesPage })));
-const RecordsPage = lazy(() => import('./RecordsPage').then(m => ({ default: m.RecordsPage })));
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSeg } from '../components/ss/SSSeg';
+import { CoachChat } from '../components/coach/CoachChat';
+import { CoachPlan } from '../components/coach/CoachPlan';
+import { CoachInsights } from '../components/coach/CoachInsights';
+import { CoachZones } from '../components/coach/CoachZones';
+import { CoachRecords } from '../components/coach/CoachRecords';
 
 type CoachSubTab = 'chat' | 'plan' | 'insights' | 'zones' | 'records';
 
@@ -20,41 +23,22 @@ const TABS: { key: CoachSubTab; label: string }[] = [
 
 export function CoachPage() {
   const location = useLocation();
-  const initialTab = (location.state as any)?.tab || 'chat';
-  const [activeTab, setActiveTab] = useState<CoachSubTab>(initialTab);
+  const initial = ((location.state as { tab?: CoachSubTab } | null)?.tab) || 'chat';
+  const [tab, setTab] = useState<CoachSubTab>(initial);
 
   return (
-    <AppShell>
-      {/* Sub-tabs — horizontally scrollable on small screens */}
-      <div className="flex gap-1 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2 mb-3">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`shrink-0 px-4 py-2 text-[12px] font-bold rounded-lg transition-all ${
-              activeTab === tab.key
-                ? 'bg-accent text-white'
-                : 'bg-bg-secondary border border-bg-tertiary text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+    <SSScreen active="coach" flush={tab === 'chat'} bodyLabel="AI Coach">
+      <div
+        style={{ position: 'sticky', top: 50, zIndex: 15, padding: '6px 16px 10px', background: 'linear-gradient(180deg,var(--bg) 58%,transparent)' }}
+      >
+        <SSSeg items={TABS} value={tab} onChange={setTab} layoutId="coach-subtab" ariaLabel="Coach sections" testid="coach-tab" />
       </div>
 
-      {activeTab === 'chat' && <ChatTab />}
-      {activeTab === 'plan' && <TrainTab />}
-      {activeTab === 'insights' && <AIAnalyticsTab />}
-      {activeTab === 'zones' && (
-        <Suspense fallback={<div className="h-[200px] rounded-xl bg-bg-secondary animate-pulse" />}>
-          <div className="-mx-4 -mt-2"><HRZonesPage embedded /></div>
-        </Suspense>
-      )}
-      {activeTab === 'records' && (
-        <Suspense fallback={<div className="h-[200px] rounded-xl bg-bg-secondary animate-pulse" />}>
-          <div className="-mx-4 -mt-2"><RecordsPage embedded /></div>
-        </Suspense>
-      )}
-    </AppShell>
+      {tab === 'chat' && <CoachChat />}
+      {tab === 'plan' && <CoachPlan />}
+      {tab === 'insights' && <CoachInsights />}
+      {tab === 'zones' && <CoachZones />}
+      {tab === 'records' && <CoachRecords />}
+    </SSScreen>
   );
 }

@@ -302,3 +302,17 @@ Sprint Society uses a two-tier paid model. No free tier of features — registra
 3. **Check your pace zones** — run most of your km at Easy pace, save hard efforts for intervals
 4. **Follow your transformation plan** — it's designed to get you to the next tier safely
 5. **Share your cards** — flex on your friends, keep yourself accountable
+
+---
+
+## AI Coach — redesigned (Design V1, June 2026)
+
+Your coach now lives under one **AI Coach** tab with a single segmented control across the top:
+
+- **Chat** — Talk to your coach in plain language. It knows your readiness, pace zones, load and injury risk. Tap a starter prompt or type your own. **Deep Dive** spends Kendu for a full data-driven analysis.
+- **Plan** — This week at a glance. Tap any day to see the session, target pace, the "why", and (on today) a pre/post-run brief with a **Start this run** button. Tap **Full plan** for the week-by-week timeline to race day.
+- **Insights** — Your live **readiness orb** plus VO₂ max, VDOT, age-grade, training load, injury risk, race predictions and a 30-day pace trajectory.
+- **Zones** — Your five personalized heart-rate zones with feel + training effect, computed from your recent runs.
+- **Records** — Personal bests across every distance, recent-PR flags, effort records and a PR timeline.
+
+Everything is mobile-first and matches the locked Sprint Society look (liquid-glass surfaces, the Glide-Pill nav, tabular metrics). Each tab shows tidy loading, empty and error states — nothing breaks if data is still warming up.
