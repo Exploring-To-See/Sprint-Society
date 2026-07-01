@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { ErrorToast } from './components/ui/ErrorToast';
 import { PageTransition } from './components/ui/PageTransition';
 import { CookieConsent } from './components/CookieConsent';
+import { VerifyEmailBanner } from './components/VerifyEmailBanner';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -43,6 +44,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -133,6 +135,7 @@ function AppRoutes() {
         <Route path="/reset-password/:token" element={<PageTransition><LazyLoad><ResetPasswordPage /></LazyLoad></PageTransition>} />
         <Route path="/privacy" element={<PageTransition><LazyLoad><PrivacyPolicyPage /></LazyLoad></PageTransition>} />
         <Route path="/terms" element={<PageTransition><LazyLoad><TermsPage /></LazyLoad></PageTransition>} />
+        <Route path="/verify-email" element={<PageTransition><LazyLoad><VerifyEmailPage /></LazyLoad></PageTransition>} />
         <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/run/track" element={<ProtectedRoute><PageTransition><LazyLoad><RunTrackerPage /></LazyLoad></PageTransition></ProtectedRoute>} />
@@ -177,6 +180,7 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ErrorToast />
+        <VerifyEmailBanner />
         <AppRoutes />
         <CookieConsent />
       </AuthProvider>

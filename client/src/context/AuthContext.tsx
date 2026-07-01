@@ -13,6 +13,7 @@ interface User {
   fitness_level?: string;
   running_experience?: string;
   profile_image_url?: string;
+  email_verified?: number | boolean;
 }
 
 interface AuthContextType {

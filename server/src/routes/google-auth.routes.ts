@@ -89,8 +89,9 @@ router.post('/google', async (req: Request, res: Response) => {
     let user = await db.queryOne('SELECT id, name, email, role FROM users WHERE google_id = $1', [googleId]);
 
     if (user) {
+      await db.execute('UPDATE users SET email_verified = 1 WHERE id = $1 AND email_verified = 0', [user.id]);
       const token = signToken(user.id);
-      return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+      return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, email_verified: 1 } });
     }
 
     // Check if user exists by email (link Google to existing account)
@@ -98,11 +99,11 @@ router.post('/google', async (req: Request, res: Response) => {
 
     if (user) {
       await db.execute(
-        'UPDATE users SET google_id = $1, profile_image_url = COALESCE(profile_image_url, $2) WHERE id = $3',
+        'UPDATE users SET google_id = $1, profile_image_url = COALESCE(profile_image_url, $2), email_verified = 1 WHERE id = $3',
         [googleId, picture || null, user.id]
       );
       const token = signToken(user.id);
-      return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+      return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, email_verified: 1 } });
     }
 
     // New user — create account without password.
@@ -114,8 +115,8 @@ router.post('/google', async (req: Request, res: Response) => {
       await client.query('BEGIN');
 
       const insertResult = await client.query(`
-        INSERT INTO users (name, email, phone, password_hash, google_id, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url)
-        VALUES ($1, $2, '', '', $3, 'male', 25, 170, 70, 'active', 'beginner', '[]', $4)
+        INSERT INTO users (name, email, phone, password_hash, google_id, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, email_verified)
+        VALUES ($1, $2, '', '', $3, 'male', 25, 170, 70, 'active', 'beginner', '[]', $4, 1)
         RETURNING id
       `, [name, email, googleId, picture || null]);
 
@@ -148,7 +149,7 @@ router.post('/google', async (req: Request, res: Response) => {
     }
 
     const token = signToken(userId);
-    res.status(201).json({ token, user: { id: userId, name, email, role: 'runner' }, isNew: true });
+    res.status(201).json({ token, user: { id: userId, name, email, role: 'runner', email_verified: 1 }, isNew: true });
   } catch (err: any) {
     // Log the full reason server-side (never the raw token) so the server logs pinpoint the cause.
     console.error('[Google Auth] failed:', err?.message, err?.code || '');

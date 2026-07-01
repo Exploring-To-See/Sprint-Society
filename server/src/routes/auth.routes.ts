@@ -6,6 +6,7 @@ import { signToken } from '../utils/jwt';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { awardWelcomeBonus } from '../engine/kenduEngine';
 import { createNotification } from './notifications.routes';
+import { createAndSendVerification } from './verification.routes';
 
 const router = Router();
 
@@ -97,8 +98,15 @@ router.post('/register', async (req, res: Response) => {
       console.error('[Register] welcome bonus/notification failed (non-fatal):', e);
     }
 
+    // Fire the verification email (non-blocking — the account is usable immediately).
+    try {
+      await createAndSendVerification(userId, data.email, data.name);
+    } catch (e) {
+      console.error('[Register] verification email failed (non-fatal):', e);
+    }
+
     const token = signToken(userId);
-    res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email, role: 'runner' } });
+    res.status(201).json({ token, user: { id: userId, name: data.name, email: data.email, role: 'runner', email_verified: 0 } });
   } catch (err: any) {
     if (err.name === 'ZodError') {
       return res.status(400).json({ error: 'Validation failed', details: err.errors });
@@ -125,8 +133,8 @@ router.post('/login', async (req, res: Response) => {
   const cleanPhone = identifier.replace(/[\s+\-]/g, '').replace(/^(\+91|91)/, '');
 
   const user = isPhone
-    ? await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE phone = $1 OR phone = $2', [cleanPhone, `+91${cleanPhone}`])
-    : await db.queryOne('SELECT id, name, email, role, password_hash FROM users WHERE LOWER(email) = LOWER($1)', [identifier]);
+    ? await db.queryOne('SELECT id, name, email, role, password_hash, email_verified FROM users WHERE phone = $1 OR phone = $2', [cleanPhone, `+91${cleanPhone}`])
+    : await db.queryOne('SELECT id, name, email, role, password_hash, email_verified FROM users WHERE LOWER(email) = LOWER($1)', [identifier]);
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
@@ -138,12 +146,12 @@ router.post('/login', async (req, res: Response) => {
   }
 
   const token = signToken(user.id);
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, email_verified: user.email_verified } });
 });
 
 router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   const user = await db.queryOne(`
-    SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, timezone, created_at
+    SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, timezone, created_at, email_verified
     FROM users WHERE id = $1
   `, [req.userId]);
 

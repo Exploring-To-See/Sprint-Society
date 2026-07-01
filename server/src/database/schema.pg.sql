@@ -206,6 +206,20 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Email verification (non-blocking): flag on users + one-time token table.
+-- ALTER is idempotent so re-running migrate on an existing prod DB adds the column.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_email_verification_token ON email_verification_tokens(token);
+
 -- Social: Following system
 CREATE TABLE IF NOT EXISTS follows (
     id SERIAL PRIMARY KEY,
