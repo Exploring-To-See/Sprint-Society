@@ -1,0 +1,10 @@
+# Sprint Society — TODO(seo): replace the domain below with the production host.
+User-agent: *
+Allow: /
+# Keep authenticated / transactional surfaces out of the index.
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /verify-email
+Disallow: /reset-password
+
+Sitemap: https://sprintsociety.app/sitemap.xml

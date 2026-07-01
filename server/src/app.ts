@@ -19,6 +19,7 @@ import './utils/sentry';
 import authRoutes from './routes/auth.routes';
 import passwordRoutes from './routes/password.routes';
 import verificationRoutes from './routes/verification.routes';
+import analyticsRoutes from './routes/analytics.routes';
 import runsRoutes from './routes/runs.routes';
 import coachingRoutes from './routes/coaching.routes';
 import trainingRoutes from './routes/training.routes';
@@ -94,6 +95,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use('/api/auth', authLimiter, googleAuthRoutes);
   app.use('/api/auth', authLimiter, passwordRoutes);
   app.use('/api/auth', authLimiter, verificationRoutes);
+  app.use('/api/analytics', analyticsRoutes);
   app.use('/api/runs', runsRoutes);
   app.use('/api/coaching', coachingRoutes);
   app.use('/api/training', trainingRoutes);

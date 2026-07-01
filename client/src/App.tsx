@@ -7,6 +7,7 @@ import { ErrorToast } from './components/ui/ErrorToast';
 import { PageTransition } from './components/ui/PageTransition';
 import { CookieConsent } from './components/CookieConsent';
 import { VerifyEmailBanner } from './components/VerifyEmailBanner';
+import { AnalyticsTracker } from './components/AnalyticsTracker';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -181,6 +182,7 @@ export default function App() {
       <AuthProvider>
         <ErrorToast />
         <VerifyEmailBanner />
+        <AnalyticsTracker />
         <AppRoutes />
         <CookieConsent />
       </AuthProvider>

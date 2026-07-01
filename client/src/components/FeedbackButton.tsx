@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
+import { SUPPORT_EMAIL, supportMailto } from '../lib/support';
 
 const types = [
   { value: 'bug', label: '🐛 Bug', desc: 'Something broke' },
@@ -89,6 +90,16 @@ export function FeedbackButton() {
                   >
                     {sending ? 'Sending...' : 'Send Feedback'}
                   </button>
+                  <p className="text-[11px] text-zinc-600 text-center mt-3">
+                    Prefer email? Reach us at{' '}
+                    <a
+                      href={supportMailto('Sprint Society — support', `\n\n— page: ${window.location.pathname}`)}
+                      className="text-accent hover:underline"
+                      data-testid="feedback-support-email"
+                    >
+                      {SUPPORT_EMAIL}
+                    </a>
+                  </p>
                 </>
               )}
             </motion.div>
