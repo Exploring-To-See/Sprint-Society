@@ -46,3 +46,27 @@ Purpose: give UI to the "backend exists, no frontend" gaps from `docs/FEATURE-WI
 
 ## Design notes
 New UI uses the V1 `ss/` kit (`SSSeg`, `SSStates`, `ss-*` classes, `components/ss/icons`) — no emoji, mobile-first 375px, loading/empty/error on every surface. The pre-V1 pages (Progress/Events/Subscription/Social/Profile/RunHistory) still render inside the old `AppShell`/`BottomNav` shell; full V1 shell migration of those pages is future work.
+
+---
+
+# Launch-readiness (commits after the audit-gaps UI)
+
+Four commits (`7bdbd82`, `83ae282`+`85ebfb9`, `4d5aeab`, `0a9c19c`) add launch essentials. Client + server typecheck + Vite build green throughout. Security-audited (no HIGH/MEDIUM at conf ≥8).
+
+1. **Legal + cookie consent** — `/privacy`, `/terms` (public, template copy), `CookieConsent` banner → `lib/consent.hasAnalyticsConsent()`.
+2. **Email verification (non-blocking)** — `/api/auth/verify-email`, `/api/auth/resend-verification`; `/verify-email` page + `VerifyEmailBanner`. Google sign-ins auto-verified.
+3. **Subscription downgrade** — `/api/subscription/downgrade` (+`/cancel`), period-end scheduled via `scheduled_plan_key`; SubscriptionPage UI.
+4. **Analytics + SEO + feedback** — `/api/analytics/track` (user, consent-gated) + `AnalyticsTracker`; `robots.txt`/`sitemap.xml`/OG/JSON-LD; feedback support mailto.
+
+## ⚠️ BEFORE this merges to prod (engineer checklist)
+1. **DB migration is REQUIRED.** `schema.pg.sql` got 3 idempotent changes — run `npm run migrate` against prod (or confirm it auto-runs on deploy) or the new endpoints 500 on missing columns:
+   - `users.email_verified` (ALTER), `email_verification_tokens` (table), `user_subscriptions.scheduled_plan_key` (ALTER).
+2. **`RESEND_API_KEY`** must be set in prod env, else verification emails only log to console (no send).
+3. **Replace the `sprintsociety.app` placeholder domain** in `client/public/robots.txt`, `client/public/sitemap.xml`, and `client/index.html` (canonical + OG + JSON-LD) with the real production host. Then add the Google Search Console verification tag (slot is in `index.html`) and submit the sitemap to GSC + Bing Webmaster Tools.
+4. **Set real values in `client/src/lib/support.ts`** — `SUPPORT_EMAIL`, `LEGAL_ENTITY` — and have counsel review the `/privacy` + `/terms` template copy (localize for India DPDP / GDPR).
+5. **Downgrade is intent-only** in the current manual-renewal model — the renewal flow (or `/cron/maintenance`) should read `scheduled_plan_key` and apply it when a Pro sub expires.
+
+## Still to do (not built this pass)
+- Live **payment lifecycle QA** in Razorpay test mode (buy → upgrade → downgrade → cancel) — needs a running server + test keys.
+- Wire `analytics.track(...)` at key events (signup, run logged, subscribe) — the pipeline + page views are live; feature events are one-liners at each call site.
+- Soft-gate / hard-block email verification later if abuse warrants (currently non-blocking).
