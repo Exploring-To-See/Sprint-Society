@@ -96,10 +96,10 @@ function createRateLimiter(config: RateLimitConfig) {
  * `trust proxy` is set so req.ip is the real client, not the shared proxy IP.)
  */
 export const authLimiter = createRateLimiter({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  maxRequests: 10,
+  windowMs: 5 * 60 * 1000, // 5 minutes — short so a locked-out user recovers fast
+  maxRequests: 12,
   keyGenerator: (req) => `auth:${req.ip}`,
-  message: 'Too many attempts. Please wait a few minutes before trying again.',
+  message: 'Too many attempts. Please wait a couple of minutes and try again.',
 });
 
 /**
