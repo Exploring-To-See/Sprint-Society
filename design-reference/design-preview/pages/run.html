@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sprint Society — Ready to Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit/ss-base.css">
+<style>
+  /* Standalone-render helpers ONLY (layout/positioning). NO new colors, radii, shadows,
+     or type — those come from ss-base tokens. This block must never introduce a look. */
+  html,body{margin:0;background:var(--bg)}
+  .ss-screen{min-height:100dvh}
+  .ss-aura{position:absolute}
+  /* the floating nav is fixed in the app; pin it to the screen column for the still */
+  .f2-nav{position:absolute}
+  .f2-it > .f2-pill{top:50%;left:50%;margin-left:0;transform:translate(-50%,-50%)}
+
+  /* ===== PAGE LAYOUT ONLY (grid / padding / heights) ===== */
+  .run-stack{display:flex;flex-direction:column;gap:13px}
+
+  /* MAP PREVIEW — recessed glass panel, 200px, holds the stylised route + status chip */
+  .map-panel{height:200px;border-radius:20px;padding:0}
+  .map-panel .map-frame{position:absolute;inset:0;z-index:1;border-radius:inherit;overflow:hidden}
+  .map-panel svg.route{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .map-chip{position:absolute;top:11px;left:11px;z-index:2;display:inline-flex;align-items:center;gap:6px;
+    height:26px;padding:0 10px;border-radius:9px}
+  .map-recenter{position:absolute;bottom:11px;right:11px;z-index:2;width:34px;height:34px;border-radius:11px;
+    display:grid;place-items:center}
+  .map-recenter svg{width:16px;height:16px}
+
+  /* HERO — centred title + START disc */
+  .run-hero{text-align:center;padding:10px 0 4px}
+  .run-hero h1{font:600 var(--m-hero) var(--head);letter-spacing:-.02em;color:var(--fg);margin:0}
+  .run-hero .sub{font:500 12px var(--body);color:var(--muted);margin-top:7px}
+
+  /* START disc — reuse the FAB gradient/shadow language, larger (120px) */
+  .start-wrap{display:grid;place-items:center;padding:6px 0 10px}
+  .start-disc{position:relative;width:120px;height:120px;border-radius:50%;border:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    box-shadow:0 18px 44px -10px rgba(249,115,22,.6), 0 3px 10px rgba(0,0,0,.4),
+      inset 0 2px 0 rgba(255,255,255,.28), inset 0 -3px 8px -2px rgba(0,0,0,.28);
+    transition:transform var(--press-dur) var(--ease)}
+  .start-disc::before{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 16%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%)}
+  .start-disc svg{width:26px;height:26px;position:relative;z-index:1}
+  .start-disc .lbl{position:relative;z-index:1;font:700 15px var(--head);letter-spacing:.14em;color:#fff}
+  .start-disc:active{transform:scale(.95)}
+  .start-disc:focus-visible{outline:2px solid var(--accent-2);outline-offset:4px;border-radius:50%}
+  /* soft pre-run halo ring (idle breath, killed under reduced-motion) */
+  .start-halo{position:absolute;width:120px;height:120px;border-radius:50%;pointer-events:none;
+    box-shadow:0 0 0 1px rgba(249,115,22,.28);animation:startpulse 3.2s var(--ease) infinite}
+  @keyframes startpulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(1.28);opacity:0}100%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.start-halo{animation:none!important;opacity:.4!important}}
+
+  /* PLAN CONTEXT tile — today's session the runner is about to do */
+  .plan-row{display:flex;align-items:center;gap:12px;padding:13px}
+  .plan-icn{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+    background:rgba(249,115,22,.16);border:1px solid rgba(249,115,22,.28)}
+  .plan-icn svg{width:20px;height:20px;color:var(--accent-2)}
+  .plan-meta{flex:1;min-width:0}
+  .plan-meta .pk{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .plan-meta .pt{font:600 15px var(--head);color:var(--fg);margin-top:2px;letter-spacing:-.01em}
+  .plan-meta .pt b{font:600 15px var(--mono);font-variant-numeric:tabular-nums}
+  .plan-meta .ps{font:500 11px var(--body);color:var(--muted);margin-top:2px}
+
+  /* TARGET PACE ZONE tile — the ZoneBar rebuilt on-system */
+  .zone-tile{padding:14px}
+  .zone-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .zone-head .zlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted)}
+  .zone-head .ztag{margin-left:auto}
+  .zone-val{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);
+    display:flex;align-items:baseline;gap:3px;line-height:1;margin-bottom:12px}
+  .zone-val small{font:500 11px var(--mono);color:var(--muted)}
+  /* the pace ribbon — neutral track, green center = the target easy band (semantic go) */
+  .zone-ribbon{position:relative;height:14px;border-radius:8px;overflow:hidden;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .zone-band{position:absolute;top:0;bottom:0;border-radius:6px;
+    background:linear-gradient(90deg,rgba(52,211,153,.16),rgba(52,211,153,.5) 50%,rgba(52,211,153,.16));
+    border:1px solid rgba(52,211,153,.3)}
+  .zone-mark{position:absolute;top:-3px;width:3px;height:20px;border-radius:2px;background:var(--fg);
+    box-shadow:0 0 6px rgba(255,255,255,.55);transform:translateX(-50%)}
+  .zone-scale{display:flex;justify-content:space-between;margin-top:8px}
+  .zone-scale span{font:600 9px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2)}
+  .zone-scale .mid{color:var(--green)}
+
+  /* LAST-RUN QUICK CONTEXT — 3 recessed stat cells */
+  .quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
+  .qcell{padding:12px 11px}
+  .qcell .v{font:600 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);
+    line-height:1;display:flex;align-items:baseline;gap:2px;white-space:nowrap}
+  .qcell .v small{font:500 10px var(--mono);color:var(--muted)}
+  .qcell .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px;white-space:nowrap}
+
+  /* section caption above the last-run row */
+  .qhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 2px 1px}
+  .qhead .qt{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted)}
+  .qhead .qm{font:600 11px var(--body);color:var(--violet-2);display:flex;align-items:center;gap:3px}
+  .qhead .qm svg{width:13px;height:13px}
+</style>
+</head>
+<body>
+  <div class="ss-screen">
+    <div class="ss-aura" aria-hidden="true"></div>
+    <div class="aurora" aria-hidden="true">
+      <div class="mesh"></div><div class="sweep"></div><div class="ray"></div><div class="vignette"></div><div class="grain"></div>
+    </div>
+    <div class="veil" aria-hidden="true"></div>
+
+    <div class="status" aria-hidden="true"><span>9:41</span><span>▮▮ 30</span></div>
+
+    <header class="topbar">
+      <div class="brand"><b>Sprint</b> Society</div>
+      <div class="icons">
+        <button class="iconbtn" aria-label="Notifications, 3 unread"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9A9CB0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge" aria-hidden="true">3</span></button>
+        <button class="avatar" aria-label="Your profile, Ishan">IV</button>
+      </div>
+    </header>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F97316"/><stop offset=".55" stop-color="#FB923C"/><stop offset="1" stop-color="#FBBF24"/></linearGradient>
+      <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FB923C"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+    </defs></svg>
+
+    <main class="body" aria-label="Ready to Run">
+      <div class="pad">
+        <div class="run-stack ss-rise">
+
+          <!-- MAP PREVIEW — recessed glass, stylised route line + you-are-here dot. GPS-ready chip. -->
+          <section class="ss-surface ss-recess map-panel" aria-label="Route preview">
+            <div class="map-frame">
+              <svg class="route" viewBox="0 0 358 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <!-- faint grid streets -->
+                <g stroke="rgba(255,255,255,.045)" stroke-width="1">
+                  <path d="M0 46 H358 M0 100 H358 M0 154 H358"/>
+                  <path d="M70 0 V200 M160 0 V200 M250 0 V200 M320 0 V200"/>
+                </g>
+                <!-- a suggested loop route -->
+                <path d="M56 150 C 70 96, 128 92, 150 120 S 236 150, 250 96 S 300 44, 322 62"
+                  fill="none" stroke="url(#routeGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+                  opacity=".92"/>
+                <!-- start flag node -->
+                <circle cx="56" cy="150" r="5.5" fill="none" stroke="var(--muted)" stroke-width="2"/>
+                <!-- you-are-here pulse dot -->
+                <circle cx="56" cy="150" r="16" fill="rgba(249,115,22,.14)"/>
+                <circle cx="56" cy="150" r="6" fill="#F97316" stroke="#0B0A16" stroke-width="2.5"/>
+              </svg>
+            </div>
+            <span class="map-chip schip"><span class="dot" aria-hidden="true"></span>GPS ready</span>
+            <button class="map-recenter iconbtn" aria-label="Re-center map">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#9A9CB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+            </button>
+          </section>
+
+          <!-- HERO -->
+          <div class="run-hero">
+            <h1>Ready to Run</h1>
+            <p class="sub">GPS will track your route, pace &amp; distance</p>
+          </div>
+
+          <!-- START disc -->
+          <div class="start-wrap">
+            <button class="start-disc" aria-label="Start run">
+              <span class="start-halo" aria-hidden="true"></span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M13 22v-5l-2.1-2l-.775 3.45q-.1.4-.437.613t-.738.137L4 18.2q-.425-.075-.65-.425T3.2 17t.425-.662t.775-.138l3.8.8l1.6-8.1l-1.8.7V12q0 .425-.288.713T7 13t-.712-.288T6 12V8.95q0-.3.163-.537T6.6 8.05L9.95 6.6q.875-.375 1.288-.487T12 6q.525 0 .975.275T13.7 7l1 1.6q.525.85 1.363 1.475T18 10.9q.425.075.713.375T19 12t-.288.7t-.687.225q-1.35-.2-2.525-.838t-2-1.587l-.6 3l1.8 1.7q.15.15.225.338t.075.387V22q0 .425-.288.713T14 23t-.712-.288T13 22m-.913-17.088Q11.5 4.325 11.5 3.5t.588-1.412T13.5 1.5t1.413.588T15.5 3.5t-.587 1.413T13.5 5.5t-1.412-.587"/></svg>
+              <span class="lbl">START</span>
+            </button>
+          </div>
+
+          <!-- TODAY'S SESSION CONTEXT (pulled from plan) -->
+          <section class="ss-surface plan-row" aria-label="Today's session">
+            <div class="plan-icn" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3M16 2v3M3.5 9h17"/><rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M8 14h4M8 17.5h6"/></svg>
+            </div>
+            <div class="plan-meta">
+              <div class="pk">Today&#39;s session</div>
+              <div class="pt">Long Run · <b>5 km</b></div>
+              <div class="ps">Conversational · bank base for Sub-270</div>
+            </div>
+            <span class="ss-tag now">Now</span>
+          </section>
+
+          <!-- TARGET PACE ZONE (from pace zones) — ZoneBar rebuilt on-system -->
+          <section class="ss-surface ss-recess zone-tile" aria-label="Target pace zone">
+            <div class="zone-head">
+              <span class="zlbl">Target pace zone</span>
+              <span class="ss-tag go ztag">Easy</span>
+            </div>
+            <div class="zone-val">6:15<small>–</small>6:45<small>/km</small></div>
+            <div class="zone-ribbon" role="img" aria-label="Target easy band 6:15 to 6:45 per km, you are centred in zone">
+              <span class="zone-band" style="left:30%;right:30%"></span>
+              <span class="zone-mark" style="left:50%"></span>
+            </div>
+            <div class="zone-scale">
+              <span>Slow · 7:45</span>
+              <span class="mid">Easy band</span>
+              <span>Fast · 5:15</span>
+            </div>
+          </section>
+
+          <!-- LAST-RUN QUICK CONTEXT -->
+          <div class="qhead">
+            <span class="qt">Last run</span>
+            <span class="qm">2 days ago
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </span>
+          </div>
+          <div class="quick-grid">
+            <div class="ss-surface ss-recess qcell">
+              <div class="v">5.2<small>km</small></div>
+              <div class="k">Distance</div>
+            </div>
+            <div class="ss-surface ss-recess qcell">
+              <div class="v">6:32<small>/km</small></div>
+              <div class="k">Avg pace</div>
+            </div>
+            <div class="ss-surface ss-recess qcell">
+              <div class="v">34<small>:08</small></div>
+              <div class="k">Time</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- FLOATING GLIDE-PILL NAV. Run screen: keep the FAB, NO tab lit (the FAB is the run entry). -->
+    <nav class="f2-nav" aria-label="Primary">
+      <div class="f2-cap">
+        <div class="f2-row">
+          <button class="f2-it" aria-label="Home">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 19v-9q0-.475.213-.9t.587-.7l6-4.5q.525-.4 1.2-.4t1.2.4l6 4.5q.375.275.588.7T20 10v9q0 .825-.588 1.413T18 21h-3q-.425 0-.712-.288T14 20v-5q0-.425-.288-.712T13 14h-2q-.425 0-.712.288T10 15v5q0 .425-.288.713T9 21H6q-.825 0-1.412-.587T4 19"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 19v-9q0-.475.213-.9t.587-.7l6-4.5q.525-.4 1.2-.4t1.2.4l6 4.5q.375.275.588.7T20 10v9q0 .825-.588 1.413T18 21h-3q-.425 0-.712-.288T14 20v-5q0-.425-.288-.712T13 14h-2q-.425 0-.712.288T10 15v5q0 .425-.288.713T9 21H6q-.825 0-1.412-.587T4 19"/></svg>
+            </span>
+          </button>
+          <button class="f2-it" aria-label="AI Coach">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8.3q-.125 0-.263-.075T18.55 8l-.8-1.75l-1.75-.8q-.15-.05-.225-.187T15.7 5q0-.125.075-.262T16 4.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 1.7q.125 0 .263.075T19.45 2l.8 1.75l1.75.8q.15.05.225.188T22.3 5q0 .125-.075.263T22 5.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 8.3Zm0 14q-.125 0-.263-.075T18.55 22l-.8-1.75l-1.75-.8q-.15-.05-.225-.188T15.7 19q0-.125.075-.263T16 18.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 15.7q.125 0 .263.075t.187.225l.8 1.75l1.75.8q.15.05.225.188T22.3 19q0 .125-.075.263T22 19.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 22.3ZM9 18.575q-.275 0-.525-.15T8.1 18l-1.6-3.5L3 12.9q-.275-.125-.425-.375T2.425 12q0-.275.15-.525T3 11.1l3.5-1.6L8.1 6q.125-.275.375-.425T9 5.425q.275 0 .525.15T9.9 6l1.6 3.5l3.5 1.6q.275.125.425.375t.15.525q0 .275-.15.525T15 12.9l-3.5 1.6L9.9 18q-.125.275-.375.425t-.525.15Z"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8.3q-.125 0-.263-.075T18.55 8l-.8-1.75l-1.75-.8q-.15-.05-.225-.187T15.7 5q0-.125.075-.262T16 4.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 1.7q.125 0 .263.075T19.45 2l.8 1.75l1.75.8q.15.05.225.188T22.3 5q0 .125-.075.263T22 5.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 8.3Zm0 14q-.125 0-.263-.075T18.55 22l-.8-1.75l-1.75-.8q-.15-.05-.225-.188T15.7 19q0-.125.075-.263T16 18.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 15.7q.125 0 .263.075t.187.225l.8 1.75l1.75.8q.15.05.225.188T22.3 19q0 .125-.075.263T22 19.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 22.3ZM9 18.575q-.275 0-.525-.15T8.1 18l-1.6-3.5L3 12.9q-.275-.125-.425-.375T2.425 12q0-.275.15-.525T3 11.1l3.5-1.6L8.1 6q.125-.275.375-.425T9 5.425q.275 0 .525.15T9.9 6l1.6 3.5l3.5 1.6q.275.125.425.375t.15.525q0 .275-.15.525T15 12.9l-3.5 1.6L9.9 18q-.125.275-.375.425t-.525.15Z"/></svg>
+            </span>
+          </button>
+          <span class="f2-slot" aria-hidden="true"></span>
+          <button class="f2-it" aria-label="Community">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M1 18q-.425 0-.712-.288T0 17v-.575q0-1.075 1.1-1.75T4 14q.325 0 .625.013t.575.062q-.35.525-.525 1.1t-.175 1.2V18zm6 0q-.425 0-.712-.288T6 17v-.625q0-.8.438-1.463t1.237-1.162T9.588 13T12 12.75q1.325 0 2.438.25t1.912.75t1.225 1.163t.425 1.462V17q0 .425-.287.713T17 18zm12.5 0v-1.625q0-.65-.162-1.225t-.488-1.075q.275-.05.563-.062T20 14q1.8 0 2.9.663t1.1 1.762V17q0 .425-.288.713T23 18zM4 13q-.825 0-1.412-.587T2 11q0-.85.588-1.425T4 9q.85 0 1.425.575T6 11q0 .825-.575 1.413T4 13m16 0q-.825 0-1.412-.587T18 11q0-.85.588-1.425T20 9q.85 0 1.425.575T22 11q0 .825-.575 1.413T20 13m-8-1q-1.25 0-2.125-.875T9 9q0-1.275.875-2.137T12 6q1.275 0 2.138.863T15 9q0 1.25-.862 2.125T12 12"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M1 18q-.425 0-.712-.288T0 17v-.575q0-1.075 1.1-1.75T4 14q.325 0 .625.013t.575.062q-.35.525-.525 1.1t-.175 1.2V18zm6 0q-.425 0-.712-.288T6 17v-.625q0-.8.438-1.463t1.237-1.162T9.588 13T12 12.75q1.325 0 2.438.25t1.912.75t1.225 1.163t.425 1.462V17q0 .425-.287.713T17 18zm12.5 0v-1.625q0-.65-.162-1.225t-.488-1.075q.275-.05.563-.062T20 14q1.8 0 2.9.663t1.1 1.762V17q0 .425-.288.713T23 18zM4 13q-.825 0-1.412-.587T2 11q0-.85.588-1.425T4 9q.85 0 1.425.575T6 11q0 .825-.575 1.413T4 13m16 0q-.825 0-1.412-.587T18 11q0-.85.588-1.425T20 9q.85 0 1.425.575T22 11q0 .825-.575 1.413T20 13m-8-1q-1.25 0-2.125-.875T9 9q0-1.275.875-2.137T12 6q1.275 0 2.138.863T15 9q0 1.25-.862 2.125T12 12"/></svg>
+            </span>
+          </button>
+          <button class="f2-it" aria-label="Events">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V3q0-.425.288-.712T7 2t.713.288T8 3v1h8V3q0-.425.288-.712T17 2t.713.288T18 3v1h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5zm7-6q-.425 0-.712-.288T11 13t.288-.712T12 12t.713.288T13 13t-.288.713T12 14m-4.712-.288Q7 13.426 7 13t.288-.712T8 12t.713.288T9 13t-.288.713T8 14t-.712-.288M16 14q-.425 0-.712-.288T15 13t.288-.712T16 12t.713.288T17 13t-.288.713T16 14m-4 4q-.425 0-.712-.288T11 17t.288-.712T12 16t.713.288T13 17t-.288.713T12 18m-4.712-.288Q7 17.426 7 17t.288-.712T8 16t.713.288T9 17t-.288.713T8 18t-.712-.288M16 18q-.425 0-.712-.288T15 17t.288-.712T16 16t.713.288T17 17t-.288.713T16 18"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V3q0-.425.288-.712T7 2t.713.288T8 3v1h8V3q0-.425.288-.712T17 2t.713.288T18 3v1h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5zm7-6q-.425 0-.712-.288T11 13t.288-.712T12 12t.713.288T13 13t-.288.713T12 14m-4.712-.288Q7 13.426 7 13t.288-.712T8 12t.713.288T9 13t-.288.713T8 14t-.712-.288M16 14q-.425 0-.712-.288T15 13t.288-.712T16 12t.713.288T17 13t-.288.713T16 14m-4 4q-.425 0-.712-.288T11 17t.288-.712T12 16t.713.288T13 17t-.288.713T12 18m-4.712-.288Q7 17.426 7 17t.288-.712T8 16t.713.288T9 17t-.288.713T8 18t-.712-.288M16 18q-.425 0-.712-.288T15 17t.288-.712T16 16t.713.288T17 17t-.288.713T16 18"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+      <button class="f2-fab" aria-current="page" aria-label="Start a run (current screen)">
+        <svg viewBox="0 0 24 24" aria-hidden="true" style="color:#fff"><path fill="currentColor" d="M13 22v-5l-2.1-2l-.775 3.45q-.1.4-.437.613t-.738.137L4 18.2q-.425-.075-.65-.425T3.2 17t.425-.662t.775-.138l3.8.8l1.6-8.1l-1.8.7V12q0 .425-.288.713T7 13t-.712-.288T6 12V8.95q0-.3.163-.537T6.6 8.05L9.95 6.6q.875-.375 1.288-.487T12 6q.525 0 .975.275T13.7 7l1 1.6q.525.85 1.363 1.475T18 10.9q.425.075.713.375T19 12t-.288.7t-.687.225q-1.35-.2-2.525-.838t-2-1.587l-.6 3l1.8 1.7q.15.15.225.338t.075.387V22q0 .425-.288.713T14 23t-.712-.288T13 22m-.913-17.088Q11.5 4.325 11.5 3.5t.588-1.412T13.5 1.5t1.413.588T15.5 3.5t-.587 1.413T13.5 5.5t-1.412-.587"/></svg>
+      </button>
+    </nav>
+  </div>
+</body>
+</html>

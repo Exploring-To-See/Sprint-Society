@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{# ---------------------------------------------------------------------------
+   AI profiling quiz — a single step of the onboarding calibration flow.
+   Mirrors AIProfilingPage.tsx: back-link + progress dots, an AI intro, and a
+   tap-grid question with one selected chip, ending in a Continue button.
+   Look composes from ss-base surfaces only; violet leads because this is AI.
+   Step shown here = "training days" (step 5 of 8 in the real flow), the chip
+   step where 2/3/4/5+ are selectable and 4 is the current pick.
+   --------------------------------------------------------------------------- #}
+
+{% set total_steps = 8 %}
+{% set step = 5 %}
+{% set day_options = [2, 3, 4, 5] %}
+{% set selected_days = 4 %}
+
+{% block page_style %}
+  /* progress rail: back-link on the left, dots centered-right (layout only) */
+  .pf-rail{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .pf-back{display:flex;align-items:center;gap:5px;font:600 12px var(--body);color:var(--muted-2);cursor:pointer}
+  .pf-back:hover{color:var(--fg)}
+  .pf-dots{margin-left:auto}
+
+  /* violet AI intro hero (page-only layout; look = .ss-ai + tokens) */
+  .pf-hero{border-radius:22px;padding:18px 16px;margin-bottom:18px}
+  .pf-hero .htop{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+  .pf-hero .hbadge{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;
+    background:linear-gradient(135deg,var(--violet),var(--accent));border:none;box-shadow:0 8px 18px -7px rgba(124,107,240,.7)}
+  .pf-hero .hlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--violet-2)}
+  .pf-hero .hstep{margin-left:auto;font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2)}
+  .pf-hero h2{font:600 21px var(--head);letter-spacing:-.02em;line-height:1.12;color:var(--fg);margin:0 0 6px}
+  .pf-hero p{font:500 12px var(--body);color:var(--muted);line-height:1.5;margin:0}
+
+  /* question block */
+  .pf-qcap{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .pf-q{font:600 17px var(--head);letter-spacing:-.01em;color:var(--fg);margin:0 0 4px}
+  .pf-qsub{font:500 11.5px var(--body);color:var(--muted);margin:0 0 14px}
+
+  /* tap grid — 4 across, each cell an ss-recess well; selection = violet (AI) */
+  .pf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  .pf-cell{position:relative;border-radius:16px;padding:16px 6px 12px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:7px;cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent}
+  .pf-cell .cn{font:700 24px var(--mono);font-variant-numeric:tabular-nums;line-height:1;color:var(--fg)}
+  .pf-cell .cn sup{font:600 12px var(--mono);vertical-align:super}
+  .pf-cell .ck{font:600 8.5px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  /* selected cell: violet glass fill + hairline + a check pip (AI accent) */
+  .pf-cell.on{background:linear-gradient(160deg,rgba(124,107,240,.2),rgba(124,107,240,.06) 70%,var(--glass));
+    border:1px solid rgba(167,139,250,.4);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 14px 26px -18px rgba(124,107,240,.6)}
+  .pf-cell.on .cn{color:var(--fg)}
+  .pf-cell.on .ck{color:var(--violet-2)}
+  .pf-pip{position:absolute;top:7px;right:7px;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--violet),var(--accent));box-shadow:0 3px 8px -3px rgba(124,107,240,.8)}
+
+  /* helper line under the grid */
+  .pf-note{font:500 11px var(--body);color:var(--muted-2);margin-top:13px;line-height:1.5;display:flex;align-items:flex-start;gap:7px}
+  .pf-note .ni{flex:none;margin-top:1px;color:var(--violet-2)}
+
+  /* pinned footer CTA */
+  .pf-foot{margin-top:22px}
+{% endblock %}
+
+{% block content %}
+<div class="pad">
+
+  <!-- BACK + PROGRESS DOTS -->
+  <div class="pf-rail">
+    <a class="pf-back" href="{{ url_for('ai_profile') }}" aria-label="Back a step">
+      {{ icon('arrow-left', 15, 'currentColor', 2) }}<span>Back</span>
+    </a>
+    <div class="ss-dots pf-dots" role="progressbar"
+         aria-label="Step {{ step + 1 }} of {{ total_steps }}"
+         aria-valuenow="{{ step + 1 }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}">
+      {% for i in range(total_steps) %}<i class="{{ 'on' if i == step }}" aria-hidden="true"></i>{% endfor %}
+    </div>
+  </div>
+
+  <!-- AI INTRO HERO (violet ss-ai surface) -->
+  <div class="tile ss-ai pf-hero">
+    <div class="htop">
+      <span class="hbadge">{{ icon('dna', 18, '#fff', 2) }}</span>
+      <span class="hlbl">Calibrating your coach</span>
+      <span class="hstep">{{ step + 1 }} / {{ total_steps }}</span>
+    </div>
+    <h2>Answer a few questions</h2>
+    <p>So your AI coach can calibrate pace zones, readiness &amp; a plan built around your week — not a generic template.</p>
+  </div>
+
+  <!-- SAMPLE QUESTION -->
+  <div class="pf-qcap">{{ icon('calendar', 13, 'var(--muted-2)', 2) }} Your schedule</div>
+  <h3 class="pf-q">How many days a week do you run?</h3>
+  <p class="pf-qsub">We'll spread your sessions across the week to match.</p>
+
+  <!-- TAP GRID (one selected) -->
+  <div class="pf-grid" role="radiogroup" aria-label="Days per week">
+    {% for d in day_options %}
+    {% set is_on = (d == selected_days) %}
+    <div class="ss-surface ss-recess pf-cell {{ 'on' if is_on }}"
+         role="radio" aria-checked="{{ 'true' if is_on else 'false' }}" tabindex="0">
+      {% if is_on %}<span class="pf-pip" aria-hidden="true">{{ icon('check', 10, '#fff', 3) }}</span>{% endif %}
+      <span class="cn">{{ d }}{% if d == 5 %}<sup>+</sup>{% endif %}</span>
+      <span class="ck">{{ 'day' if d == 1 else 'days' }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="pf-note">
+    <span class="ni">{{ icon('spark', 13, 'currentColor', 2) }}</span>
+    <span>Most {{ S.PROFILING_DNA.tier }} runners train {{ selected_days }}&ndash;5 days a week. You can change this any time from your plan.</span>
+  </p>
+
+  <!-- CONTINUE -->
+  <div class="cta pf-foot">
+    <a class="ss-btn ss-btn-primary" href="{{ url_for('set_goal') }}">
+      Continue {{ icon('chevron', 16, '#fff', 2.4) }}
+    </a>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  .runs-stats{display:flex;gap:var(--gap);margin-bottom:14px}
+  .runs-stats .tile{flex:1;padding:12px 10px;text-align:center}
+  .runs-stats .v{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+  .runs-stats .v.accent{color:var(--accent-2)}
+  .runs-stats .v small{font:500 11px var(--mono);color:var(--muted);margin-left:1px}
+  .runs-stats .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px}
+  /* run row extends ss-base .run: give the whole list its own tile-recess container */
+  .runs-list .run{padding-top:11px;padding-bottom:11px}
+  .runs-list .run .rt{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  .runs-list .run .rt .go{color:var(--muted-2)}
+  .runs-list .run .rmeta{display:flex;align-items:center;gap:6px;flex:none}
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<div class="pad">
+  <p style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)">Activity</p>
+  <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin:2px 0 2px">Run History</h1>
+  <p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">Every logged run · tap to share a card</p>
+</div>
+
+<!-- SUMMARY STATS -->
+<div class="pad">
+  <div class="runs-stats">
+    <div class="tile recess">
+      <div class="v">{{ S.RUN_STATS.total_runs }}</div>
+      <div class="k">Runs</div>
+    </div>
+    <div class="tile recess">
+      <div class="v">{{ (S.RUN_STATS.total_distance/1000)|round(1) }}<small>km</small></div>
+      <div class="k">Total</div>
+    </div>
+    <div class="tile recess">
+      {% set bp = S.RUN_STATS.best_pace %}
+      <div class="v accent">{{ (bp // 60) }}:{{ '%02d'|format(bp % 60) }}</div>
+      <div class="k">Best /km</div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER SUB-TABS (neutral segmented control; All is active) -->
+<div class="pad">
+  <div class="ss-segbar" style="margin-bottom:14px" role="tablist" aria-label="Filter runs">
+    <button class="ss-segtab on" type="button" role="tab" aria-selected="true"><span class="ss-segpill" aria-hidden="true"></span>All</button>
+    <button class="ss-segtab" type="button" role="tab" aria-selected="false">Easy</button>
+    <button class="ss-segtab" type="button" role="tab" aria-selected="false">Tempo</button>
+    <button class="ss-segtab" type="button" role="tab" aria-selected="false">Long</button>
+  </div>
+</div>
+
+<!-- RUN LIST -->
+<div class="pad">
+  {{ sechead('All runs', S.RUN_STATS.total_runs ~ ' logged', url_for('records')) }}
+  <div class="tile recess runs-list">
+    {% for r in S.RECENT_RUNS %}
+    <a class="run" href="{{ url_for('share') }}" aria-label="{{ '%.1f'|format(r.distance_km) }} km at {{ r.pace }} per km, {{ r.when }}, {{ r.title }}{{ ', personal record' if r.pr }}">
+      <span class="runico">{{ icon('run', 15, 'var(--muted)', 2) }}</span>
+      <div class="ri">
+        <div class="t"><b>{{ '%.1f'|format(r.distance_km) }} km</b> · <b>{{ r.pace }}/km</b>{% if r.pr %}<span class="ss-prtag">PR</span>{% endif %}</div>
+        <div class="s">{{ r.when }} · {{ r.title }}</div>
+      </div>
+      <span class="rt">
+        <span class="rmeta">
+          <span>{{ r.duration }}</span>
+          {{ icon('share', 12, 'var(--muted-2)', 2) }}
+        </span>
+        <span class="go">{{ icon('chevron', 12, 'var(--muted-2)', 2) }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

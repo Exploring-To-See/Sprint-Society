@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  /* ---- LAYOUT ONLY (no token/surface redefinition) ---- */
+  /* category chip row scrolls horizontally like the real page's filter tabs */
+  .ev-cats{margin-bottom:14px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .ev-cats::-webkit-scrollbar{display:none}
+  .ev-cats .ss-segbar{width:max-content;min-width:100%}
+  .ev-cats .ss-segtab{flex:none;padding:0 16px}
+  .ev-cats .ss-segtab.soon{color:var(--muted-2);opacity:.7;cursor:default}
+
+  /* toolbar row: section label on the left, List/Map segmented toggle on the right */
+  .ev-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+  .ev-toolbar .lbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted)}
+  .ev-viewseg{flex:none}
+  .ev-viewseg .ss-segtab{padding:0 12px;min-height:34px;font-size:11px}
+
+  /* FEATURED HERO */
+  .ev-hero{border-radius:22px;padding:16px;margin-bottom:14px}
+  .ev-hero .ev-top{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .ev-hero .ev-flabel{font:700 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:.2em;color:var(--accent-2)}
+  .ev-hero h2{font:500 22px var(--head);letter-spacing:-.02em;margin:2px 0 3px;color:var(--fg)}
+  .ev-hero .ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-bottom:12px}
+  .ev-hero .ev-mrow{display:flex;align-items:center;gap:6px;color:var(--muted);font:500 11.5px var(--body)}
+  .ev-hero .ev-mrow b{font:600 11.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg)}
+  .ev-hero .ev-foot{display:flex;align-items:center;gap:11px;margin-top:2px}
+  .ev-hero .ev-foot .ss-btn{flex:1}
+
+  /* attendee stack — layout only; the puck chrome comes from ss-base .ss-puck */
+  .ev-att{display:flex;align-items:center;gap:9px;flex:none}
+  .ev-att .stack{display:flex}
+  .ev-att .stack .ss-puck{margin-left:-8px}
+  .ev-att .stack .ss-puck:first-child{margin-left:0}
+  .ev-att .going{font:600 10.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+
+  /* EVENT ROWS (recess wells, one list container) */
+  .ev-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--hair)}
+  .ev-row:last-child{border-bottom:none}
+  .ev-row:first-child{padding-top:2px}
+  .ev-ico{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .ev-body{flex:1;min-width:0}
+  .ev-row .ev-title{font:600 14px var(--head);letter-spacing:-.01em;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev-row .ev-sub{display:flex;align-items:center;gap:5px;color:var(--muted);font:500 10.5px var(--body);margin-top:3px}
+  .ev-row .ev-sub .dt{font:600 10.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .ev-row .ev-sub .sep{color:var(--muted-2)}
+  .ev-row .ev-loc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .ev-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+  .ev-right .dist{font:600 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .ev-right .go{color:var(--muted-2);display:grid;place-items:center}
+{% endblock %}
+
+{% block content %}
+{# ---- countdown helper: all seed events are in July; today is 1 Jul ---- #}
+{% macro daychip(date) -%}
+  {%- set day = date.split(' ')[-2]|int -%}{# "Sun, 6 Jul" -> day = 6 #}
+  {%- set away = day - 1 -%}
+  {%- if away <= 0 -%}<span class="ss-tag go">Today</span>
+  {%- elif away == 1 -%}<span class="ss-tag maybe">Tomorrow</span>
+  {%- elif away <= 3 -%}<span class="ss-tag now">{{ away }} days</span>
+  {%- elif away <= 7 -%}<span class="ss-tag maybe">{{ away }} days</span>
+  {%- else -%}<span class="ss-tag full">{{ away }} days</span>
+  {%- endif -%}
+{%- endmacro %}
+
+<!-- HEADER -->
+<div class="pad">
+  <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px">Events</h1>
+  <p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">Meet up, run together, vibe</p>
+</div>
+
+<!-- CATEGORY SUB-TABS (neutral segmented control; All active, later categories are Soon) -->
+<div class="pad">
+  <div class="ev-cats">
+    <div class="ss-segbar" role="tablist" aria-label="Filter events by category">
+      <button class="ss-segtab on" type="button" role="tab" aria-selected="true"><span class="ss-segpill" aria-hidden="true"></span>All</button>
+      <a class="ss-segtab" href="{{ url_for('events') }}" role="tab" aria-selected="false">Runs</a>
+      <button class="ss-segtab soon" type="button" role="tab" aria-selected="false" aria-disabled="true">Social <span class="ss-tag soon" style="font-size:7px;padding:1px 5px">Soon</span></button>
+      <button class="ss-segtab soon" type="button" role="tab" aria-selected="false" aria-disabled="true">Health &amp; Fitness <span class="ss-tag soon" style="font-size:7px;padding:1px 5px">Soon</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR: section label + List / Map view toggle -->
+<div class="pad">
+  <div class="ev-toolbar">
+    <span class="lbl">{{ S.EVENTS|length }} upcoming</span>
+    <div class="ss-segbar ev-viewseg" role="tablist" aria-label="View mode">
+      <button class="ss-segtab on" type="button" role="tab" aria-selected="true"><span class="ss-segpill" aria-hidden="true"></span>{{ icon('calendar', 13, 'currentColor', 2) }} List</button>
+      <button class="ss-segtab" type="button" role="tab" aria-selected="false">{{ icon('pin', 13, 'currentColor', 2) }} Map</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURED HERO (next upcoming — EVENTS[0]) -->
+{% set feat = S.EVENTS[0] %}
+<div class="pad">
+  <a class="ss-surface ss-hero ev-hero" href="{{ url_for('event_detail', eid=feat.id) }}" aria-label="Featured event: {{ feat.title }}, {{ feat.date }} at {{ feat.time }}, {{ feat.location }}">
+    <div class="ev-top">
+      <span class="ev-flabel">Featured event</span>
+      <span style="margin-left:auto">{{ daychip(feat.date) }}</span>
+    </div>
+    <h2>{{ feat.title }}</h2>
+    <div class="ev-meta">
+      <span class="ev-mrow">{{ icon('calendar', 13, 'var(--muted-2)', 2) }}<b>{{ feat.date }}</b> · <b>{{ feat.time }}</b></span>
+      <span class="ev-mrow">{{ icon('pin', 13, 'var(--muted-2)', 2) }}{{ feat.location }}</span>
+      <span class="ev-mrow">{{ icon('run', 13, 'var(--muted-2)', 2) }}<b>{{ feat.distance_km }} km</b></span>
+    </div>
+    <div class="ev-foot">
+      <div class="ev-att" aria-label="{{ feat.attendees }} going">
+        <div class="stack" aria-hidden="true">
+          <span class="ss-puck">PS</span><span class="ss-puck">AM</span><span class="ss-puck">RV</span>
+          <span class="ss-puck more">+{{ feat.attendees - 3 }}</span>
+        </div>
+        <span class="going">{{ feat.attendees }} going</span>
+      </div>
+      {% if feat.rsvp %}
+      <span class="ss-btn ss-btn-soft" style="max-width:118px">{{ icon('check', 15, 'var(--green)', 2.2) }} Going</span>
+      {% else %}
+      <span class="ss-btn ss-btn-primary" style="max-width:118px">{{ icon('plus', 16, 'currentColor', 2.2) }} RSVP</span>
+      {% endif %}
+    </div>
+  </a>
+</div>
+
+<!-- REMAINING EVENTS -->
+<div class="pad">
+  {{ sechead('More this week', S.EVENTS[1:]|length ~ ' events', url_for('events')) }}
+  <div class="tile recess">
+    {% for e in S.EVENTS[1:] %}
+    <a class="ev-row" href="{{ url_for('event_detail', eid=e.id) }}" aria-label="{{ e.title }}, {{ e.date }} at {{ e.time }}, {{ e.location }}, {{ e.distance_km }} km, {{ e.attendees }} going">
+      <span class="ev-ico">{{ icon('calendar', 17, 'var(--muted)', 2) }}</span>
+      <div class="ev-body">
+        <div class="ev-title">{{ e.title }}</div>
+        <div class="ev-sub">
+          <span class="dt">{{ e.date }} · {{ e.time }}</span>
+          <span class="sep">·</span>
+          {{ icon('pin', 11, 'var(--muted-2)', 2) }}
+          <span class="ev-loc">{{ e.location }}</span>
+        </div>
+        <div class="ev-sub" style="margin-top:5px">
+          {{ daychip(e.date) }}
+          {% if e.rsvp %}<span class="ss-tag go">{{ icon('check', 9, 'currentColor', 2.4) }} Going</span>{% endif %}
+          <span class="dt" style="margin-left:2px">{{ e.attendees }} going</span>
+        </div>
+      </div>
+      <div class="ev-right">
+        <span class="dist">{{ e.distance_km }} km</span>
+        <span class="go">{{ icon('chevron', 14, 'var(--muted-2)', 2) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

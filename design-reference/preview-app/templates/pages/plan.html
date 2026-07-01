@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat %}
+{% set S = seed %}
+{% set coach_active = 'plan' %}
+
+{% block page_style %}
+  .wk-list{display:flex;flex-direction:column}
+  .wk{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--hair)}
+  .wk:last-child{border-bottom:none}
+  .wk-day{width:38px;flex:none;font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);text-align:center}
+  .wk-body{flex:1;min-width:0}
+  .wk-t{font:600 13px var(--body);color:var(--fg)}
+  .wk-s{font:500 10.5px var(--mono);color:var(--muted);margin-top:2px}
+{% endblock %}
+
+{% block content %}
+{% include 'partials/coach_tabs.html' %}
+
+<div class="pad">
+  <!-- phase hero -->
+  <div class="ss-surface ss-hero" style="border-radius:20px;padding:16px;margin-bottom:12px">
+    <div class="shead">
+      <span class="sicon" style="background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.28)">{{ icon('calendar', 15, '#FB923C', 2) }}</span>
+      <span class="slbl">{{ S.JOURNEY.phase }} · W{{ S.JOURNEY.week }} / {{ S.JOURNEY.total_weeks }}</span>
+      <span class="ss-tag now" style="margin-left:auto">On track</span>
+    </div>
+    <h2 style="font:600 20px var(--head);letter-spacing:-.02em;margin:4px 0 2px;color:#ECECF2">{{ S.JOURNEY.goal }}</h2>
+    <p style="font:500 11.5px var(--body);color:var(--muted)">Pace improving {{ S.JOURNEY.start_pace }} → {{ S.JOURNEY.current_pace }} /km</p>
+  </div>
+
+  <!-- this week -->
+  <p class="tlbl" style="margin:14px 2px 6px">This week</p>
+  <div class="tile recess">
+    <div class="wk-list">
+      {% set days = [
+        ('Mon','Recovery jog','5 km · easy 8:00/km'),
+        ('Tue','Tempo Tuesday','8 km · 6:40/km'),
+        ('Wed','Rest',''),
+        ('Thu','Fartlek','7 km · 6:58/km'),
+        ('Fri','Rest',''),
+        ('Sat','Long Run','12 km · 8:15/km'),
+        ('Sun','Long Run','5 km · 7:50/km · today') ] %}
+      {% for d, t, s in days %}
+      <div class="wk">
+        <div class="wk-day">{{ d }}</div>
+        <div class="wk-body"><div class="wk-t">{{ t }}</div>{% if s %}<div class="wk-s">{{ s }}</div>{% endif %}</div>
+        {% if 'today' in s %}<span class="ss-tag now">Today</span>
+        {% elif t == 'Rest' %}<span class="ss-tag full">Rest</span>
+        {% else %}{{ icon('chevron', 15, 'var(--muted-2)', 2) }}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- adherence -->
+  <div class="statsrow" style="display:flex;gap:var(--gap);margin-top:12px">
+    <div class="tile recess" style="flex:1;padding:12px 13px"><div style="font:700 var(--m-lg) var(--mono)">4/5</div><div class="k" style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px">Sessions done</div></div>
+    <div class="tile recess" style="flex:1;padding:12px 13px"><div style="font:700 var(--m-lg) var(--mono)">31</div><div class="k" style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px">KM this wk</div></div>
+    <div class="tile recess" style="flex:1;padding:12px 13px"><div style="font:700 var(--m-lg) var(--mono)">+8%</div><div class="k" style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px">Fitness</div></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  /* progress dots — the 4-step wizard rhythm from SetGoalPage */
+  .sg-dots{display:flex;justify-content:center;gap:7px;padding:2px 0 16px}
+  .sg-dots i{width:7px;height:7px;border-radius:99px;background:rgba(255,255,255,.12);transition:width .2s var(--ease)}
+  .sg-dots i.on{width:16px;background:linear-gradient(90deg,var(--accent),var(--amber))}
+  /* distance chip grid — 3 across, glass by default, orange-ringed when picked */
+  .sg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .sg-weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .sg-chip{position:relative;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border-radius:14px;background:var(--glass);border:1px solid var(--hair);color:var(--muted);cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:transform var(--press-dur) var(--ease),border-color .2s var(--ease),color .2s var(--ease)}
+  .sg-chip:active{transform:scale(.97)}
+  .sg-chip .cl{font:700 13px var(--head);letter-spacing:-.01em}
+  .sg-chip .cs{font:600 8px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .sg-chip.on{color:var(--fg);border-color:rgba(249,115,22,.42);background:rgba(249,115,22,.10);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 6px 16px -10px rgba(249,115,22,.6)}
+  .sg-chip.on .cs{color:var(--accent-2)}
+  .sg-chip.on .tick{position:absolute;top:6px;right:6px;color:var(--accent-2);display:grid}
+  /* target-time mono instrument */
+  .sg-time{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 14px}
+  .sg-time .val{font:700 40px var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1;color:var(--fg)}
+  .sg-time .val small{font:600 15px var(--mono);color:var(--muted);margin-left:3px}
+  .sg-time .val .sep{color:var(--muted-2);margin:0 2px}
+  .sg-time .cap{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .sg-cta{margin-top:16px;display:flex;gap:var(--gap)}
+{% endblock %}
+
+{% block content %}
+{% set target_distance = 10000 %}
+{% set target_weeks = 12 %}
+
+<!-- STEP RHYTHM -->
+<div class="pad"><div class="sg-dots" role="img" aria-label="Step 2 of 4">
+  <i class="on"></i><i class="on"></i><i></i><i></i>
+</div></div>
+
+<!-- TITLE -->
+<div class="pad"><h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px">Set your goal</h1>
+<p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">Your AI coach builds a personalized plan around this.</p></div>
+
+<!-- RACE / PACE SEGMENTED CONTROL -->
+<div class="pad"><div class="ss-segbar" style="margin-bottom:16px">
+  <button class="ss-segtab on" type="button"><span class="ss-segpill" aria-hidden="true"></span>{{ icon('flag', 14, 'currentColor', 2) }}Race</button>
+  <a class="ss-segtab" href="{{ url_for('set_goal') }}">{{ icon('bolt', 14, 'currentColor', 2) }}Pace</a>
+</div></div>
+
+<!-- DISTANCE -->
+<div class="pad">
+  {{ sechead('Race distance') }}
+  <div class="tile recess" style="margin-top:8px">
+    <div class="sg-grid">
+      {% set distances = [
+        {'m': 1000,  'label': '1K',  'sub': '1 km'},
+        {'m': 3000,  'label': '3K',  'sub': '3 km'},
+        {'m': 5000,  'label': '5K',  'sub': '5 km'},
+        {'m': 10000, 'label': '10K', 'sub': '10 km'},
+        {'m': 15000, 'label': '15K', 'sub': '15 km'},
+        {'m': 21097, 'label': 'Half','sub': '21.1 km'},
+        {'m': 42195, 'label': 'Full','sub': 'Marathon'}
+      ] %}
+      {% for d in distances %}
+      <button type="button" class="sg-chip {{ 'on' if d.m == target_distance }}"
+        aria-pressed="{{ 'true' if d.m == target_distance else 'false' }}">
+        {% if d.m == target_distance %}<span class="tick" aria-hidden="true">{{ icon('check', 12, 'currentColor', 2.6) }}</span>{% endif %}
+        <span class="cl">{{ d.label }}</span>
+        <span class="cs">{{ d.sub }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- TIMEFRAME -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Timeline') }}
+  <div class="tile recess" style="margin-top:8px">
+    <div class="sg-weeks">
+      {% for w in [4, 8, 12, 16] %}
+      <button type="button" class="sg-chip {{ 'on' if w == target_weeks }}"
+        aria-pressed="{{ 'true' if w == target_weeks else 'false' }}">
+        {% if w == target_weeks %}<span class="tick" aria-hidden="true">{{ icon('check', 12, 'currentColor', 2.6) }}</span>{% endif %}
+        <span class="cl" style="font:700 15px var(--mono);font-variant-numeric:tabular-nums">{{ w }}</span>
+        <span class="cs">weeks</span>
+      </button>
+      {% endfor %}
+    </div>
+    <p style="font:500 10.5px var(--body);color:var(--muted-2);margin-top:10px">Race day around <b style="font:600 10.5px var(--mono);color:var(--muted)">Sep 23, 2026</b></p>
+  </div>
+</div>
+
+<!-- TARGET TIME -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Target time') }}
+  <div class="ss-surface ss-hero sg-time" style="margin-top:8px;border-radius:18px">
+    <span class="ss-tag now" style="align-self:center">10K goal</span>
+    <div class="val" aria-label="Target 52 minutes 30 seconds">52<span class="sep">:</span>30<small>min</small></div>
+    <span class="cap">Optional — AI estimates if left blank</span>
+    <div class="ss-dchip good" style="margin-top:2px">{{ icon('chart', 10, 'currentColor', 2) }} 5:15/km projected</div>
+  </div>
+</div>
+
+<!-- GENERATE PLAN -->
+<div class="pad">
+  <div class="sg-cta">
+    <a class="ss-btn ss-btn-primary" href="{{ url_for('plan') }}">{{ icon('spark', 16, '#fff', 2) }} Generate plan</a>
+    <a class="ss-btn ss-btn-ghost" href="{{ url_for('dashboard') }}" aria-label="Skip for now">{{ icon('chevron', 18, 'var(--muted)', 2) }}</a>
+  </div>
+  <p style="text-align:center;font:500 11px var(--body);color:var(--muted-2);margin-top:12px">Your coach adapts it to readiness &amp; recent runs.</p>
+</div>
+{% endblock %}

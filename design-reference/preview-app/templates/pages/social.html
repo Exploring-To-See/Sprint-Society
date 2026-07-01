@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, sechead %}
+{% set S = seed %}
+
+{#- Crafted reaction glyphs (ZERO emoji) — replaces the raise/flame/muscle/bolt/salute reactions.
+    Each is a 0 0 24 24 inline SVG so the feed keeps the icon language. -#}
+{% macro react(name, size=15, stroke='currentColor', sw=1.9) -%}
+<svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="{{ stroke }}" stroke-width="{{ sw }}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'raise' -%}<path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V6a1.5 1.5 0 0 1 3 0v7c0 4-2 6-5 6s-4.5-1.5-6-4l-2-3a1.5 1.5 0 0 1 2.4-1.8L8 13"/>
+{%- elif name == 'flame' -%}<path d="M12 3c4 4 6 7 6 10a6 6 0 0 1-12 0c0-2 1-4 3-6 0 2 1 3 2 3 1-2 1-5 1-7z"/>
+{%- elif name == 'muscle' -%}<path d="M4 8v5a5 5 0 0 0 5 5h5a4 4 0 0 0 4-4v-1M4 8h6l3 3M4 8a2 2 0 0 1 2-2h1.5a2 2 0 0 1 1.5.7L11 8"/>
+{%- elif name == 'bolt' -%}<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>
+{%- elif name == 'salute' -%}<path d="M3 14h18M6 14l1-7a2 2 0 0 1 2-1.7L18 6M6 14v3a2 2 0 0 0 2 2h1"/><path d="M8.5 8.5L12 7"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% block page_style %}
+  .sub-hd h1{font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px}
+  .sub-hd p{font:500 11.5px var(--body);color:var(--muted)}
+
+  /* --- feed activity card --- */
+  .fx{padding:14px}
+  .fx + .fx{margin-top:11px}
+  .fx-top{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+  .fx-av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font:700 13px var(--head);color:#fff}
+  .fx-av.orange{background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  .fx-av.violet{background:linear-gradient(135deg,var(--violet),var(--accent))}
+  .fx-name{font:600 13px var(--head);color:var(--fg);line-height:1.1}
+  .fx-when{font:500 10.5px var(--body);color:var(--muted-2);margin-top:2px}
+  .fx-streak{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:3px;
+    font:700 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--amber);
+    background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.24);
+    padding:3px 8px;border-radius:8px}
+
+  /* mono instrument stat rail */
+  .fx-stats{display:flex;gap:2px;margin-bottom:11px}
+  .fx-stats .c{flex:1;min-width:0;text-align:center;padding:9px 4px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .fx-stats .c:first-child{border-radius:11px 0 0 11px}
+  .fx-stats .c:last-child{border-radius:0 11px 11px 0}
+  .fx-stats .cv{font:700 15px var(--mono);font-variant-numeric:tabular-nums;line-height:1;color:var(--fg)}
+  .fx-stats .cv small{font:500 10px var(--mono);color:var(--muted)}
+  .fx-stats .ck{font:600 8.5px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:5px}
+
+  .fx-cap{font:400 12px/1.5 var(--body);color:#D7D7E4;margin-bottom:11px}
+
+  /* reactions footer */
+  .fx-foot{display:flex;align-items:center;gap:6px}
+  .rx{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair);color:var(--muted);
+    cursor:pointer;transition:color var(--press-dur) var(--ease),transform var(--press-dur) var(--ease)}
+  .rx.on{color:var(--accent-2);background:rgba(249,115,22,.13);border-color:rgba(249,115,22,.28)}
+  .rx:active{transform:scale(.9)}
+  .fx-kudos{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:5px;
+    font:600 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2)}
+  .fx-kudos .sep{width:1px;height:12px;background:var(--hair)}
+
+  /* --- communities mini-list --- */
+  .cm-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--hair)}
+  .cm-row:last-child{border-bottom:none}
+  .cm-ic{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair);color:var(--muted)}
+  .cm-nm{font:600 13px var(--body);color:var(--fg);line-height:1.15}
+  .cm-mt{font:500 10.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:2px}
+  .cm-new{flex:none;display:inline-flex;align-items:center;gap:4px;
+    font:600 9px var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--accent-2);
+    background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.3);padding:2px 7px;border-radius:6px}
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="pad sub-hd" style="margin-bottom:12px">
+  <h1>Social</h1>
+  <p>Your run club feed &amp; communities</p>
+</div>
+
+<!-- SEGMENTED SUB-TABS (Feed active) -->
+<div class="pad"><div class="ss-segbar" style="margin-bottom:14px">
+  <button class="ss-segtab on" type="button">
+    <span class="ss-segpill" aria-hidden="true"></span>{{ icon('users', 14) }}Feed
+  </button>
+  <a class="ss-segtab" href="{{ url_for('communities') }}">{{ icon('pin', 14) }}Communities</a>
+</div></div>
+
+<!-- ============ FEED ============ -->
+<div class="pad">
+  {% set rx = [('raise','var(--accent)'), ('flame','var(--amber)'), ('muscle','var(--accent-2)'), ('bolt','var(--violet-2)'), ('salute','var(--green)')] %}
+  {% for a in S.FEED %}
+  <div class="tile recess fx">
+
+    <!-- header: avatar / name / time-ago / streak flame -->
+    <div class="fx-top">
+      <a class="fx-av {{ a.avatar_hue }}" href="{{ url_for('user_profile', uid=a.user_id) }}">{{ a.initials }}</a>
+      <div style="min-width:0">
+        <div class="fx-name">{{ a.user_name }}</div>
+        <div class="fx-when">{{ a.time_ago }}</div>
+      </div>
+      {% if a.streak_days and a.streak_days >= 7 %}
+      <span class="fx-streak" title="{{ a.streak_days }} day streak">{{ icon('flame', 12, 'var(--amber)', 0) }}{{ a.streak_days }}</span>
+      {% endif %}
+    </div>
+
+    <!-- caption (optional) -->
+    {% if a.caption %}<p class="fx-cap">{{ a.caption }}</p>{% endif %}
+
+    <!-- run instrument stats: distance / pace / time (mono) -->
+    <div class="fx-stats">
+      <div class="c"><div class="cv">{{ '%.1f'|format(a.distance_km) }}<small>km</small></div><div class="ck">Distance</div></div>
+      <div class="c"><div class="cv">{{ a.pace }}<small>/km</small></div><div class="ck">Pace</div></div>
+      <div class="c"><div class="cv">{{ a.time }}</div><div class="ck">Time</div></div>
+    </div>
+
+    <!-- PR / effort tags -->
+    {% if a.pr or a.tag %}
+    <div style="display:flex;gap:6px;margin-bottom:11px">
+      {% if a.pr %}<span class="ss-prtag">PR</span>{% endif %}
+      {% if a.tag %}<span class="ss-tag now">{{ a.tag }}</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- reactions + kudos/comment counts -->
+    <div class="fx-foot">
+      {% for name, hue in rx %}
+      <button class="rx {{ 'on' if loop.first and a.pr }}" type="button" aria-label="{{ name }} reaction">{{ react(name, 15, ('currentColor' if not (loop.first and a.pr) else hue)) }}</button>
+      {% endfor %}
+      <span class="fx-kudos">
+        {{ icon('heart', 12, 'var(--muted-2)', 2) }}{{ a.kudos_count }}
+        <span class="sep" aria-hidden="true"></span>
+        {{ icon('comment', 12, 'var(--muted-2)', 2) }}{{ a.comment_count }}
+      </span>
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ============ YOUR COMMUNITIES (mini-list) ============ -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Your communities', 'See all', url_for('communities')) }}
+  <div class="tile recess">
+    {% for c in S.COMMUNITIES_JOINED %}
+    <a class="cm-row" href="{{ url_for('community_detail', cid=c.id) }}">
+      <span class="cm-ic">{{ icon(c.icon, 17, 'var(--muted)', 2) }}</span>
+      <div style="min-width:0;flex:1">
+        <div class="cm-nm">{{ c.name }}</div>
+        <div class="cm-mt">{{ '{:,}'.format(c.member_count) }} members</div>
+      </div>
+      {% if c.new_count %}<span class="cm-new">{{ c.new_count }} new</span>
+      {% else %}{{ icon('chevron', 15, 'var(--muted-2)', 2) }}{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

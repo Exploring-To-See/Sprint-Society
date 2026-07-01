@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  .home-hero{border-radius:22px;padding:16px;margin-bottom:11px}
+  .home-hero .stop{display:flex;gap:14px;align-items:center}
+  .home-hero h2{font:500 22px var(--head);letter-spacing:-.02em;margin:3px 0;color:#ECECF2}
+  .home-hero .sub{font:500 11.5px var(--body);color:var(--muted);margin-bottom:10px}
+  .tier-row{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+  .tier-track{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+  .tier-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--amber))}
+  .statsrow{display:flex;gap:var(--gap);margin-bottom:11px}
+  .statsrow .tile{flex:1;padding:12px 13px}
+  .statsrow .v{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+  .statsrow .v small{font:500 11px var(--mono);color:var(--muted)}
+  .statsrow .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px}
+  .spark{height:64px;width:100%;display:block;margin-top:8px}
+  .ath-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 14px}
+  .ath-top{display:flex;align-items:center;gap:11px;width:100%}
+  .ath-av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--violet));display:grid;place-items:center;font:700 15px var(--head);color:#fff;flex:none}
+  .ath-big{font:700 42px var(--mono);font-variant-numeric:tabular-nums;line-height:1;margin:12px 0 2px}
+  .ath-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;width:100%;margin-top:12px}
+  .ath-grid .c{padding:8px 4px;text-align:center}
+  .ath-grid .cv{font:700 14px var(--mono);font-variant-numeric:tabular-nums}
+  .ath-grid .ck{font:600 8.5px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:4px}
+  .ch-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--hair)}
+  .ch-row:last-child{border-bottom:none}
+  .ch-prog{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+  .ch-track{width:52px;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+  .ch-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--amber))}
+{% endblock %}
+
+{% block content %}
+<!-- GREETING + STAT STRIP -->
+<div class="greet">
+  <div class="g-l"><h1>Evening, {{ user.name.split()[0] if user else 'Ishan' }}</h1><div class="date">Wednesday, 1 July</div></div>
+  <div class="statstrip" aria-label="Readiness, streak, level">
+    <span class="schip" title="Readiness {{ S.READINESS.score }}"><span class="dot" aria-hidden="true"></span>{{ S.READINESS.score }}</span>
+    <span class="schip" title="{{ S.XP.current_streak_days }} day streak">{{ icon('flame', 12, '#FBBF24', 0) }}{{ S.XP.current_streak_days }}</span>
+    <span class="schip" title="Level {{ S.XP.current_level }}">L{{ S.XP.current_level }}</span>
+  </div>
+</div>
+
+<div class="pad">
+  <!-- TIER + LEVEL -->
+  <div style="margin-bottom:14px">
+    <div class="tier-row">
+      <span class="ss-tag {{ 'go' if S.TIER.tier=='advanced' else 'now' if S.TIER.tier=='intermediate' else 'go' }}">{{ S.TIER.tier }}</span>
+      <div class="tier-track"><div class="tier-fill" style="width:{{ S.XP.level_progress_percent }}%"></div></div>
+      <span style="font:600 10px var(--mono);color:var(--muted-2)">L{{ S.XP.current_level }}</span>
+    </div>
+    <p style="font:500 11px var(--body);color:var(--muted-2)">{{ S.XP.xp_to_next_level }} XP to Level {{ S.XP.current_level + 1 }}</p>
+  </div>
+
+  <!-- PENDING-PROFILE / AI NUDGE (violet AI surface) -->
+  <a href="{{ url_for('ai_profile') }}" class="tile ss-ai" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-direction:row">
+    <span class="ticon" style="background:linear-gradient(135deg,var(--violet),var(--accent));border:none">{{ icon('spark', 15, '#fff', 2) }}</span>
+    <div style="flex:1;min-width:0">
+      <p style="font:600 13px var(--head);color:#fff">Your AI coach is ready</p>
+      <p style="font:400 11px var(--body);color:#D7D7E4;margin-top:2px">Readiness, pace zones &amp; today's plan — tap to open.</p>
+    </div>
+    {{ icon('chevron', 16, 'var(--violet-2)', 2) }}
+  </a>
+</div>
+
+<!-- TODAY'S SESSION HERO -->
+<div class="pad">
+  <div class="ss-surface ss-hero home-hero">
+    <div class="shead">
+      <span class="sicon" style="background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.28)">{{ icon('pulse', 15, '#FB923C', 2) }}</span>
+      <span class="slbl">Today · {{ S.TODAY_SESSION.phase }} · W{{ S.TODAY_SESSION.week }} / {{ S.TODAY_SESSION.total_weeks }}</span>
+      <span class="ss-tag now" style="margin-left:auto">Today's session</span>
+    </div>
+    <div class="stop">
+      {{ gauge(S.TODAY_SESSION.readiness, S.TODAY_SESSION.readiness_label, S.TODAY_SESSION.readiness) }}
+      <div class="sinfo" style="flex:1;min-width:0">
+        <h2>{{ S.TODAY_SESSION.title }}</h2>
+        <div class="sub">{{ S.TODAY_SESSION.sub }}</div>
+        <div class="sstats">
+          {{ stat(S.TODAY_SESSION.target_pace, 'Target', '/km') }}
+          {{ stat('%.1f'|format(S.TODAY_SESSION.distance_km), 'Distance', 'km') }}
+          {{ stat('RPE ' ~ S.TODAY_SESSION.rpe, 'Effort') }}
+        </div>
+      </div>
+    </div>
+    <div class="cta">
+      <a class="ss-btn ss-btn-primary" href="{{ url_for('run_track') }}">{{ icon('play', 16, '#fff', 0) }} Start run</a>
+      <a class="ss-btn ss-btn-ghost" href="{{ url_for('plan') }}" aria-label="View plan">{{ icon('plus', 18, 'var(--muted)', 2) }}</a>
+    </div>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="pad">
+  <div class="statsrow">
+    <div class="tile recess"><div class="v">{{ S.RUN_STATS.total_runs }}</div><div class="k">Runs</div></div>
+    <div class="tile recess"><div class="v">{{ (S.RUN_STATS.total_distance/1000)|round|int }}</div><div class="k">KM</div></div>
+    <div class="tile recess"><div class="v">4:52</div><div class="k">Best /km</div></div>
+  </div>
+</div>
+
+<!-- PACE TREND -->
+<div class="pad">
+  <div class="tile recess">
+    <div class="thead"><span class="ticon">{{ icon('chart', 14, 'var(--muted)', 2) }}</span><span class="tlbl">Pace → target</span>
+      <span class="ss-dchip good" style="margin-left:auto">{{ icon('chevron', 10, 'currentColor', 2) }} 12s to goal</span></div>
+    {% set pts = S.PACE_TREND %}
+    {% set mn = pts|min %}{% set mx = pts|max %}
+    <svg class="spark" viewBox="0 0 300 64" preserveAspectRatio="none">
+      <line x1="0" y1="16" x2="300" y2="16" stroke="rgba(167,139,250,.4)" stroke-width="1" stroke-dasharray="4 4"/>
+      {% for p in pts %}
+        {% set x = loop.index0 * (300/(pts|length-1)) %}
+        {% set y = 56 - ((p-mn)/((mx-mn) or 1))*40 %}
+        <circle cx="{{ x|round(1) }}" cy="{{ y|round(1) }}" r="{{ 4 if loop.last else 3 }}" fill="{{ '#34D399' if loop.last else '#F97316' }}"/>
+      {% endfor %}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font:600 8.5px var(--mono);color:var(--muted-2);margin-top:4px">
+      <span>8:24/km</span><span>7:38/km (latest)</span>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT RUNS -->
+<div class="pad" style="margin-top:4px">
+  {{ sechead('Recent runs', 'See all', url_for('runs')) }}
+  <div class="tile recess">
+    {% for r in S.RECENT_RUNS[:3] %}
+    <a class="run" href="{{ url_for('runs') }}">
+      <span class="runico">{{ icon('run', 15, 'var(--muted)', 2) }}</span>
+      <div class="ri">
+        <div class="t"><b>{{ '%.1f'|format(r.distance_km) }} km</b> · <b>{{ r.pace }}/km</b>{% if r.pr %}<span class="ss-prtag">PR</span>{% endif %}</div>
+        <div class="s">{{ r.when }} · {{ r.title }}</div>
+      </div>
+      <span class="rt">{{ r.duration }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ATHLETE CARD -->
+<div class="pad" style="margin-top:14px">
+  <div class="tile ath-hero">
+    <div class="ath-top">
+      <span class="ath-av">{{ user.initials if user else 'IV' }}</span>
+      <div style="flex:1;min-width:0;text-align:left">
+        <p style="font:600 15px var(--head)">{{ user.name if user else 'Ishan Vashistha' }}</p>
+        <p style="font:500 11px var(--mono);color:var(--muted)">{{ S.USER.lifetime_km }} km lifetime</p>
+      </div>
+      <span class="ss-tag now">{{ S.TIER.tier }}</span>
+    </div>
+    <div class="ath-big">{{ S.TIER.vo2max }}</div>
+    <div style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);display:flex;align-items:center;gap:6px">
+      VO<sub>2</sub> Max <span class="ss-dchip good">{{ icon('chevron', 9, 'currentColor', 2) }} 1.4</span>
+    </div>
+    <div class="ath-grid">
+      <div class="c"><div class="cv">{{ S.TIER.age_grade }}%</div><div class="ck">Age grade</div></div>
+      <div class="c"><div class="cv">{{ S.TIER.vdot }}</div><div class="ck">VDOT</div></div>
+      <div class="c"><div class="cv">4:52</div><div class="ck">Best /km</div></div>
+      <div class="c"><div class="cv">{{ S.USER.lifetime_km }}</div><div class="ck">Total km</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHALLENGES -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Challenges', 'See all', url_for('challenges')) }}
+  <div class="tile recess">
+    {% for c in S.CHALLENGES %}
+    <div class="ch-row">
+      <span class="runico">{{ icon('drop' if c.category=='Hydration' else 'dumbbell' if c.category=='Bodyweight' else 'target', 15, 'var(--muted)', 2) }}</span>
+      <div style="min-width:0">
+        <p style="font:600 13px var(--body){{ ';text-decoration:line-through;color:var(--muted-2)' if c.done }}">{{ c.title }}</p>
+        <p style="font:500 10.5px var(--body);color:var(--muted-2)">{{ c.category }} · +{{ c.xp }}{% if c.auto %} <span class="ss-tag now" style="font-size:7.5px;padding:1px 5px">AUTO</span>{% endif %}</p>
+      </div>
+      <div class="ch-prog">
+        {% if c.done %}<span class="ss-dchip good">{{ icon('check', 11, 'currentColor', 2.4) }}</span>
+        {% else %}<div class="ch-track"><div class="ch-fill" style="width:{{ (c.progress/c.goal*100)|round|int }}%"></div></div>
+        <span style="font:600 10px var(--mono);color:var(--muted)">{{ c.progress }}/{{ c.goal }}</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ title or 'Sprint Society' }} · Sprint Society</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ss-base.css') }}">
+<style>
+  html,body{margin:0;background:var(--bg)}
+  a{text-decoration:none}
+  .ss-screen{min-height:100dvh}
+  .ss-aura,.aurora,.veil{position:fixed}
+</style>
+</head>
+<body>
+  <div class="ss-screen">
+    <div class="ss-aura" aria-hidden="true"></div>
+    <div class="aurora" aria-hidden="true">
+      <div class="mesh"></div><div class="sweep"></div><div class="ray"></div><div class="vignette"></div><div class="grain"></div>
+    </div>
+    <div class="veil" aria-hidden="true"></div>
+    <main class="body" style="padding-bottom:24px">
+      {% with msgs = get_flashed_messages() %}
+        {% if msgs %}<div class="pad" style="max-width:360px;margin:0 auto 12px">
+          {% for m in msgs %}<div class="ss-tag maybe" style="display:block;padding:9px 12px;border-radius:10px;text-align:center">{{ m }}</div>{% endfor %}
+        </div>{% endif %}
+      {% endwith %}
+      {% block auth %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>
