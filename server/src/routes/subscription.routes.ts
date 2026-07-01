@@ -32,6 +32,7 @@ router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
       expires_at: null,
       auto_renew: false,
       days_remaining: null,
+      scheduled_plan_key: null,
     });
   }
 
@@ -45,6 +46,7 @@ router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
     expires_at: sub.expires_at,
     auto_renew: !!sub.auto_renew,
     days_remaining: Math.max(0, daysRemaining),
+    scheduled_plan_key: sub.scheduled_plan_key || null,
   });
 });
 
@@ -222,6 +224,45 @@ router.post('/upgrade', authenticate, async (req: AuthRequest, res: Response) =>
   } catch {
     res.status(500).json({ error: 'Payment service unavailable' });
   }
+});
+
+// POST /subscription/downgrade — schedule a move to a lower-priced plan at period
+// end. The paid plan stays active until expires_at; scheduled_plan_key records the
+// intent (surfaced in /status and applied by the renewal flow). Reversible.
+router.post('/downgrade', authenticate, async (req: AuthRequest, res: Response) => {
+  const target = (typeof req.body?.plan_key === 'string' && req.body.plan_key) || 'base';
+
+  const sub = await db.queryOne(
+    "SELECT * FROM user_subscriptions WHERE user_id = $1 AND status = 'active' AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1",
+    [req.userId]
+  ) as any;
+  if (!sub) return res.status(400).json({ error: 'No active subscription to downgrade' });
+  if (target === sub.plan_key) return res.status(400).json({ error: 'Already on that plan' });
+
+  const current = await db.queryOne('SELECT * FROM subscription_plans WHERE key = $1', [sub.plan_key]) as any;
+  const targetPlan = await db.queryOne('SELECT * FROM subscription_plans WHERE key = $1 AND active = 1', [target]) as any;
+  if (!targetPlan) return res.status(400).json({ error: 'Invalid target plan' });
+  if (!current || targetPlan.price_inr >= current.price_inr) {
+    return res.status(400).json({ error: 'Downgrade must target a lower-priced plan. Use upgrade instead.' });
+  }
+
+  await db.execute('UPDATE user_subscriptions SET scheduled_plan_key = $1 WHERE id = $2', [target, sub.id]);
+  res.json({
+    message: `You'll move to ${targetPlan.name} when your ${current.name} plan ends. You keep ${current.name} until then.`,
+    scheduled_plan_key: target,
+    effective_at: sub.expires_at,
+  });
+});
+
+// POST /subscription/downgrade/cancel — undo a scheduled downgrade.
+router.post('/downgrade/cancel', authenticate, async (req: AuthRequest, res: Response) => {
+  const sub = await db.queryOne(
+    "SELECT * FROM user_subscriptions WHERE user_id = $1 AND status = 'active' AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1",
+    [req.userId]
+  ) as any;
+  if (!sub) return res.status(404).json({ error: 'No active subscription' });
+  await db.execute('UPDATE user_subscriptions SET scheduled_plan_key = NULL WHERE id = $1', [sub.id]);
+  res.json({ message: 'Downgrade cancelled — your plan stays as it is.' });
 });
 
 // GET /subscription/history — payment history

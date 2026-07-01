@@ -50,6 +50,7 @@ interface CurrentSub {
   expires_at: string | null;
   auto_renew: boolean;
   days_remaining: number | null;
+  scheduled_plan_key?: string | null;
 }
 
 const STATUS_CHIP: Record<string, 'good' | 'warn' | 'neutral'> = {
@@ -163,8 +164,20 @@ export function SubscriptionPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription-status'] }),
   });
 
+  const downgradeMutation = useMutation({
+    mutationFn: () => api.post('/subscription/downgrade', { plan_key: 'base' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription-status'] }),
+  });
+  const cancelDowngradeMutation = useMutation({
+    mutationFn: () => api.post('/subscription/downgrade/cancel'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription-status'] }),
+  });
+
   // Only Base subscribers can upgrade to Pro (not free, not already-Pro).
   const canUpgrade = currentSub?.plan_key === 'base';
+  const canDowngrade = currentSub?.plan_key === 'pro';
+  const scheduledDowngrade = currentSub?.scheduled_plan_key;
+  const scheduledName = (plans as any[] | undefined)?.find((p) => p.key === scheduledDowngrade)?.name || scheduledDowngrade;
 
   return (
     <AppShell>
@@ -185,15 +198,41 @@ export function SubscriptionPage() {
                 {currentSub.days_remaining} days remaining
                 {currentSub.auto_renew ? ' · Auto-renews' : ' · Cancels at end'}
               </p>
+              {scheduledDowngrade && (
+                <p className="text-[10px] text-amber-400 mt-0.5" data-testid="sub-downgrade-scheduled">
+                  Moving to {scheduledName} at period end
+                </p>
+              )}
             </div>
-            {currentSub.auto_renew && (
-              <button
-                onClick={() => cancelMutation.mutate()}
-                className="text-[10px] text-zinc-600 hover:text-zinc-400"
-              >
-                Cancel
-              </button>
-            )}
+            <div className="flex flex-col items-end gap-1">
+              {currentSub.auto_renew && (
+                <button
+                  onClick={() => cancelMutation.mutate()}
+                  className="text-[10px] text-zinc-600 hover:text-zinc-400"
+                >
+                  Cancel
+                </button>
+              )}
+              {scheduledDowngrade ? (
+                <button
+                  onClick={() => cancelDowngradeMutation.mutate()}
+                  disabled={cancelDowngradeMutation.isPending}
+                  className="text-[10px] text-accent hover:underline"
+                  data-testid="sub-downgrade-keep"
+                >
+                  Keep {currentSub.plan_name}
+                </button>
+              ) : canDowngrade && (
+                <button
+                  onClick={() => downgradeMutation.mutate()}
+                  disabled={downgradeMutation.isPending}
+                  className="text-[10px] text-zinc-600 hover:text-zinc-400"
+                  data-testid="sub-downgrade"
+                >
+                  Downgrade
+                </button>
+              )}
+            </div>
           </div>
         )}
 

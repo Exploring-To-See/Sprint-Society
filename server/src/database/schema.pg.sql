@@ -220,6 +220,9 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_email_verification_token ON email_verification_tokens(token);
 
+-- Subscription downgrade scheduled at period end (nullable target plan key).
+ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS scheduled_plan_key TEXT;
+
 -- Social: Following system
 CREATE TABLE IF NOT EXISTS follows (
     id SERIAL PRIMARY KEY,
