@@ -42,7 +42,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
   await db.execute('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)', [user.id, token, expiresAt]);
 
-  const resetUrl = `${config.clientUrl}/reset-password/${token}`;
+  const resetUrl = `${config.appUrl}/reset-password/${token}`;
   await sendPasswordResetEmail(user.email, resetUrl, user.name);
 
   res.json({ message: 'If that email exists, a reset link has been sent.' });

@@ -53,6 +53,10 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  // Public URL of the MAIN user-facing app, used for links in emails (password
+  // reset, notifications). Set APP_URL to the main app domain — NOT the admin
+  // portal — so reset links open the real app's /reset-password page, not admin.
+  appUrl: process.env.APP_URL || process.env.CLIENT_URL || 'http://localhost:5173',
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
     models: {
