@@ -92,8 +92,9 @@ export function AdminPage() {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-bg-tertiary overflow-x-auto scrollbar-none">
+        {/* Tabs — wrap so every tab (incl. Outreach) is visible; a horizontal
+            scroll strip hid later tabs behind a hidden scrollbar. */}
+        <div className="flex flex-wrap gap-1 border-b border-bg-tertiary">
           {tabs.map(t => (
             <button
               key={t.key}
