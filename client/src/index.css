@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-bg-primary text-white antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  input[type="range"] {
+    @apply appearance-none bg-transparent cursor-pointer;
+    touch-action: pan-x;
+  }
+
+  input[type="range"]::-webkit-slider-track {
+    @apply h-1 rounded-full bg-transparent;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-5 h-5 rounded-full bg-white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    margin-top: -8px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    @apply w-5 h-5 rounded-full bg-white border-0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  input[type="range"]::-moz-range-track {
+    @apply h-1 rounded-full bg-transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0px;
+  }
+
+  ::selection {
+    background: rgba(249, 115, 22, 0.2);
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-secondary border border-bg-tertiary rounded-xl;
+  }
+
+  .card-hover {
+    @apply bg-bg-secondary border border-bg-tertiary rounded-xl transition-all duration-150;
+  }
+
+  .card-hover:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .card-hover:active {
+    transform: scale(0.98);
+  }
+
+  .stat-number {
+    @apply font-mono font-bold text-[28px] text-white tabular-nums tracking-tighter;
+  }
+
+  .label {
+    @apply text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500;
+  }
+}
