@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+{% set DNA = S.PROFILING_DNA %}
+
+{% block page_style %}
+  /* ---- violet AI hero (page-only layout; look = .ss-ai + tokens) ---- */
+  .ai-hero{border-radius:22px;padding:18px 16px;margin-bottom:14px}
+  .ai-hero .htop{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .ai-hero .hbadge{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;
+    background:linear-gradient(135deg,var(--violet),var(--accent));border:none;box-shadow:0 6px 16px -6px rgba(124,107,240,.7)}
+  .ai-hero .hlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--violet-2)}
+  .ai-hero .hstamp{margin-left:auto;font:500 10px var(--mono);color:var(--muted-2)}
+  .ai-body{display:flex;gap:16px;align-items:center}
+  .ai-arch{flex:1;min-width:0}
+  .ai-arch .cap{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-bottom:4px}
+  .ai-arch h2{font:600 30px var(--head);letter-spacing:-.02em;line-height:1.02;color:#ECECF2;margin:0 0 9px}
+  .ai-arch .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .ai-vo2{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none}
+  .ai-vo2 .vlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--violet-2)}
+  /* ---- strengths / focus lists ---- */
+  .dna-grid{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+  .dna-list{padding:14px 15px}
+  .dna-list .lh{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .dna-list .lh .ic{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:none;border:1px solid}
+  .dna-list .lh .ic.good{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.22)}
+  .dna-list .lh .ic.warn{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.22)}
+  .dna-list .lh .lt{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .dna-list .lh .ct{margin-left:auto;font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2)}
+  .dna-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hair)}
+  .dna-row:last-child{border-bottom:none}
+  .dna-row .rk{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;flex:none}
+  .dna-row .rk.good{color:var(--green);background:rgba(52,211,153,.12)}
+  .dna-row .rk.warn{color:var(--amber);background:rgba(251,191,36,.12)}
+  .dna-row .rt{font:600 13.5px var(--body);color:var(--fg)}
+  .footnote{font:500 11px var(--body);color:var(--muted-2);text-align:center;padding:14px 12px 4px;line-height:1.5}
+{% endblock %}
+
+{% block content %}
+<!-- PAGE TITLE -->
+<div class="pad">
+  <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px">Your running DNA</h1>
+  <p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">What your AI coach has learned about you</p>
+</div>
+
+<!-- AI DNA HERO (violet ss-ai surface) -->
+<div class="pad">
+  <div class="tile ss-ai ai-hero">
+    <div class="htop">
+      <span class="hbadge">{{ icon('dna', 17, '#fff', 2) }}</span>
+      <span class="hlbl">AI DNA Profile</span>
+      <span class="hstamp">Updated Today</span>
+    </div>
+    <div class="ai-body">
+      <div class="ai-arch">
+        <div class="cap">Your archetype</div>
+        <h2>{{ DNA.archetype }}</h2>
+        <div class="meta">
+          <span class="ss-tag {{ 'go' if DNA.tier=='advanced' else 'soon' if DNA.tier=='intermediate' else 'go' }}">{{ DNA.tier }}</span>
+          <span class="ss-dchip info">{{ icon('pulse', 10, 'currentColor', 2) }} VO2 {{ DNA.vo2max }}</span>
+        </div>
+      </div>
+      <div class="ai-vo2">
+        {{ gauge(DNA.vo2max, 'VO2 Max', (DNA.vo2max / 60 * 100)|round|int, plan=True) }}
+        <span class="vlbl">ml/kg/min</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STRENGTHS + FOCUS AREAS -->
+<div class="pad">
+  <div class="dna-grid">
+    <!-- STRENGTHS -->
+    <div class="tile recess dna-list">
+      <div class="lh">
+        <span class="ic good">{{ icon('check', 14, 'var(--green)', 2.4) }}</span>
+        <span class="lt">Strengths</span>
+        <span class="ct">{{ DNA.strengths|length }}</span>
+      </div>
+      {% for s in DNA.strengths %}
+      <div class="dna-row">
+        <span class="rk good">{{ icon('check', 12, 'currentColor', 2.4) }}</span>
+        <span class="rt">{{ s }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- FOCUS AREAS -->
+    <div class="tile recess dna-list">
+      <div class="lh">
+        <span class="ic warn">{{ icon('target', 14, 'var(--amber)', 2) }}</span>
+        <span class="lt">Focus areas</span>
+        <span class="ct">{{ DNA.focus|length }}</span>
+      </div>
+      {% for f in DNA.focus %}
+      <div class="dna-row">
+        <span class="rk warn">{{ icon('target', 12, 'currentColor', 2) }}</span>
+        <span class="rt">{{ f }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- RE-RUN PROFILING -->
+<div class="pad" style="margin-top:4px">
+  <div class="cta">
+    <a class="ss-btn ss-btn-primary" href="{{ url_for('profiling') }}">{{ icon('spark', 16, '#fff', 2) }} Re-run profiling</a>
+    <a class="ss-btn ss-btn-ghost" href="{{ url_for('coach') }}" aria-label="Ask your coach">{{ icon('comment', 18, 'var(--muted)', 2) }}</a>
+  </div>
+  <p class="footnote">Profiling reads your recent runs, readiness &amp; cadence to re-map your archetype. The more you run, the sharper your coach gets.</p>
+</div>
+{% endblock %}

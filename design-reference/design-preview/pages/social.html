@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sprint Society — Community</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit/ss-base.css">
+<style>
+  /* Standalone-render helpers ONLY (layout/positioning). NO new colors, radii, shadows,
+     or type — those come from ss-base tokens. This block must never introduce a look. */
+  html,body{margin:0;background:var(--bg)}
+  .ss-screen{min-height:100dvh}
+  .ss-aura{position:absolute}
+  .f2-nav{position:absolute}
+  .f2-it > .f2-pill{top:50%;left:50%;margin-left:0;transform:translate(-50%,-50%)}
+
+  /* ===== PAGE LAYOUT ONLY (grid / spacing / heights) ===== */
+  .s-stack{display:flex;flex-direction:column;gap:14px}
+
+  /* section title above the feed */
+  .feedhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:2px 2px 0}
+  .feedhead h2{font:600 15px var(--head);letter-spacing:-.01em}
+  .feedhead .sub{font:500 11px var(--body);color:var(--muted-2)}
+
+  /* sub-tab segmented control layout (segpill sizing = per-tab) */
+  .segwrap{margin-bottom:2px}
+  .ss-segbar .ss-segpill{left:3px;width:calc((100% - 6px) / 2)}
+  .ss-segbar.on-b .ss-segpill{transform:translateX(calc(100% + 3px))}
+
+  /* ===== ACTIVITY CARD (FeedTab) ===== */
+  .fcard{padding:14px}
+  .f-top{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+  .f-av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font:700 13px var(--head);color:#fff;position:relative}
+  .f-av.a1{background:linear-gradient(135deg,var(--violet),var(--accent))}
+  .f-av.a2{background:linear-gradient(135deg,var(--accent),var(--amber))}
+  .f-av.a3{background:linear-gradient(135deg,var(--accent),var(--violet))}
+  .f-id{flex:1;min-width:0}
+  .f-id .nm{font:700 13px var(--body);color:#fff;display:flex;align-items:center;gap:6px}
+  .f-id .ago{font:500 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:2px}
+  .f-streak{flex:none;display:inline-flex;align-items:center;gap:3px;font:700 11px var(--mono);
+    font-variant-numeric:tabular-nums;color:var(--accent-2);
+    background:rgba(249,115,22,.13);border:1px solid rgba(249,115,22,.26);
+    padding:3px 8px 3px 6px;border-radius:8px}
+  .f-streak svg{width:12px;height:12px;flex:none}
+  .f-tag{flex:none}
+
+  .f-cap{font:400 12.5px/1.5 var(--body);color:#D7D7E4;margin-bottom:11px}
+
+  /* run stat strip — mono metric cells */
+  .f-stats{display:flex;gap:8px;margin-bottom:12px}
+  .f-cell{flex:1;min-width:0;padding:9px 10px}
+  .f-cell .v{font:600 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;line-height:1;
+    display:flex;align-items:baseline;gap:2px;white-space:nowrap;color:#fff}
+  .f-cell .v small{font:500 10px var(--mono);color:var(--muted)}
+  .f-cell .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);
+    color:var(--muted-2);margin-top:6px;white-space:nowrap}
+
+  /* reactions + kudos row */
+  .f-react{display:flex;align-items:center;gap:7px;padding-top:11px;border-top:1px solid var(--hair)}
+  .reacts{display:flex;gap:6px}
+  .rx{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;cursor:pointer;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair);color:var(--muted);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:color var(--press-dur) var(--ease),transform var(--press-dur) var(--ease),border-color var(--press-dur) var(--ease)}
+  .rx svg{width:17px;height:17px}
+  .rx:active{transform:scale(.9)}
+  @media (hover:hover){.rx:hover{color:var(--fg);border-color:rgba(255,255,255,.14)}}
+  /* the one the viewer already gave — a lit reaction, semantic accent */
+  .rx.on{color:var(--accent-2);background:rgba(249,115,22,.14);border-color:rgba(249,115,22,.3)}
+  .kudos{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 11px var(--mono);
+    font-variant-numeric:tabular-nums;color:var(--muted)}
+  .kudos svg{width:14px;height:14px;color:var(--accent-2)}
+  .cmts{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--mono);
+    font-variant-numeric:tabular-nums;color:var(--muted)}
+  .cmts svg{width:14px;height:14px;color:var(--muted-2)}
+  .f-meta-sep{width:1px;height:12px;background:var(--hair);margin:0 2px}
+
+  /* live-club strip (Communities context — kept subtle since Feed is the active view) */
+  .clubrow{display:flex;align-items:center;gap:11px;padding:12px}
+  .clubrow .cav{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair);color:var(--muted-2)}
+  .clubrow .cav svg{width:20px;height:20px}
+  .clubrow .cav.accent{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.3);color:var(--accent-2)}
+  .clubrow .cbody{flex:1;min-width:0}
+  .clubrow .cbody .t{font:700 12.5px var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .clubrow .cbody .m{font:500 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:2px}
+</style>
+</head>
+<body>
+  <div class="ss-screen">
+    <div class="ss-aura" aria-hidden="true"></div>
+    <div class="aurora" aria-hidden="true">
+      <div class="mesh"></div><div class="sweep"></div><div class="ray"></div><div class="vignette"></div><div class="grain"></div>
+    </div>
+    <div class="veil" aria-hidden="true"></div>
+
+    <div class="status" aria-hidden="true"><span>9:41</span><span>▮▮ 30</span></div>
+
+    <header class="topbar">
+      <div class="brand"><b>Sprint</b> Society</div>
+      <div class="icons">
+        <button class="iconbtn" aria-label="Notifications, 3 unread"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9A9CB0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge" aria-hidden="true">3</span></button>
+        <button class="avatar" aria-label="Your profile, Ishan">IV</button>
+      </div>
+    </header>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F97316"/><stop offset=".55" stop-color="#FB923C"/><stop offset="1" stop-color="#FBBF24"/></linearGradient>
+    </defs></svg>
+
+    <main class="body" aria-label="Community">
+      <div class="pad">
+        <div class="s-stack">
+
+          <!-- ===== SUB-TABS (Feed · Communities) — ONE segmented control, Feed active ===== -->
+          <div class="segwrap" role="tablist" aria-label="Community view">
+            <div class="ss-segbar">
+              <span class="ss-segpill" aria-hidden="true"></span>
+              <button class="ss-segtab on" role="tab" aria-selected="true" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                Feed
+              </button>
+              <button class="ss-segtab" role="tab" aria-selected="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 20v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 20v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg>
+                Communities
+              </button>
+            </div>
+          </div>
+
+          <!-- ===== FEED HEAD ===== -->
+          <div class="feedhead">
+            <h2>Activity</h2>
+            <span class="sub">Runners you follow</span>
+          </div>
+
+          <!-- ===== ACTIVITY CARD 1 — Priya S (streak) ===== -->
+          <article class="ss-surface fcard" style="border-radius:18px" aria-label="Activity from Priya S">
+            <div class="f-top">
+              <span class="f-av a1" aria-hidden="true">PS</span>
+              <div class="f-id">
+                <div class="nm">Priya S</div>
+                <div class="ago">2h ago</div>
+              </div>
+              <span class="f-streak" aria-label="12 day streak">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c2 3 .5 4.5-.5 5.5C10 10 9 11.5 9 13a3 3 0 0 0 6 0c0-1-.3-1.8-.7-2.4 1.4.9 2.2 2.4 2.2 4.1a5.5 5.5 0 0 1-11 0C5.5 10.5 9 8 9 5c1.2.6 2.3 1.4 3 -2Z" fill="currentColor"/></svg>
+                12
+              </span>
+            </div>
+
+            <p class="f-cap">Dawn tempo along the Sabarmati — legs felt springy, negative-split the back 3 km. On track for the 10K.</p>
+
+            <div class="f-stats">
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">8.4<small>km</small></div><div class="k">Distance</div>
+              </div>
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">5:32<small>/km</small></div><div class="k">Pace</div>
+              </div>
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">46:28</div><div class="k">Time</div>
+              </div>
+            </div>
+
+            <div class="f-react">
+              <div class="reacts" role="group" aria-label="React">
+                <!-- reaction 1 = raise / cheer (replaces the raised-hands emoji) -->
+                <button class="rx on" aria-label="Cheer" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11V5a1.5 1.5 0 0 1 3 0v5m0 0V4a1.5 1.5 0 0 1 3 0v6m0 0V5.5a1.5 1.5 0 0 1 3 0V13a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.3-2.5L3 13.5a1.5 1.5 0 0 1 2.4-1.8L7 13.5"/><path d="M8 3.5 7 2M13 2.5 13 1M17.5 4 18.5 3"/></svg></button>
+                <!-- reaction 2 = flame / fire (replaces the fire emoji) -->
+                <button class="rx" aria-label="Fire" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c2.2 3 .6 4.8-.6 6C10 10.6 9 12 9 13.8a3 3 0 0 0 6 0c0-1.1-.3-2-.8-2.7 1.6 1 2.6 2.8 2.6 4.7a5.8 5.8 0 0 1-11.6 0C5.2 11.4 9 8.6 9 5.3c1.3.7 2.4 1.5 3-2.3Z"/></svg></button>
+                <!-- reaction 3 = flexed arm / strong (replaces the muscle emoji) -->
+                <button class="rx" aria-label="Strong" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21v-6.5C6 11 8 8 12 8c1.6 0 3 .6 3 2s-1.2 2-2.6 2H10"/><path d="M6 14.5C4.5 14 3 15 3 17v4h5"/><path d="M15 10c2.8.4 4.5 2.6 4.5 5.5V21H15"/></svg></button>
+                <!-- reaction 4 = bolt / fast (replaces the lightning emoji) -->
+                <button class="rx" aria-label="Fast" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></button>
+                <!-- reaction 5 = salute / respect (replaces the salute emoji) -->
+                <button class="rx" aria-label="Respect" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8 9 5"/><path d="M4 8v3a8 8 0 0 0 16 0V9a3 3 0 0 0-3-3H9"/><path d="M9 13h.01M15 13h.01M9.5 16.5a3.5 3.5 0 0 0 5 0"/></svg></button>
+              </div>
+              <span class="kudos" aria-label="28 kudos">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35 4.55 14A5.5 5.5 0 0 1 12 6.3 5.5 5.5 0 0 1 19.45 14z"/></svg>
+                28
+              </span>
+              <span class="cmts" aria-label="4 comments">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-3.8-.8L3 21l1.9-4.5A8.4 8.4 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+                4
+              </span>
+            </div>
+          </article>
+
+          <!-- ===== ACTIVITY CARD 2 — Arjun M (PR, no caption) ===== -->
+          <article class="ss-surface fcard" style="border-radius:18px" aria-label="Activity from Arjun M">
+            <div class="f-top">
+              <span class="f-av a2" aria-hidden="true">AM</span>
+              <div class="f-id">
+                <div class="nm">Arjun M <span class="ss-prtag">PR</span></div>
+                <div class="ago">5h ago</div>
+              </div>
+              <span class="ss-tag now f-tag">Tempo</span>
+            </div>
+
+            <div class="f-stats">
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">5.0<small>km</small></div><div class="k">Distance</div>
+              </div>
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">4:38<small>/km</small></div><div class="k">Pace</div>
+              </div>
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">23:10</div><div class="k">Time</div>
+              </div>
+            </div>
+
+            <div class="f-react">
+              <div class="reacts" role="group" aria-label="React">
+                <button class="rx" aria-label="Cheer" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11V5a1.5 1.5 0 0 1 3 0v5m0 0V4a1.5 1.5 0 0 1 3 0v6m0 0V5.5a1.5 1.5 0 0 1 3 0V13a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.3-2.5L3 13.5a1.5 1.5 0 0 1 2.4-1.8L7 13.5"/><path d="M8 3.5 7 2M13 2.5 13 1M17.5 4 18.5 3"/></svg></button>
+                <button class="rx on" aria-label="Fire" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c2.2 3 .6 4.8-.6 6C10 10.6 9 12 9 13.8a3 3 0 0 0 6 0c0-1.1-.3-2-.8-2.7 1.6 1 2.6 2.8 2.6 4.7a5.8 5.8 0 0 1-11.6 0C5.2 11.4 9 8.6 9 5.3c1.3.7 2.4 1.5 3-2.3Z"/></svg></button>
+                <button class="rx" aria-label="Strong" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21v-6.5C6 11 8 8 12 8c1.6 0 3 .6 3 2s-1.2 2-2.6 2H10"/><path d="M6 14.5C4.5 14 3 15 3 17v4h5"/><path d="M15 10c2.8.4 4.5 2.6 4.5 5.5V21H15"/></svg></button>
+                <button class="rx on" aria-label="Fast" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></button>
+                <button class="rx" aria-label="Respect" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8 9 5"/><path d="M4 8v3a8 8 0 0 0 16 0V9a3 3 0 0 0-3-3H9"/><path d="M9 13h.01M15 13h.01M9.5 16.5a3.5 3.5 0 0 0 5 0"/></svg></button>
+              </div>
+              <span class="kudos" aria-label="41 kudos">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35 4.55 14A5.5 5.5 0 0 1 12 6.3 5.5 5.5 0 0 1 19.45 14z"/></svg>
+                41
+              </span>
+              <span class="cmts" aria-label="9 comments">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-3.8-.8L3 21l1.9-4.5A8.4 8.4 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+                9
+              </span>
+            </div>
+          </article>
+
+          <!-- ===== ACTIVITY CARD 3 — Ishan V (you) ===== -->
+          <article class="ss-surface fcard" style="border-radius:18px" aria-label="Activity from Ishan V">
+            <div class="f-top">
+              <span class="f-av a3" aria-hidden="true">IV</span>
+              <div class="f-id">
+                <div class="nm">Ishan V</div>
+                <div class="ago">yesterday</div>
+              </div>
+              <span class="f-streak" aria-label="3 day streak">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c2 3 .5 4.5-.5 5.5C10 10 9 11.5 9 13a3 3 0 0 0 6 0c0-1-.3-1.8-.7-2.4 1.4.9 2.2 2.4 2.2 4.1a5.5 5.5 0 0 1-11 0C5.5 10.5 9 8 9 5c1.2.6 2.3 1.4 3 -2Z" fill="currentColor"/></svg>
+                3
+              </span>
+            </div>
+
+            <p class="f-cap">Easy recovery jog after the weekend long run. Kept it conversational — banking base for Sub&#8209;270.</p>
+
+            <div class="f-stats">
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">5.0<small>km</small></div><div class="k">Distance</div>
+              </div>
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">8:02<small>/km</small></div><div class="k">Pace</div>
+              </div>
+              <div class="ss-surface ss-recess f-cell" style="border-radius:12px">
+                <div class="v">40:10</div><div class="k">Time</div>
+              </div>
+            </div>
+
+            <div class="f-react">
+              <div class="reacts" role="group" aria-label="React">
+                <button class="rx" aria-label="Cheer" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11V5a1.5 1.5 0 0 1 3 0v5m0 0V4a1.5 1.5 0 0 1 3 0v6m0 0V5.5a1.5 1.5 0 0 1 3 0V13a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.3-2.5L3 13.5a1.5 1.5 0 0 1 2.4-1.8L7 13.5"/><path d="M8 3.5 7 2M13 2.5 13 1M17.5 4 18.5 3"/></svg></button>
+                <button class="rx" aria-label="Fire" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c2.2 3 .6 4.8-.6 6C10 10.6 9 12 9 13.8a3 3 0 0 0 6 0c0-1.1-.3-2-.8-2.7 1.6 1 2.6 2.8 2.6 4.7a5.8 5.8 0 0 1-11.6 0C5.2 11.4 9 8.6 9 5.3c1.3.7 2.4 1.5 3-2.3Z"/></svg></button>
+                <button class="rx" aria-label="Strong" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21v-6.5C6 11 8 8 12 8c1.6 0 3 .6 3 2s-1.2 2-2.6 2H10"/><path d="M6 14.5C4.5 14 3 15 3 17v4h5"/><path d="M15 10c2.8.4 4.5 2.6 4.5 5.5V21H15"/></svg></button>
+                <button class="rx" aria-label="Fast" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></button>
+                <button class="rx" aria-label="Respect" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8 9 5"/><path d="M4 8v3a8 8 0 0 0 16 0V9a3 3 0 0 0-3-3H9"/><path d="M9 13h.01M15 13h.01M9.5 16.5a3.5 3.5 0 0 0 5 0"/></svg></button>
+              </div>
+              <span class="kudos" aria-label="16 kudos">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35 4.55 14A5.5 5.5 0 0 1 12 6.3 5.5 5.5 0 0 1 19.45 14z"/></svg>
+                16
+              </span>
+              <span class="cmts" aria-label="2 comments">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-3.8-.8L3 21l1.9-4.5A8.4 8.4 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/></svg>
+                2
+              </span>
+            </div>
+          </article>
+
+          <!-- ===== YOUR COMMUNITIES (Communities-tab context, kept quiet) ===== -->
+          <div class="feedhead" style="margin-top:2px">
+            <h2>Your communities</h2>
+            <span class="sub">2 joined</span>
+          </div>
+          <div class="ss-surface ss-recess" style="border-radius:16px;padding:6px 12px">
+            <div class="clubrow" style="padding-left:0;padding-right:0;border-bottom:1px solid var(--hair)">
+              <span class="cav accent" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 22v-5l-2.1-2l-.775 3.45q-.1.4-.437.613t-.738.137L4 18.2q-.425-.075-.65-.425T3.2 17t.425-.662t.775-.138l3.8.8l1.6-8.1l-1.8.7V12q0 .425-.288.713T7 13t-.712-.288T6 12V8.95q0-.3.163-.537T6.6 8.05L9.95 6.6q.875-.375 1.288-.487T12 6q.525 0 .975.275T13.7 7l1 1.6q.525.85 1.363 1.475T18 10.9q.425.075.713.375T19 12t-.288.7t-.687.225q-1.35-.2-2.525-.838t-2-1.587l-.6 3l1.8 1.7q.15.15.225.338t.075.387V22q0 .425-.288.713T14 23t-.712-.288T13 22m-.913-17.088Q11.5 4.325 11.5 3.5t.588-1.412T13.5 1.5t1.413.588T15.5 3.5t-.587 1.413T13.5 5.5t-1.412-.587"/></svg>
+              </span>
+              <div class="cbody">
+                <div class="t">Ahmedabad Sunrise Runners</div>
+                <div class="m">1,284 members</div>
+              </div>
+              <span class="ss-dchip neutral" style="border-radius:8px">3 new</span>
+            </div>
+            <div class="clubrow" style="padding-left:0;padding-right:0">
+              <span class="cav" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>
+              </span>
+              <div class="cbody">
+                <div class="t">Sub-270 Marathon Prep</div>
+                <div class="m">642 members</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- FLOATING GLIDE-PILL NAV — active tab: Community -->
+    <nav class="f2-nav" aria-label="Primary">
+      <div class="f2-cap">
+        <div class="f2-row">
+          <button class="f2-it" aria-label="Home">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 19v-9q0-.475.213-.9t.587-.7l6-4.5q.525-.4 1.2-.4t1.2.4l6 4.5q.375.275.588.7T20 10v9q0 .825-.588 1.413T18 21h-3q-.425 0-.712-.288T14 20v-5q0-.425-.288-.712T13 14h-2q-.425 0-.712.288T10 15v5q0 .425-.288.713T9 21H6q-.825 0-1.412-.587T4 19"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 19v-9q0-.475.213-.9t.587-.7l6-4.5q.525-.4 1.2-.4t1.2.4l6 4.5q.375.275.588.7T20 10v9q0 .825-.588 1.413T18 21h-3q-.425 0-.712-.288T14 20v-5q0-.425-.288-.712T13 14h-2q-.425 0-.712.288T10 15v5q0 .425-.288.713T9 21H6q-.825 0-1.412-.587T4 19"/></svg>
+            </span>
+          </button>
+          <button class="f2-it" aria-label="AI Coach">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8.3q-.125 0-.263-.075T18.55 8l-.8-1.75l-1.75-.8q-.15-.05-.225-.187T15.7 5q0-.125.075-.262T16 4.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 1.7q.125 0 .263.075T19.45 2l.8 1.75l1.75.8q.15.05.225.188T22.3 5q0 .125-.075.263T22 5.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 8.3Zm0 14q-.125 0-.263-.075T18.55 22l-.8-1.75l-1.75-.8q-.15-.05-.225-.188T15.7 19q0-.125.075-.263T16 18.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 15.7q.125 0 .263.075t.187.225l.8 1.75l1.75.8q.15.05.225.188T22.3 19q0 .125-.075.263T22 19.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 22.3ZM9 18.575q-.275 0-.525-.15T8.1 18l-1.6-3.5L3 12.9q-.275-.125-.425-.375T2.425 12q0-.275.15-.525T3 11.1l3.5-1.6L8.1 6q.125-.275.375-.425T9 5.425q.275 0 .525.15T9.9 6l1.6 3.5l3.5 1.6q.275.125.425.375t.15.525q0 .275-.15.525T15 12.9l-3.5 1.6L9.9 18q-.125.275-.375.425t-.525.15Z"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8.3q-.125 0-.263-.075T18.55 8l-.8-1.75l-1.75-.8q-.15-.05-.225-.187T15.7 5q0-.125.075-.262T16 4.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 1.7q.125 0 .263.075T19.45 2l.8 1.75l1.75.8q.15.05.225.188T22.3 5q0 .125-.075.263T22 5.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 8.3Zm0 14q-.125 0-.263-.075T18.55 22l-.8-1.75l-1.75-.8q-.15-.05-.225-.188T15.7 19q0-.125.075-.263T16 18.55l1.75-.8l.8-1.75q.05-.15.188-.225T19 15.7q.125 0 .263.075t.187.225l.8 1.75l1.75.8q.15.05.225.188T22.3 19q0 .125-.075.263T22 19.45l-1.75.8l-.8 1.75q-.05.15-.188.225T19 22.3ZM9 18.575q-.275 0-.525-.15T8.1 18l-1.6-3.5L3 12.9q-.275-.125-.425-.375T2.425 12q0-.275.15-.525T3 11.1l3.5-1.6L8.1 6q.125-.275.375-.425T9 5.425q.275 0 .525.15T9.9 6l1.6 3.5l3.5 1.6q.275.125.425.375t.15.525q0 .275-.15.525T15 12.9l-3.5 1.6L9.9 18q-.125.275-.375.425t-.525.15Z"/></svg>
+            </span>
+          </button>
+          <span class="f2-slot" aria-hidden="true"></span>
+          <button class="f2-it on" aria-current="page" aria-label="Community">
+            <span class="f2-pill"></span>
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M1 18q-.425 0-.712-.288T0 17v-.575q0-1.075 1.1-1.75T4 14q.325 0 .625.013t.575.062q-.35.525-.525 1.1t-.175 1.2V18zm6 0q-.425 0-.712-.288T6 17v-.625q0-.8.438-1.463t1.237-1.162T9.588 13T12 12.75q1.325 0 2.438.25t1.912.75t1.225 1.163t.425 1.462V17q0 .425-.287.713T17 18zm12.5 0v-1.625q0-.65-.162-1.225t-.488-1.075q.275-.05.563-.062T20 14q1.8 0 2.9.663t1.1 1.762V17q0 .425-.288.713T23 18zM4 13q-.825 0-1.412-.587T2 11q0-.85.588-1.425T4 9q.85 0 1.425.575T6 11q0 .825-.575 1.413T4 13m16 0q-.825 0-1.412-.587T18 11q0-.85.588-1.425T20 9q.85 0 1.425.575T22 11q0 .825-.575 1.413T20 13m-8-1q-1.25 0-2.125-.875T9 9q0-1.275.875-2.137T12 6q1.275 0 2.138.863T15 9q0 1.25-.862 2.125T12 12"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M1 18q-.425 0-.712-.288T0 17v-.575q0-1.075 1.1-1.75T4 14q.325 0 .625.013t.575.062q-.35.525-.525 1.1t-.175 1.2V18zm6 0q-.425 0-.712-.288T6 17v-.625q0-.8.438-1.463t1.237-1.162T9.588 13T12 12.75q1.325 0 2.438.25t1.912.75t1.225 1.163t.425 1.462V17q0 .425-.287.713T17 18zm12.5 0v-1.625q0-.65-.162-1.225t-.488-1.075q.275-.05.563-.062T20 14q1.8 0 2.9.663t1.1 1.762V17q0 .425-.288.713T23 18zM4 13q-.825 0-1.412-.587T2 11q0-.85.588-1.425T4 9q.85 0 1.425.575T6 11q0 .825-.575 1.413T4 13m16 0q-.825 0-1.412-.587T18 11q0-.85.588-1.425T20 9q.85 0 1.425.575T22 11q0 .825-.575 1.413T20 13m-8-1q-1.25 0-2.125-.875T9 9q0-1.275.875-2.137T12 6q1.275 0 2.138.863T15 9q0 1.25-.862 2.125T12 12"/></svg>
+            </span>
+          </button>
+          <button class="f2-it" aria-label="Events">
+            <span class="f2-ico">
+              <svg class="f2-out" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V3q0-.425.288-.712T7 2t.713.288T8 3v1h8V3q0-.425.288-.712T17 2t.713.288T18 3v1h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5zm7-6q-.425 0-.712-.288T11 13t.288-.712T12 12t.713.288T13 13t-.288.713T12 14m-4.712-.288Q7 13.426 7 13t.288-.712T8 12t.713.288T9 13t-.288.713T8 14t-.712-.288M16 14q-.425 0-.712-.288T15 13t.288-.712T16 12t.713.288T17 13t-.288.713T16 14m-4 4q-.425 0-.712-.288T11 17t.288-.712T12 16t.713.288T13 17t-.288.713T12 18m-4.712-.288Q7 17.426 7 17t.288-.712T8 16t.713.288T9 17t-.288.713T8 18t-.712-.288M16 18q-.425 0-.712-.288T15 17t.288-.712T16 16t.713.288T17 17t-.288.713T16 18"/></svg>
+              <svg class="f2-fill" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V3q0-.425.288-.712T7 2t.713.288T8 3v1h8V3q0-.425.288-.712T17 2t.713.288T18 3v1h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5zm7-6q-.425 0-.712-.288T11 13t.288-.712T12 12t.713.288T13 13t-.288.713T12 14m-4.712-.288Q7 13.426 7 13t.288-.712T8 12t.713.288T9 13t-.288.713T8 14t-.712-.288M16 14q-.425 0-.712-.288T15 13t.288-.712T16 12t.713.288T17 13t-.288.713T16 14m-4 4q-.425 0-.712-.288T11 17t.288-.712T12 16t.713.288T13 17t-.288.713T12 18m-4.712-.288Q7 17.426 7 17t.288-.712T8 16t.713.288T9 17t-.288.713T8 18t-.712-.288M16 18q-.425 0-.712-.288T15 17t.288-.712T16 16t.713.288T17 17t-.288.713T16 18"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+      <button class="f2-fab" aria-label="Start a run">
+        <svg viewBox="0 0 24 24" aria-hidden="true" style="color:#fff"><path fill="currentColor" d="M13 22v-5l-2.1-2l-.775 3.45q-.1.4-.437.613t-.738.137L4 18.2q-.425-.075-.65-.425T3.2 17t.425-.662t.775-.138l3.8.8l1.6-8.1l-1.8.7V12q0 .425-.288.713T7 13t-.712-.288T6 12V8.95q0-.3.163-.537T6.6 8.05L9.95 6.6q.875-.375 1.288-.487T12 6q.525 0 .975.275T13.7 7l1 1.6q.525.85 1.363 1.475T18 10.9q.425.075.713.375T19 12t-.288.7t-.687.225q-1.35-.2-2.525-.838t-2-1.587l-.6 3l1.8 1.7q.15.15.225.338t.075.387V22q0 .425-.288.713T14 23t-.712-.288T13 22m-.913-17.088Q11.5 4.325 11.5 3.5t.588-1.412T13.5 1.5t1.413.588T15.5 3.5t-.587 1.413T13.5 5.5t-1.412-.587"/></svg>
+      </button>
+    </nav>
+  </div>
+</body>
+</html>

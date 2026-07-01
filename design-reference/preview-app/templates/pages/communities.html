@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  /* layout-only — surfaces + tokens come from ss-base */
+  .cm-search{display:flex;align-items:center;gap:9px;padding:11px 13px;border-radius:14px;margin-bottom:14px}
+  .cm-search .lbl{font:500 12px var(--body);color:var(--muted-2)}
+  .cm-list{display:flex;flex-direction:column;gap:9px}
+  .cm-row{display:flex;align-items:center;gap:12px;padding:12px}
+  .cm-ico{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .cm-ico.ai{background:linear-gradient(135deg,var(--violet),var(--accent));border:none}
+  .cm-mid{flex:1;min-width:0}
+  .cm-name{font:600 13px var(--head);color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cm-meta{display:flex;align-items:center;gap:7px;margin-top:3px}
+  .cm-count{font:600 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .cm-count small{font:500 9px var(--body);color:var(--muted-2);text-transform:uppercase;letter-spacing:var(--trk-sm);margin-left:3px}
+  .cm-right{flex:none;display:flex;align-items:center;gap:9px}
+  .cm-join{height:34px;padding:0 14px;border-radius:11px;font:600 12px var(--head)}
+{% endblock %}
+
+{% block content %}
+<!-- PAGE HEADER -->
+<div class="pad">
+  <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px">Communities</h1>
+  <p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">Run with your people</p>
+</div>
+
+<!-- SUB-TABS (Feed / Communities) — single segbar, Communities active -->
+<div class="pad"><div class="ss-segbar" style="margin-bottom:14px" role="tablist" aria-label="Social sections">
+  <a class="ss-segtab" href="{{ url_for('social') }}" role="tab">{{ icon('comment', 14, 'currentColor', 2) }}Feed</a>
+  <button class="ss-segtab on" type="button" role="tab" aria-selected="true"><span class="ss-segpill" aria-hidden="true"></span>{{ icon('users', 14, 'currentColor', 2) }}Communities</button>
+</div></div>
+
+<!-- SEARCH (visual affordance, no live handler in preview) -->
+<div class="pad">
+  <div class="tile recess cm-search">
+    {{ icon('target', 15, 'var(--muted-2)', 2) }}
+    <span class="lbl">Search communities…</span>
+  </div>
+</div>
+
+<!-- MY COMMUNITIES -->
+{% if S.COMMUNITIES_JOINED %}
+<div class="pad">
+  {{ sechead('My communities') }}
+  <div class="cm-list">
+    {% for c in S.COMMUNITIES_JOINED %}
+    <a class="tile recess cm-row" href="{{ url_for('community_detail', cid=c.id) }}">
+      <span class="cm-ico">{{ icon(c.icon, 18, 'var(--accent-2)', 2) }}</span>
+      <div class="cm-mid">
+        <div class="cm-name">{{ c.name }}</div>
+        <div class="cm-meta">
+          <span class="cm-count">{{ '{:,}'.format(c.member_count) }}<small>members</small></span>
+        </div>
+      </div>
+      <div class="cm-right">
+        {% if c.new_count %}<span class="ss-tag now">{{ c.new_count }} new</span>{% endif %}
+        {{ icon('chevron', 15, 'var(--muted-2)', 2) }}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- DISCOVER -->
+{% if S.COMMUNITIES_DISCOVER %}
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Discover') }}
+  <div class="cm-list">
+    {% for c in S.COMMUNITIES_DISCOVER %}
+    <div class="tile recess cm-row">
+      <span class="cm-ico">{{ icon(c.icon, 18, 'var(--muted)', 2) }}</span>
+      <div class="cm-mid">
+        <a class="cm-name" href="{{ url_for('community_detail', cid=c.id) }}" style="display:block">{{ c.name }}</a>
+        <div class="cm-meta">
+          <span class="cm-count">{{ '{:,}'.format(c.member_count) }}<small>members</small></span>
+        </div>
+      </div>
+      <div class="cm-right">
+        <a class="ss-btn ss-btn-soft cm-join" href="{{ url_for('community_detail', cid=c.id) }}">Join</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- CREATE COMMUNITY -->
+<div class="pad" style="margin-top:16px;margin-bottom:6px">
+  <button class="ss-btn ss-btn-soft" type="button" style="width:100%">
+    {{ icon('plus', 17, 'var(--accent-2)', 2.2) }} Create community
+  </button>
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  /* ---- Daily challenge rows (mirrors Home's challenge list) ---- */
+  .ch-row{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--hair)}
+  .ch-row:last-child{border-bottom:none}
+  .ch-prog{margin-left:auto;display:flex;align-items:center;gap:9px;flex:none}
+  .ch-track{width:56px;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+  .ch-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--amber))}
+  .ch-xp{font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  /* ---- Kendu balance strip ---- */
+  .kbal{display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:16px}
+  .kbal .kicon{width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;
+    background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.24)}
+  .kbal .kv{font:700 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;line-height:1;color:var(--fg)}
+  .kbal .kk{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:4px}
+  /* ---- 1v1 head-to-head card ---- */
+  .h2h{padding:14px}
+  .h2h + .h2h{margin-top:var(--gap)}
+  .h2h-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .versus{display:flex;align-items:center;gap:9px;min-width:0}
+  .vav{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font:700 11px var(--head);color:#fff}
+  .vav.me{background:linear-gradient(135deg,var(--accent),var(--violet))}
+  .vav.them{background:rgba(255,255,255,.06);border:1px solid var(--hair);color:var(--muted)}
+  .vname{font:600 12px var(--head);color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vs{font:700 9px var(--body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted-2)}
+  .h2h-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:9px 11px;margin-bottom:11px}
+  .h2h-meta .ml{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .h2h-meta .mv{font:600 12px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg)}
+  .h2h-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font:500 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-bottom:12px}
+  .h2h-cta{display:flex;gap:9px}
+  .h2h-cta .ss-btn{height:42px;border-radius:12px;font:600 13px var(--head)}
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<div class="pad">
+  <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px">Challenges</h1>
+  <p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">Earn XP daily · stake Kendu head-to-head</p>
+</div>
+
+<!-- SUB-TABS (segmented — Daily active, 1v1 anchors below) -->
+<div class="pad"><div class="ss-segbar" style="margin-bottom:16px">
+  <button class="ss-segtab on" type="button"><span class="ss-segpill" aria-hidden="true"></span>{{ icon('target', 14, 'currentColor', 2) }} Daily</button>
+  <a class="ss-segtab" href="#one-v-one">{{ icon('bolt', 14, 'currentColor', 2) }} 1v1</a>
+</div></div>
+
+<!-- DAILY CHALLENGE PROGRESS TILES -->
+<div class="pad">
+  {{ sechead('This week', S.CHALLENGES|selectattr('done')|list|length ~ '/' ~ S.CHALLENGES|length ~ ' done') }}
+  <div class="tile recess">
+    {% for c in S.CHALLENGES %}
+    {% set glyph = 'drop' if c.category=='Hydration' else 'dumbbell' if c.category=='Bodyweight' else 'run' if c.category=='Technique' else 'target' %}
+    <div class="ch-row">
+      <span class="runico">{{ icon(glyph, 15, 'var(--muted)' if not c.done else 'var(--green)', 2) }}</span>
+      <div style="min-width:0">
+        <p style="font:600 13px var(--body){{ ';text-decoration:line-through;color:var(--muted-2)' if c.done }}">{{ c.title }}</p>
+        <p style="font:500 10.5px var(--body);color:var(--muted-2);display:flex;align-items:center;gap:6px;margin-top:2px">
+          {{ c.category }} · <span class="ch-xp">+{{ c.xp }} XP</span>{% if c.auto %}<span class="ss-tag now" style="font-size:7.5px;padding:1px 5px">AUTO</span>{% endif %}
+        </p>
+      </div>
+      <div class="ch-prog">
+        {% if c.done %}
+          <span class="ss-dchip good">{{ icon('check', 11, 'currentColor', 2.4) }} Done</span>
+        {% else %}
+          <div class="ch-track"><div class="ch-fill" style="width:{{ (c.progress/c.goal*100)|round|int }}%"></div></div>
+          <span style="font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)">{{ c.progress }}/{{ c.goal }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- 1V1 CHALLENGES -->
+<div class="pad" id="one-v-one" style="margin-top:18px">
+  {{ sechead('1v1 Challenges', 'How it works', url_for('rewards')) }}
+
+  <!-- Kendu balance -->
+  <div class="tile" style="margin-bottom:var(--gap)">
+    <div class="kbal" style="padding:0">
+      <span class="kicon">{{ icon('coin', 18, 'var(--amber)', 2) }}</span>
+      <div style="flex:1;min-width:0">
+        <div class="kv">{{ S.KENDU.balance }} <small style="font:500 11px var(--mono);color:var(--muted)">Kendu</small></div>
+        <div class="kk">Available to stake</div>
+      </div>
+      <span class="ss-tag full">Stake 5–50</span>
+    </div>
+  </div>
+
+  <!-- Head-to-head #1 — incoming challenge (pending → Accept/Decline) -->
+  <div class="tile recess h2h">
+    <div class="h2h-top">
+      <div class="versus">
+        <span class="vav them">AM</span>
+        <span class="vname">Arjun M</span>
+        <span class="vs">vs</span>
+        <span class="vav me">{{ user.initials if user else 'IV' }}</span>
+      </div>
+      <span class="ss-tag maybe">Pending</span>
+    </div>
+    <div class="sstat h2h-meta">
+      <span class="ml">Metric</span>
+      <span class="mv">Total distance · 7 days</span>
+    </div>
+    <div class="h2h-foot">
+      <span>Deadline · Mon, 7 Jul</span>
+      <span>Pot 20 · winner keeps 16</span>
+    </div>
+    <div class="h2h-cta">
+      <button class="ss-btn ss-btn-primary" type="button">{{ icon('check', 15, '#fff', 2.4) }} Accept · 10 Kendu</button>
+      <button class="ss-btn ss-btn-soft" type="button">Decline</button>
+    </div>
+  </div>
+
+  <!-- Head-to-head #2 — active challenge (in progress, live standings) -->
+  <div class="tile recess h2h">
+    <div class="h2h-top">
+      <div class="versus">
+        <span class="vav me">{{ user.initials if user else 'IV' }}</span>
+        <span class="vs">vs</span>
+        <span class="vav them">PS</span>
+        <span class="vname">Priya S</span>
+      </div>
+      <span class="ss-tag go">Active</span>
+    </div>
+    <div class="sstat h2h-meta">
+      <span class="ml">Best pace · 5 km</span>
+      <span class="mv">Leading · +6s/km</span>
+    </div>
+    <div class="h2h-foot">
+      <span>Ends · Fri, 4 Jul</span>
+      <span>Pot 50 · winner keeps 40</span>
+    </div>
+    <div class="h2h-cta">
+      <a class="ss-btn ss-btn-soft" href="{{ url_for('user_profile', uid=2) }}" style="flex:1">View standings {{ icon('chevron', 14, 'currentColor', 2) }}</a>
+    </div>
+  </div>
+
+  <!-- New challenge CTA -->
+  <a class="ss-qchip accent" href="{{ url_for('rewards') }}" style="width:100%;margin-top:14px;height:48px;justify-content:center">
+    <span class="qi">{{ icon('plus', 15, 'var(--accent-2)', 2.2) }}</span>
+    Challenge a runner
+  </a>
+</div>
+{% endblock %}
