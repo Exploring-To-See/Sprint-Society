@@ -385,6 +385,11 @@ export function RegistrationFlow() {
         >
           {submitting ? 'Creating account...' : step === totalSteps - 1 ? "Let's go" : 'Continue'}
         </Button>
+        <p className="text-zinc-600 text-[11px] leading-relaxed text-center mt-3">
+          By continuing you agree to our{' '}
+          <a href="/terms" className="text-zinc-400 underline">Terms</a> and{' '}
+          <a href="/privacy" className="text-zinc-400 underline">Privacy Policy</a>.
+        </p>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { ErrorToast } from './components/ui/ErrorToast';
 import { PageTransition } from './components/ui/PageTransition';
+import { CookieConsent } from './components/CookieConsent';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -40,6 +41,8 @@ const ChallengesPage = lazy(() => import('./pages/ChallengesPage'));
 const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.RewardsPage })));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -128,6 +131,8 @@ function AppRoutes() {
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
         <Route path="/forgot-password" element={<PageTransition><LazyLoad><ForgotPasswordPage /></LazyLoad></PageTransition>} />
         <Route path="/reset-password/:token" element={<PageTransition><LazyLoad><ResetPasswordPage /></LazyLoad></PageTransition>} />
+        <Route path="/privacy" element={<PageTransition><LazyLoad><PrivacyPolicyPage /></LazyLoad></PageTransition>} />
+        <Route path="/terms" element={<PageTransition><LazyLoad><TermsPage /></LazyLoad></PageTransition>} />
         <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/run/track" element={<ProtectedRoute><PageTransition><LazyLoad><RunTrackerPage /></LazyLoad></PageTransition></ProtectedRoute>} />
@@ -173,6 +178,7 @@ export default function App() {
       <AuthProvider>
         <ErrorToast />
         <AppRoutes />
+        <CookieConsent />
       </AuthProvider>
     </ErrorBoundary>
   );
