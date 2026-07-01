@@ -13,13 +13,21 @@ router.use(requireAdmin);
 // GET /email-config — confirm the email env vars are actually present in THIS
 // production runtime (common gotcha: set in Vercel but not redeployed). No secrets.
 router.get('/email-config', (_req: AuthRequest, res: Response) => {
-  const from = process.env.EMAIL_FROM || 'Sprint Society <onboarding@resend.dev>';
+  const provider = (process.env.EMAIL_PROVIDER || 'resend').trim().toLowerCase() === 'gmail' ? 'gmail' : 'resend';
   res.json({
+    provider,
+    // gmail
+    gmail_user_set: !!process.env.GMAIL_USER,
+    gmail_app_password_set: !!process.env.GMAIL_APP_PASSWORD,
+    email_from_name: process.env.EMAIL_FROM_NAME || null,
+    // resend
     resend_api_key_set: !!process.env.RESEND_API_KEY,
     email_from: process.env.EMAIL_FROM || null,
+    using_fallback_sender: provider === 'resend'
+      && (process.env.EMAIL_FROM || 'Sprint Society <onboarding@resend.dev>') === 'Sprint Society <onboarding@resend.dev>',
+    // shared
     email_reply_to: process.env.EMAIL_REPLY_TO || null,
     client_url: config.clientUrl,
-    using_fallback_sender: from === 'Sprint Society <onboarding@resend.dev>',
   });
 });
 

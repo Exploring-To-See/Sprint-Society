@@ -1,27 +1,65 @@
 import axios from 'axios';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '../config';
 
-// Email delivery via Resend (https://resend.com). The API key comes ONLY from the
-// environment (RESEND_API_KEY — set in Vercel); no key is ever hardcoded.
+// Email delivery with a provider switch (set EMAIL_PROVIDER in Vercel):
+//   EMAIL_PROVIDER=gmail   -> Gmail SMTP (nodemailer). Interim primary.
+//   EMAIL_PROVIDER=resend  -> Resend HTTP API (default). Switch back with one env var.
 //
-// Deliverability (stay out of spam):
-//  - Send from a VERIFIED custom domain via EMAIL_FROM (e.g. "Sprint Society
-//    <noreply@yourdomain.com>"). Sending from Resend's shared onboarding@resend.dev
-//    (the dev-only fallback below) or an unverified domain lands in spam.
-//  - Every email is multipart (HTML + plaintext) — a big inbox-placement factor.
-//  - A real Reply-To (EMAIL_REPLY_TO), branded consistent From, and a
-//    List-Unsubscribe header on bulk (notification) emails.
-//  - Domain DNS must publish SPF, DKIM and DMARC (Resend shows the records on the
-//    domain page) so receivers can authenticate the mail.
+// No secrets are ever hardcoded — keys/passwords come only from the environment.
+//
+// Deliverability notes:
+//   * Gmail SMTP: the From address MUST be your Gmail (GMAIL_USER). Sending "from"
+//     another domain via Gmail fails SPF/DKIM alignment and lands in spam, so we
+//     always send as "<EMAIL_FROM_NAME> <GMAIL_USER>". Gmail caps ~500/day (free)
+//     / ~2000/day (Workspace) and needs a 2FA App Password (not the login password).
+//   * Resend: send from a VERIFIED custom domain via EMAIL_FROM; publish SPF/DKIM/
+//     DMARC. onboarding@resend.dev (the dev fallback) only reaches your own address.
+//   * Every email is multipart (HTML + plaintext) with a Reply-To, and notification
+//     emails carry List-Unsubscribe — all inbox-placement factors.
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
-const DEV_FALLBACK_FROM = 'Sprint Society <onboarding@resend.dev>'; // local dev ONLY
+const DEV_FALLBACK_FROM = 'Sprint Society <onboarding@resend.dev>';
 
-function sender(): string {
+type Provider = 'gmail' | 'resend';
+function activeProvider(): Provider {
+  return (process.env.EMAIL_PROVIDER || 'resend').trim().toLowerCase() === 'gmail' ? 'gmail' : 'resend';
+}
+
+function gmailFrom(): string {
+  const name = process.env.EMAIL_FROM_NAME || 'Sprint Society';
+  return `${name} <${process.env.GMAIL_USER || ''}>`;
+}
+function resendFrom(): string {
   return process.env.EMAIL_FROM || DEV_FALLBACK_FROM;
+}
+function activeFrom(): string {
+  return activeProvider() === 'gmail' ? gmailFrom() : resendFrom();
 }
 function replyToAddress(): string | undefined {
   return process.env.EMAIL_REPLY_TO || undefined;
+}
+function credentialsPresent(): boolean {
+  return activeProvider() === 'gmail'
+    ? !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
+    : !!process.env.RESEND_API_KEY;
+}
+
+// Gmail SMTP transporter, cached per warm serverless instance.
+let gmailTransporter: Transporter | null = null;
+function getGmailTransporter(): Transporter | null {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+  if (!gmailTransporter) {
+    gmailTransporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+    });
+  }
+  return gmailTransporter;
 }
 
 interface SendParams {
@@ -31,35 +69,68 @@ interface SendParams {
   text: string;
   headers?: Record<string, string>;
 }
+interface SendResult {
+  ok: boolean;
+  id?: string;
+  error?: string;
+}
 
-/** Low-level send. Returns true on success; degrades gracefully (logs) if the
- *  key is missing so flows never crash in dev / before env is set. */
-async function send({ to, subject, html, text, headers }: SendParams): Promise<boolean> {
+async function sendViaResend(p: SendParams): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn(`[Email] RESEND_API_KEY not set — skipped "${subject}" to ${to}`);
-    return false;
-  }
+  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY is not set' };
   try {
-    const payload: Record<string, unknown> = { from: sender(), to, subject, html, text };
+    const payload: Record<string, unknown> = { from: resendFrom(), to: p.to, subject: p.subject, html: p.html, text: p.text };
     const rt = replyToAddress();
     if (rt) payload.reply_to = rt;
-    if (headers) payload.headers = headers;
-
-    await axios.post(RESEND_ENDPOINT, payload, {
+    if (p.headers) payload.headers = p.headers;
+    const res = await axios.post(RESEND_ENDPOINT, payload, {
       headers: { Authorization: `Bearer ${apiKey}` },
       timeout: 10000,
     });
-    return true;
+    return { ok: true, id: res.data?.id };
   } catch (err: any) {
-    console.error('[Email] send failed:', err?.response?.data || err?.message);
-    return false;
+    const data = err?.response?.data;
+    return { ok: false, error: String(data?.message || data?.name || data?.error || err?.message || 'unknown error') };
   }
 }
 
+async function sendViaGmail(p: SendParams): Promise<SendResult> {
+  const t = getGmailTransporter();
+  if (!t) return { ok: false, error: 'GMAIL_USER / GMAIL_APP_PASSWORD not set' };
+  try {
+    const info = await t.sendMail({
+      from: gmailFrom(),
+      to: p.to,
+      subject: p.subject,
+      html: p.html,
+      text: p.text,
+      replyTo: replyToAddress(),
+      headers: p.headers,
+    });
+    return { ok: true, id: info.messageId };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message || 'unknown error') };
+  }
+}
+
+async function dispatch(p: SendParams): Promise<SendResult> {
+  return activeProvider() === 'gmail' ? sendViaGmail(p) : sendViaResend(p);
+}
+
+/** Send an email via the active provider. Returns true on success; degrades
+ *  gracefully (logs) so flows never crash if credentials are missing. */
+async function send(p: SendParams): Promise<boolean> {
+  if (!credentialsPresent()) {
+    console.warn(`[Email] ${activeProvider()} credentials not set — skipped "${p.subject}" to ${p.to}`);
+    return false;
+  }
+  const r = await dispatch(p);
+  if (!r.ok) console.error(`[Email] ${activeProvider()} send failed:`, r.error);
+  return r.ok;
+}
+
 // --------------------------------------------------------------------------- //
-// Templates — simple, high text-to-markup ratio, no spammy words / image-only
-// bodies. A branded wrapper + a matching plaintext part for every message.
+// Templates — simple, high text-to-markup ratio, plaintext + HTML for every mail
 // --------------------------------------------------------------------------- //
 function layout(heading: string, bodyHtml: string, footerExtraHtml = ''): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
@@ -74,14 +145,11 @@ function layout(heading: string, bodyHtml: string, footerExtraHtml = ''): string
     </div>
   </body></html>`;
 }
-
 function button(label: string, url: string): string {
   return `<a href="${url}" style="display:inline-block;margin:24px 0;padding:14px 32px;background:#39FF14;color:#0A0A0F;font-weight:600;text-decoration:none;border-radius:8px;">${label}</a>`;
 }
 
-// --------------------------------------------------------------------------- //
 // Password reset (transactional)
-// --------------------------------------------------------------------------- //
 export async function sendPasswordResetEmail(to: string, resetUrl: string, userName: string): Promise<boolean> {
   const name = userName || 'there';
   const html = layout('Password reset', `
@@ -103,9 +171,7 @@ If you didn't request this, ignore this email.
   return send({ to, subject: 'Reset your Sprint Society password', html, text });
 }
 
-// --------------------------------------------------------------------------- //
-// One-time passcode (transactional) — verification / passwordless login
-// --------------------------------------------------------------------------- //
+// One-time passcode (transactional)
 export async function sendOtpEmail(to: string, code: string, userName?: string): Promise<boolean> {
   const greeting = userName ? `Hi ${userName},` : 'Hi,';
   const html = layout('Verification code', `
@@ -124,9 +190,7 @@ It expires in 10 minutes. Never share it with anyone.
   return send({ to, subject: `${code} is your Sprint Society code`, html, text });
 }
 
-// --------------------------------------------------------------------------- //
-// Notification email (bulk) — includes List-Unsubscribe for deliverability
-// --------------------------------------------------------------------------- //
+// Notification email (bulk) — includes List-Unsubscribe
 export interface NotificationEmailOpts {
   subject: string;
   heading: string;
@@ -135,7 +199,6 @@ export interface NotificationEmailOpts {
   ctaText?: string;
   ctaUrl?: string;
 }
-
 export async function sendNotificationEmail(to: string, userName: string, o: NotificationEmailOpts): Promise<boolean> {
   const name = userName || 'Runner';
   const manageUrl = `${config.clientUrl}/notifications`;
@@ -153,60 +216,47 @@ ${o.title}${o.body ? `\n${o.body}` : ''}${o.ctaUrl ? `\n\n${o.ctaText || 'Open'}
 — Sprint Society
 Manage email notifications: ${manageUrl}`;
 
-  // List-Unsubscribe: a URL (settings) plus a mailto when a reply-to is set.
-  // (For high-volume bulk sending, add a one-click POST endpoint + the
-  //  List-Unsubscribe-Post header per Gmail/Yahoo 2024 rules.)
   const rt = replyToAddress();
   const listUnsub = rt ? `<${manageUrl}>, <mailto:${rt}?subject=unsubscribe>` : `<${manageUrl}>`;
   return send({ to, subject: o.subject, html, text, headers: { 'List-Unsubscribe': listUnsub } });
 }
 
 // --------------------------------------------------------------------------- //
-// Production diagnostics — send a real test email and surface the exact Resend
-// result/error (unverified domain, invalid key, bad recipient, ...). Used by the
-// admin email-test endpoint to confirm production delivery in one call.
+// Production diagnostics — send a real test email via the ACTIVE provider and
+// surface the exact result/error. Used by the admin email-test endpoint.
 // --------------------------------------------------------------------------- //
 export interface EmailDiagnostic {
-  configured: boolean;          // RESEND_API_KEY present in this runtime
-  from: string;                 // the sender actually in use (EMAIL_FROM)
+  provider: Provider;
+  configured: boolean;          // credentials present for the active provider
+  from: string;                 // sender actually in use
   replyTo: string | null;
-  usingFallbackSender: boolean; // true => still onboarding@resend.dev (misconfigured)
+  usingFallbackSender: boolean; // resend only: still onboarding@resend.dev
   sent: boolean;
-  providerId?: string;          // Resend message id on success
-  error?: string;               // the exact provider/transport error on failure
+  providerId?: string;
+  error?: string;
 }
 
 export async function sendEmailDiagnostic(to: string): Promise<EmailDiagnostic> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = sender();
+  const provider = activeProvider();
+  const from = activeFrom();
   const base: EmailDiagnostic = {
-    configured: !!apiKey,
+    provider,
+    configured: credentialsPresent(),
     from,
     replyTo: replyToAddress() ?? null,
-    usingFallbackSender: from === DEV_FALLBACK_FROM,
+    usingFallbackSender: provider === 'resend' && from === DEV_FALLBACK_FROM,
     sent: false,
   };
-  if (!apiKey) return { ...base, error: 'RESEND_API_KEY is not set in this environment' };
-
-  try {
-    const payload: Record<string, unknown> = {
-      from,
-      to,
-      subject: 'Sprint Society — email delivery test',
-      html: layout('Delivery test', `<p style="font-size:15px;line-height:1.6;color:#c8c8d0;">This confirms your Sprint Society email delivery is configured and working. If it landed in your inbox (not spam), you're all set.</p>`),
-      text: "This confirms your Sprint Society email delivery is configured and working.\n\n— Sprint Society",
-    };
-    const rt = replyToAddress();
-    if (rt) payload.reply_to = rt;
-
-    const res = await axios.post(RESEND_ENDPOINT, payload, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      timeout: 10000,
-    });
-    return { ...base, sent: true, providerId: res.data?.id };
-  } catch (err: any) {
-    const data = err?.response?.data;
-    const detail = data?.message || data?.name || data?.error || err?.message || 'unknown error';
-    return { ...base, error: String(detail) };
+  if (!base.configured) {
+    return { ...base, error: provider === 'gmail'
+      ? 'GMAIL_USER / GMAIL_APP_PASSWORD not set in this environment'
+      : 'RESEND_API_KEY is not set in this environment' };
   }
+  const r = await dispatch({
+    to,
+    subject: 'Sprint Society — email delivery test',
+    html: layout('Delivery test', `<p style="font-size:15px;line-height:1.6;color:#c8c8d0;">This confirms your Sprint Society email delivery is configured and working. If it landed in your inbox (not spam), you're all set.</p>`),
+    text: "This confirms your Sprint Society email delivery is configured and working.\n\n— Sprint Society",
+  });
+  return { ...base, sent: r.ok, providerId: r.id, error: r.error };
 }
