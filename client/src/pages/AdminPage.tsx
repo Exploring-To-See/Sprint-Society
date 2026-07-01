@@ -1161,29 +1161,56 @@ function AuditTab() {
 
 /* ===== ENGINEERING HUB TAB ===== */
 function EmailTab() {
+  const [mode, setMode] = useState<'manual' | 'users'>('manual');
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [emailCfg, setEmailCfg] = useState<any>(null);
+  const [recipients, setRecipients] = useState<{ id: number; name: string; email: string }[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     api.get('/admin/engineering/email-config').then(r => setEmailCfg(r.data)).catch(() => {});
   }, []);
+  useEffect(() => {
+    if (mode === 'users' && recipients === null) {
+      api.get('/admin/engineering/outreach/recipients')
+        .then(r => setRecipients(r.data.recipients || []))
+        .catch(() => setRecipients([]));
+    }
+  }, [mode, recipients]);
 
   const inputCls = 'w-full bg-bg-tertiary border border-bg-tertiary rounded-lg px-3 py-2 text-[13px] text-zinc-200 placeholder:text-zinc-600';
+
+  const toggle = (email: string) => setSelected(prev => {
+    const n = new Set(prev);
+    if (n.has(email)) n.delete(email); else n.add(email);
+    return n;
+  });
+
+  const q = search.trim().toLowerCase();
+  const filtered = (recipients || []).filter(u =>
+    !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
+
+  const targets = mode === 'users'
+    ? Array.from(selected)
+    : to.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+  const overCap = targets.length > 25;
+  const canSend = !sending && !!subject && !!message && targets.length > 0 && !overCap;
 
   const handleSend = async () => {
     setSending(true);
     setResult(null);
     try {
-      const r = await api.post('/admin/engineering/email-send', { to, subject, message });
+      const r = await api.post('/admin/engineering/email-send', { to: targets.join(','), subject, message });
       const d = r.data;
       const fails = (d.results || []).filter((x: any) => !x.ok);
       const failNote = fails.length ? ` Failed: ${fails.map((x: any) => `${x.to} (${x.error})`).join('; ')}` : '';
       setResult({ ok: d.sent > 0, text: `Sent ${d.sent}/${d.requested} via ${d.provider}.${failNote}` });
-      if (d.sent === d.requested) setMessage('');
+      if (d.sent === d.requested) { setMessage(''); setSelected(new Set()); }
     } catch (err: any) {
       setResult({ ok: false, text: err?.message || 'Send failed' });
     } finally {
@@ -1203,15 +1230,46 @@ function EmailTab() {
       )}
 
       <motion.div variants={fadeUp} className="card p-4 space-y-3">
-        <p className="text-[14px] font-medium">Email outreach</p>
-        <input value={to} onChange={e => setTo(e.target.value)} placeholder="Recipient email(s) — comma-separated, max 25" className={inputCls} />
+        <p className="text-[14px] font-medium">Custom outreach</p>
+
+        <div className="flex gap-1 p-1 rounded-lg bg-bg-tertiary w-fit">
+          {(['manual', 'users'] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`px-3 py-1.5 text-[12px] rounded-md transition-colors ${mode === m ? 'bg-accent text-black font-medium' : 'text-zinc-400 hover:text-zinc-200'}`}>
+              {m === 'manual' ? 'Type emails' : 'Pick users'}
+            </button>
+          ))}
+        </div>
+
+        {mode === 'manual' ? (
+          <input value={to} onChange={e => setTo(e.target.value)} placeholder="Recipient email(s) — comma-separated" className={inputCls} />
+        ) : (
+          <div className="space-y-2">
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users…" className={inputCls} />
+            <div className="max-h-52 overflow-y-auto rounded-lg border border-bg-tertiary divide-y divide-bg-tertiary/60">
+              {recipients === null && <p className="text-[12px] text-zinc-600 p-3">Loading users…</p>}
+              {recipients && filtered.length === 0 && <p className="text-[12px] text-zinc-600 p-3">No matching users.</p>}
+              {filtered.map(u => (
+                <label key={u.id} className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer hover:bg-bg-tertiary/40">
+                  <input type="checkbox" checked={selected.has(u.email)} onChange={() => toggle(u.email)} />
+                  <span className="text-zinc-200 truncate">{u.name || 'Runner'}</span>
+                  <span className="text-zinc-500 ml-auto truncate max-w-[55%]">{u.email}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-[11px] text-zinc-500">{selected.size} selected</p>
+          </div>
+        )}
+
         <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className={inputCls} />
         <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Message" rows={6} className={`${inputCls} resize-y`} />
-        <Button onClick={handleSend} disabled={sending || !to || !subject || !message}>
-          {sending ? 'Sending…' : 'Send email'}
+
+        {overCap && <p className="text-[12px] text-amber-400">Max 25 recipients per send — you have {targets.length}. Remove {targets.length - 25}.</p>}
+        <Button onClick={handleSend} disabled={!canSend}>
+          {sending ? 'Sending…' : `Send${targets.length ? ` to ${targets.length}` : ''}`}
         </Button>
         {result && <p className={`text-[12px] ${result.ok ? 'text-green-400' : 'text-red-400'}`}>{result.text}</p>}
-        <p className="text-[11px] text-zinc-600">Sent through the active provider ({emailCfg?.provider || '…'}) using the branded template.</p>
+        <p className="text-[11px] text-zinc-600">Sent via {emailCfg?.provider || '…'} using the branded template, with an unsubscribe header.</p>
       </motion.div>
     </motion.div>
   );

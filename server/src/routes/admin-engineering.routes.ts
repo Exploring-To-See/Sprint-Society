@@ -72,6 +72,17 @@ router.post('/email-send', async (req: AuthRequest, res: Response) => {
   res.status(sent > 0 ? 200 : 502).json({ provider, requested: recipients.length, sent, failed: recipients.length - sent, invalid, results });
 });
 
+// GET /outreach/recipients — users with an email, for the outreach picker.
+router.get('/outreach/recipients', async (_req: AuthRequest, res: Response) => {
+  const rows = await db.query(
+    `SELECT id, name, email FROM users
+     WHERE email IS NOT NULL AND email <> '' AND role = 'runner'
+     ORDER BY name NULLS LAST LIMIT 500`,
+    []
+  );
+  res.json({ recipients: rows, count: rows.length });
+});
+
 // GET /sprints — list sprint_history entries
 router.get('/sprints', async (req: AuthRequest, res: Response) => {
   const sprints = await db.query(`

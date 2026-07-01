@@ -278,7 +278,11 @@ export async function sendCustomEmail(
     `<div style="color:#1f2937;font-size:15px;line-height:1.7;">${escapeHtml(message).replace(/\n/g, '<br/>')}</div>`;
   const html = layout({ heading: subject, preheader: message.slice(0, 120), bodyHtml });
   const text = `${userName ? `Hi ${userName},\n\n` : ''}${message}\n\n— Sprint Society`;
-  const r = await dispatch({ to, subject, html, text });
+  // Outreach is bulk-ish → carry List-Unsubscribe for deliverability + compliance.
+  const manageUrl = `${config.appUrl}/notifications`;
+  const rt = replyToAddress();
+  const listUnsub = rt ? `<${manageUrl}>, <mailto:${rt}?subject=unsubscribe>` : `<${manageUrl}>`;
+  const r = await dispatch({ to, subject, html, text, headers: { 'List-Unsubscribe': listUnsub } });
   return { ok: r.ok, error: r.error, providerId: r.id, provider };
 }
 
