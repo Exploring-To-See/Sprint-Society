@@ -25,9 +25,11 @@ router.get('/email-config', (_req: AuthRequest, res: Response) => {
     email_from: process.env.EMAIL_FROM || null,
     using_fallback_sender: provider === 'resend'
       && (process.env.EMAIL_FROM || 'Sprint Society <onboarding@resend.dev>') === 'Sprint Society <onboarding@resend.dev>',
-    // shared
+    // shared — app_url is what password-reset / notification email links use.
     email_reply_to: process.env.EMAIL_REPLY_TO || null,
+    app_url: config.appUrl,
     client_url: config.clientUrl,
+    app_url_is_admin: /(^|[.-])admin([.-]|$)/.test(config.appUrl),
   });
 });
 
@@ -42,18 +44,32 @@ router.post('/email-test', async (req: AuthRequest, res: Response) => {
   res.status(result.sent ? 200 : 502).json(result);
 });
 
-// POST /email-send { to, subject, message } — send a custom email to a recipient
-// (e.g. a user's address). Admin-only. Goes through the active provider + templates.
+// POST /email-send { to, subject, message } — custom email OUTREACH. `to` may be a
+// single address or a comma/space/semicolon-separated list (max 25 per request to
+// respect the Gmail SMTP daily cap). Admin-only. Sends via the active provider.
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 router.post('/email-send', async (req: AuthRequest, res: Response) => {
-  const to = String(req.body?.to || '').trim();
+  const raw = String(req.body?.to || '').trim();
   const subject = String(req.body?.subject || '').trim();
   const message = String(req.body?.message || '').trim();
-  const userName = req.body?.userName ? String(req.body.userName).trim() : undefined;
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'A valid "to" email is required' });
   if (!subject) return res.status(400).json({ error: 'Subject is required' });
   if (!message) return res.status(400).json({ error: 'Message is required' });
-  const result = await sendCustomEmail(to, subject, message, userName);
-  res.status(result.ok ? 200 : 502).json(result);
+
+  const parts = raw.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+  const recipients = [...new Set(parts.filter(e => EMAIL_RE.test(e)))];
+  const invalid = parts.filter(e => !EMAIL_RE.test(e));
+  if (recipients.length === 0) return res.status(400).json({ error: 'At least one valid recipient email is required', invalid });
+  if (recipients.length > 25) return res.status(400).json({ error: 'Max 25 recipients per send (Gmail daily-cap safety)' });
+
+  const results: { to: string; ok: boolean; error?: string }[] = [];
+  let provider = 'resend';
+  for (const to of recipients) {
+    const r = await sendCustomEmail(to, subject, message);
+    provider = r.provider;
+    results.push({ to, ok: r.ok, error: r.error });
+  }
+  const sent = results.filter(r => r.ok).length;
+  res.status(sent > 0 ? 200 : 502).json({ provider, requested: recipients.length, sent, failed: recipients.length - sent, invalid, results });
 });
 
 // GET /sprints — list sprint_history entries

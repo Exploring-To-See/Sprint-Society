@@ -72,7 +72,7 @@ export function AdminPage() {
     { key: 'content', label: 'Content' },
     { key: 'audit', label: 'Audit' },
     { key: 'engineering', label: 'Engineering' },
-    { key: 'email', label: 'Email' },
+    { key: 'email', label: 'Outreach' },
     { key: 'moderation', label: 'Moderation' },
     { key: 'backup', label: 'Backup' },
   ];
@@ -1179,8 +1179,11 @@ function EmailTab() {
     setResult(null);
     try {
       const r = await api.post('/admin/engineering/email-send', { to, subject, message });
-      setResult({ ok: true, text: `Sent via ${r.data.provider}${r.data.providerId ? ` (id ${r.data.providerId})` : ''}.` });
-      setMessage('');
+      const d = r.data;
+      const fails = (d.results || []).filter((x: any) => !x.ok);
+      const failNote = fails.length ? ` Failed: ${fails.map((x: any) => `${x.to} (${x.error})`).join('; ')}` : '';
+      setResult({ ok: d.sent > 0, text: `Sent ${d.sent}/${d.requested} via ${d.provider}.${failNote}` });
+      if (d.sent === d.requested) setMessage('');
     } catch (err: any) {
       setResult({ ok: false, text: err?.message || 'Send failed' });
     } finally {
@@ -1200,8 +1203,8 @@ function EmailTab() {
       )}
 
       <motion.div variants={fadeUp} className="card p-4 space-y-3">
-        <p className="text-[14px] font-medium">Send a custom email</p>
-        <input value={to} onChange={e => setTo(e.target.value)} placeholder="Recipient email" className={inputCls} />
+        <p className="text-[14px] font-medium">Email outreach</p>
+        <input value={to} onChange={e => setTo(e.target.value)} placeholder="Recipient email(s) — comma-separated, max 25" className={inputCls} />
         <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className={inputCls} />
         <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Message" rows={6} className={`${inputCls} resize-y`} />
         <Button onClick={handleSend} disabled={sending || !to || !subject || !message}>
