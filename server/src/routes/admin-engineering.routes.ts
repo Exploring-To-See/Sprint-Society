@@ -3,7 +3,7 @@ import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
 import { config } from '../config';
-import { sendEmailDiagnostic } from '../services/email.service';
+import { sendEmailDiagnostic, sendCustomEmail } from '../services/email.service';
 
 const router = Router();
 
@@ -40,6 +40,20 @@ router.post('/email-test', async (req: AuthRequest, res: Response) => {
   }
   const result = await sendEmailDiagnostic(to);
   res.status(result.sent ? 200 : 502).json(result);
+});
+
+// POST /email-send { to, subject, message } — send a custom email to a recipient
+// (e.g. a user's address). Admin-only. Goes through the active provider + templates.
+router.post('/email-send', async (req: AuthRequest, res: Response) => {
+  const to = String(req.body?.to || '').trim();
+  const subject = String(req.body?.subject || '').trim();
+  const message = String(req.body?.message || '').trim();
+  const userName = req.body?.userName ? String(req.body.userName).trim() : undefined;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'A valid "to" email is required' });
+  if (!subject) return res.status(400).json({ error: 'Subject is required' });
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+  const result = await sendCustomEmail(to, subject, message, userName);
+  res.status(result.ok ? 200 : 502).json(result);
 });
 
 // GET /sprints — list sprint_history entries

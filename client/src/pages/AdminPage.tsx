@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -6,7 +6,7 @@ import api from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'overview' | 'runners' | 'events' | 'communities' | 'sessions' | 'announcements' | 'analytics' | 'flags' | 'segments' | 'notifications' | 'content' | 'audit' | 'engineering' | 'moderation' | 'backup';
+type Tab = 'overview' | 'runners' | 'events' | 'communities' | 'sessions' | 'announcements' | 'analytics' | 'flags' | 'segments' | 'notifications' | 'content' | 'audit' | 'engineering' | 'email' | 'moderation' | 'backup';
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
@@ -72,6 +72,7 @@ export function AdminPage() {
     { key: 'content', label: 'Content' },
     { key: 'audit', label: 'Audit' },
     { key: 'engineering', label: 'Engineering' },
+    { key: 'email', label: 'Email' },
     { key: 'moderation', label: 'Moderation' },
     { key: 'backup', label: 'Backup' },
   ];
@@ -124,6 +125,7 @@ export function AdminPage() {
         {tab === 'content' && <ContentTab />}
         {tab === 'audit' && <AuditTab />}
         {tab === 'engineering' && <EngineeringTab />}
+        {tab === 'email' && <EmailTab />}
         {tab === 'moderation' && <ModerationTab />}
         {tab === 'backup' && <BackupTab />}
       </main>
@@ -1158,6 +1160,60 @@ function AuditTab() {
 }
 
 /* ===== ENGINEERING HUB TAB ===== */
+function EmailTab() {
+  const [to, setTo] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailCfg, setEmailCfg] = useState<any>(null);
+
+  useEffect(() => {
+    api.get('/admin/engineering/email-config').then(r => setEmailCfg(r.data)).catch(() => {});
+  }, []);
+
+  const inputCls = 'w-full bg-bg-tertiary border border-bg-tertiary rounded-lg px-3 py-2 text-[13px] text-zinc-200 placeholder:text-zinc-600';
+
+  const handleSend = async () => {
+    setSending(true);
+    setResult(null);
+    try {
+      const r = await api.post('/admin/engineering/email-send', { to, subject, message });
+      setResult({ ok: true, text: `Sent via ${r.data.provider}${r.data.providerId ? ` (id ${r.data.providerId})` : ''}.` });
+      setMessage('');
+    } catch (err: any) {
+      setResult({ ok: false, text: err?.message || 'Send failed' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
+      {emailCfg && (
+        <motion.div variants={fadeUp} className="card p-3 text-[12px] text-zinc-400">
+          Provider: <span className="text-white font-medium">{emailCfg.provider}</span>
+          {emailCfg.provider === 'gmail'
+            ? <> · Gmail: {emailCfg.gmail_user_set && emailCfg.gmail_app_password_set ? '✅ configured' : '❌ missing creds'}</>
+            : <> · Resend key: {emailCfg.resend_api_key_set ? '✅' : '❌'} · From: {emailCfg.email_from || '—'}</>}
+        </motion.div>
+      )}
+
+      <motion.div variants={fadeUp} className="card p-4 space-y-3">
+        <p className="text-[14px] font-medium">Send a custom email</p>
+        <input value={to} onChange={e => setTo(e.target.value)} placeholder="Recipient email" className={inputCls} />
+        <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className={inputCls} />
+        <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Message" rows={6} className={`${inputCls} resize-y`} />
+        <Button onClick={handleSend} disabled={sending || !to || !subject || !message}>
+          {sending ? 'Sending…' : 'Send email'}
+        </Button>
+        {result && <p className={`text-[12px] ${result.ok ? 'text-green-400' : 'text-red-400'}`}>{result.text}</p>}
+        <p className="text-[11px] text-zinc-600">Sent through the active provider ({emailCfg?.provider || '…'}) using the branded template.</p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function EngineeringTab() {
   const { data: sprints } = useQuery({
     queryKey: ['admin-engineering-sprints'],

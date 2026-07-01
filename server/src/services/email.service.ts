@@ -221,6 +221,45 @@ Manage email notifications: ${manageUrl}`;
   return send({ to, subject: o.subject, html, text, headers: { 'List-Unsubscribe': listUnsub } });
 }
 
+// Password changed (transactional security notice)
+export async function sendPasswordChangedEmail(to: string, userName: string): Promise<boolean> {
+  const name = userName || 'there';
+  const html = layout('Security', `
+    <p style="font-size:15px;line-height:1.6;color:#eaeaf0;">Hi ${name},</p>
+    <p style="font-size:15px;line-height:1.6;color:#c8c8d0;">Your Sprint Society password was just changed. If this was you, no action is needed.</p>
+    <p style="color:#8a8a94;font-size:13px;">If you did <strong>not</strong> change it, reset your password now and secure your account.</p>
+    ${button('Reset password', `${config.clientUrl}/forgot-password`)}
+  `);
+  const text = `Hi ${name},
+
+Your Sprint Society password was just changed. If this was you, no action is needed.
+
+If you did NOT change it, reset your password now: ${config.clientUrl}/forgot-password
+
+— Sprint Society`;
+  return send({ to, subject: 'Your Sprint Society password was changed', html, text });
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Custom admin email — a free-text message wrapped in the branded template.
+export async function sendCustomEmail(
+  to: string, subject: string, message: string, userName?: string
+): Promise<{ ok: boolean; error?: string; provider: Provider; providerId?: string }> {
+  const provider = activeProvider();
+  if (!credentialsPresent()) {
+    return { ok: false, provider, error: `${provider} credentials are not set` };
+  }
+  const greeting = userName ? `<p style="font-size:15px;line-height:1.6;color:#eaeaf0;">Hi ${userName},</p>` : '';
+  const bodyHtml = escapeHtml(message).replace(/\n/g, '<br/>');
+  const html = layout(subject, `${greeting}<p style="font-size:15px;line-height:1.7;color:#c8c8d0;">${bodyHtml}</p>`);
+  const text = `${userName ? `Hi ${userName},\n\n` : ''}${message}\n\n— Sprint Society`;
+  const r = await dispatch({ to, subject, html, text });
+  return { ok: r.ok, error: r.error, providerId: r.id, provider };
+}
+
 // --------------------------------------------------------------------------- //
 // Production diagnostics — send a real test email via the ACTIVE provider and
 // surface the exact result/error. Used by the admin email-test endpoint.

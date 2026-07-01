@@ -5,7 +5,7 @@ import * as crypto from 'crypto';
 import db from '../database/pg';
 import { config } from '../config';
 import { authenticate } from '../middleware/auth';
-import { sendPasswordResetEmail } from '../services/email.service';
+import { sendPasswordResetEmail, sendPasswordChangedEmail } from '../services/email.service';
 
 const router = Router();
 
@@ -76,7 +76,7 @@ router.put('/change-password', authenticate, async (req: any, res: Response) => 
 
   const { currentPassword, newPassword } = parsed.data;
 
-  const user = await db.queryOne('SELECT password_hash FROM users WHERE id = $1', [req.userId]) as any;
+  const user = await db.queryOne('SELECT password_hash, email, name FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
@@ -85,6 +85,13 @@ router.put('/change-password', authenticate, async (req: any, res: Response) => 
 
   const hash = bcrypt.hashSync(newPassword, 10);
   await db.execute('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.userId]);
+
+  // Best-effort security confirmation email (never blocks the response).
+  try {
+    if (user.email) await sendPasswordChangedEmail(user.email, user.name || 'there');
+  } catch (err) {
+    console.error('[change-password] confirmation email failed (non-fatal):', err instanceof Error ? err.message : err);
+  }
 
   res.json({ message: 'Password changed successfully' });
 });
