@@ -132,6 +132,13 @@ router.post('/login', async (req, res: Response) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  // Accounts created via Google sign-in have no password hash — bcrypt.compare
+  // against an empty hash always fails, which looked like "Invalid credentials".
+  // Tell the user to use Google instead.
+  if (!user.password_hash) {
+    return res.status(400).json({ error: 'This account uses Google sign-in — tap "Continue with Google".' });
+  }
+
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid credentials' });

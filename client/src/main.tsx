@@ -26,6 +26,18 @@ import './styles/ss-base.css';
   }).catch(() => {});
 })();
 
+// Auto-refresh when a new deploy's service worker activates. With registerType
+// 'autoUpdate' the new SW skip-waits and takes control, firing `controllerchange`
+// — reload once so users immediately get the new bundle instead of being stuck on
+// a stale cached app after a deploy. Guarded so it reloads at most once per session.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (sessionStorage.getItem('__ss_reloaded_for_update')) return;
+    sessionStorage.setItem('__ss_reloaded_for_update', '1');
+    window.location.reload();
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, staleTime: 30000 },
