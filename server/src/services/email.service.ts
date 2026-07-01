@@ -160,3 +160,53 @@ Manage email notifications: ${manageUrl}`;
   const listUnsub = rt ? `<${manageUrl}>, <mailto:${rt}?subject=unsubscribe>` : `<${manageUrl}>`;
   return send({ to, subject: o.subject, html, text, headers: { 'List-Unsubscribe': listUnsub } });
 }
+
+// --------------------------------------------------------------------------- //
+// Production diagnostics — send a real test email and surface the exact Resend
+// result/error (unverified domain, invalid key, bad recipient, ...). Used by the
+// admin email-test endpoint to confirm production delivery in one call.
+// --------------------------------------------------------------------------- //
+export interface EmailDiagnostic {
+  configured: boolean;          // RESEND_API_KEY present in this runtime
+  from: string;                 // the sender actually in use (EMAIL_FROM)
+  replyTo: string | null;
+  usingFallbackSender: boolean; // true => still onboarding@resend.dev (misconfigured)
+  sent: boolean;
+  providerId?: string;          // Resend message id on success
+  error?: string;               // the exact provider/transport error on failure
+}
+
+export async function sendEmailDiagnostic(to: string): Promise<EmailDiagnostic> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = sender();
+  const base: EmailDiagnostic = {
+    configured: !!apiKey,
+    from,
+    replyTo: replyToAddress() ?? null,
+    usingFallbackSender: from === DEV_FALLBACK_FROM,
+    sent: false,
+  };
+  if (!apiKey) return { ...base, error: 'RESEND_API_KEY is not set in this environment' };
+
+  try {
+    const payload: Record<string, unknown> = {
+      from,
+      to,
+      subject: 'Sprint Society — email delivery test',
+      html: layout('Delivery test', `<p style="font-size:15px;line-height:1.6;color:#c8c8d0;">This confirms your Sprint Society email delivery is configured and working. If it landed in your inbox (not spam), you're all set.</p>`),
+      text: "This confirms your Sprint Society email delivery is configured and working.\n\n— Sprint Society",
+    };
+    const rt = replyToAddress();
+    if (rt) payload.reply_to = rt;
+
+    const res = await axios.post(RESEND_ENDPOINT, payload, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      timeout: 10000,
+    });
+    return { ...base, sent: true, providerId: res.data?.id };
+  } catch (err: any) {
+    const data = err?.response?.data;
+    const detail = data?.message || data?.name || data?.error || err?.message || 'unknown error';
+    return { ...base, error: String(detail) };
+  }
+}

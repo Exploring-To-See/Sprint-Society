@@ -2,11 +2,37 @@ import { Router, Response } from 'express';
 import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminAuth';
+import { config } from '../config';
+import { sendEmailDiagnostic } from '../services/email.service';
 
 const router = Router();
 
 router.use(authenticate);
 router.use(requireAdmin);
+
+// GET /email-config — confirm the email env vars are actually present in THIS
+// production runtime (common gotcha: set in Vercel but not redeployed). No secrets.
+router.get('/email-config', (_req: AuthRequest, res: Response) => {
+  const from = process.env.EMAIL_FROM || 'Sprint Society <onboarding@resend.dev>';
+  res.json({
+    resend_api_key_set: !!process.env.RESEND_API_KEY,
+    email_from: process.env.EMAIL_FROM || null,
+    email_reply_to: process.env.EMAIL_REPLY_TO || null,
+    client_url: config.clientUrl,
+    using_fallback_sender: from === 'Sprint Society <onboarding@resend.dev>',
+  });
+});
+
+// POST /email-test { to } — send a real test email via Resend and return the exact
+// result (provider id on success, the precise error on failure). Admin-only.
+router.post('/email-test', async (req: AuthRequest, res: Response) => {
+  const to = String(req.body?.to || '').trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+    return res.status(400).json({ error: 'A valid "to" email is required' });
+  }
+  const result = await sendEmailDiagnostic(to);
+  res.status(result.sent ? 200 : 502).json(result);
+});
 
 // GET /sprints — list sprint_history entries
 router.get('/sprints', async (req: AuthRequest, res: Response) => {
