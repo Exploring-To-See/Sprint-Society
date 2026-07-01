@@ -2,6 +2,8 @@ import { Router, Response } from 'express';
 import db from '../database/pg';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateInsights } from '../engine/proactiveCoach';
+import { config } from '../config';
+import { sendNotificationEmail } from '../services/email.service';
 
 const router = Router();
 router.use(authenticate);
@@ -35,9 +37,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   });
 });
 
-// GET /notifications/unread-count — just the badge number + generate proactive notifications
+// GET /notifications/unread-count — JUST the badge number (single indexed COUNT).
+// This is polled by every active client, so it must be cheap. Proactive-notification
+// generation (a 6-15 query cascade) was moved OFF this hot path into the Vercel Cron
+// maintenance job (server/src/scheduler/jobs.ts → /api/cron/maintenance).
 router.get('/unread-count', async (req: AuthRequest, res: Response) => {
-  await generateProactiveNotifications(req.userId!);
   const countRow = await db.queryOne(
     'SELECT COUNT(*) as c FROM user_notifications WHERE user_id = $1 AND read = 0',
     [req.userId]
@@ -61,8 +65,10 @@ router.post('/:id/read', async (req: AuthRequest, res: Response) => {
 
 export default router;
 
-// Proactive notifications: AI coaching insights + streak warning + event reminders
-async function generateProactiveNotifications(userId: number) {
+// Proactive notifications: AI coaching insights + streak warning + event reminders.
+// Exported so the Vercel Cron maintenance job can run it on a slow cadence for all
+// users, instead of on every badge poll.
+export async function generateProactiveNotifications(userId: number) {
   const today = new Date().toISOString().split('T')[0];
 
   // --- AI Coaching Insights (from proactive coach engine) ---
@@ -145,7 +151,42 @@ export async function createNotification(
       const { pushToUser } = require('../websocket');
       pushToUser(userId, { type: 'notification', notification: { type, title, body } });
     } catch {}
+
+    // Email for high-value, LOW-frequency notifications only. We deliberately do
+    // NOT email high-frequency social events (kudos/comment/follow) — that would
+    // annoy users and wreck deliverability. Best-effort: never blocks the notif.
+    if (EMAIL_NOTIFICATION_TYPES[type]) {
+      try {
+        const u = await db.queryOne<{ email: string; name: string }>(
+          'SELECT email, name FROM users WHERE id = $1', [userId]
+        );
+        if (u?.email) {
+          await sendNotificationEmail(u.email, u.name || 'Runner', {
+            subject: title,
+            heading: EMAIL_NOTIFICATION_TYPES[type],
+            title,
+            body,
+            ctaText: 'Open Sprint Society',
+            ctaUrl: config.clientUrl,
+          });
+        }
+      } catch (mailErr) {
+        console.error('[createNotification] email failed (non-fatal):', mailErr instanceof Error ? mailErr.message : mailErr);
+      }
+    }
   } catch (e) {
     console.error('[createNotification] failed (non-fatal):', e instanceof Error ? e.message : e);
   }
 }
+
+// Notification types that get a real email (heading shown in the email). Keep
+// this list to important, infrequent events so emails stay welcome + inboxed.
+const EMAIL_NOTIFICATION_TYPES: Record<string, string> = {
+  achievement: 'Achievement unlocked',
+  level_up: 'You levelled up',
+  kendu_earned: 'Kendu earned',
+  event_reminder: 'Event reminder',
+  subscription: 'Your subscription',
+  security: 'Security alert',
+  system: 'Sprint Society',
+};
