@@ -1,9 +1,14 @@
-const EVENT_STYLES: Record<string, { color: string; bg: string; border: string; icon: string }> = {
-  group_run: { color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20', icon: '🏃' },
-  coffee_meetup: { color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', icon: '☕' },
-  workout: { color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', icon: '💪' },
-  social: { color: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20', icon: '🎉' },
-  custom: { color: 'text-zinc-400', bg: 'bg-zinc-400/10', border: 'border-zinc-400/20', icon: '⭐' },
+// Event card — liquid-glass tile with semantic ss-tags (reference: events.html).
+// All data affordances preserved: type badge, date, location, friends going,
+// spots left, LIVE / Going / Maybe / Full states.
+import { RunGlyph, Coffee, Dumbbell, CommunityOutline, Spark, Pin, Check } from '../ss/icons';
+
+const EVENT_STYLES: Record<string, { tag: string; Icon: (p: React.SVGProps<SVGSVGElement>) => JSX.Element }> = {
+  group_run: { tag: 'now', Icon: RunGlyph },
+  coffee_meetup: { tag: 'maybe', Icon: Coffee },
+  workout: { tag: 'go', Icon: Dumbbell },
+  social: { tag: 'soon', Icon: CommunityOutline },
+  custom: { tag: 'full', Icon: Spark },
 };
 
 function formatEventDate(date: string, time: string): string {
@@ -29,99 +34,86 @@ interface EventCardProps {
 
 export function EventCard({ event, onClick }: EventCardProps) {
   const style = EVENT_STYLES[event.event_type] || EVENT_STYLES.custom;
+  const spotsLeft = event.max_attendees ? event.max_attendees - (event.attendee_count || 0) : null;
 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left card p-4 space-y-3 transition-all active:scale-[0.98] hover:border-zinc-700"
+      className="tile"
+      style={{ borderRadius: 18, padding: 13, gap: 9 }}
+      data-testid={`event-card-${event.id}`}
     >
       {/* Type badge + date */}
-      <div className="flex items-center gap-2">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${style.bg} ${style.color} border ${style.border}`}>
-          <span>{style.icon}</span>
-          {event.event_type.replace('_', ' ')}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className={`ss-tag ${style.tag}`}>
+          <style.Icon width={10} height={10} />
+          {String(event.event_type).replace('_', ' ')}
         </span>
-        <span className="text-[10px] text-zinc-600 font-mono">
+        <span className="num" style={{ font: '600 10.5px var(--mono)', color: 'var(--muted-2)' }}>
           {formatEventDate(event.date, event.time)}
         </span>
-      </div>
+      </span>
 
       {/* Title */}
-      <h3 className="font-heading font-semibold text-[15px] text-white leading-snug">
+      <span style={{ font: '600 15px var(--head)', letterSpacing: '-.01em', color: 'var(--fg)', lineHeight: 1.35 }}>
         {event.title}
-      </h3>
+      </span>
 
       {/* Location */}
       {event.location_name && (
-        <div className="flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="text-zinc-600 shrink-0">
-            <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="8" cy="6" r="1.5" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-          <span className="text-[11px] text-zinc-500 truncate">{event.location_name}</span>
-        </div>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <Pin width={12} height={12} style={{ color: 'var(--muted-2)', flex: 'none' }} />
+          <span style={{ font: '500 11px var(--body)', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {event.location_name}
+          </span>
+        </span>
       )}
 
       {/* Bottom row: friends going + spots left + RSVP status */}
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-2">
-          {/* Friend avatars */}
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 2 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           {event.friends_going?.length > 0 ? (
-            <div className="flex items-center gap-1.5">
-              <div className="flex -space-x-1.5">
-                {event.friends_going.slice(0, 3).map((f: any) => (
-                  <div key={f.id} className="w-5 h-5 rounded-full bg-bg-tertiary border border-bg-primary overflow-hidden">
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ display: 'flex' }} aria-hidden="true">
+                {event.friends_going.slice(0, 3).map((f: any, i: number) => (
+                  <span key={f.id ?? i} className="ss-puck" style={{ width: 20, height: 20, fontSize: 7.5, marginLeft: i === 0 ? 0 : -7, overflow: 'hidden' }}>
                     {f.profile_image_url ? (
-                      <img src={f.profile_image_url} alt="" className="w-full h-full object-cover" />
+                      <img src={f.profile_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[7px] font-bold text-zinc-500">
-                        {f.name?.[0]?.toUpperCase()}
-                      </div>
+                      f.name?.[0]?.toUpperCase() || '?'
                     )}
-                  </div>
+                  </span>
                 ))}
-              </div>
-              <span className="text-[10px] text-accent font-medium">
+              </span>
+              <span style={{ font: '500 10px var(--body)', color: 'var(--accent-2)' }}>
                 {event.friends_going_count === 1
                   ? `${event.friends_going[0].name?.split(' ')[0]} is going`
                   : `${event.friends_going_count} friends going`}
               </span>
-            </div>
+            </span>
           ) : event.attendee_count > 0 ? (
-            <span className="text-[10px] text-zinc-500 font-medium">
+            <span className="num" style={{ font: '600 10.5px var(--mono)', color: 'var(--muted)' }}>
               {event.attendee_count} going
             </span>
           ) : null}
-          {event.max_attendees && !event.is_full && (
-            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-              (event.max_attendees - (event.attendee_count || 0)) <= 10
-                ? 'bg-red-500/10 text-red-400'
-                : 'bg-zinc-800 text-zinc-500'
-            }`}>
-              {event.max_attendees - (event.attendee_count || 0)} spots left
+          {spotsLeft !== null && !event.is_full && (
+            <span className={`ss-dchip ${spotsLeft <= 10 ? 'warn' : 'neutral'}`}>
+              {spotsLeft} spots left
             </span>
           )}
-        </div>
+        </span>
         {event.status === 'live' && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 animate-pulse">
-            LIVE
-          </span>
+          <span className="ss-tag go">Live</span>
         )}
         {event.user_rsvp && event.status !== 'live' && (
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-            event.user_rsvp === 'going'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
-          }`}>
-            {event.user_rsvp === 'going' ? '✓ Going' : '~ Maybe'}
+          <span className={`ss-tag ${event.user_rsvp === 'going' ? 'go' : 'maybe'}`}>
+            {event.user_rsvp === 'going' ? <><Check width={9} height={9} /> Going</> : 'Maybe'}
           </span>
         )}
         {event.is_full && !event.user_rsvp && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700">
-            Full
-          </span>
+          <span className="ss-tag full">Full</span>
         )}
-      </div>
+      </span>
     </button>
   );
 }

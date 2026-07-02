@@ -1,14 +1,17 @@
+// Events (/events) — SSScreen shell + ss surfaces (reference: events.html).
+// Hooks preserved: GET /events {type}, GET /events/my, GET /events/nearby
+// {lat,lng,radius} with the geolocation prompt + graceful denial story.
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
 import { EventCard } from '../components/events/EventCard';
 import { EventMapView } from '../components/events/EventMapView';
 import { SSSeg, type SegItem } from '../components/ss/SSSeg';
 import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
-import { Calendar, Flag, Target, ChevronRight } from '../components/ss/icons';
+import { Calendar, Flag, Target, Pin, Check, RunGlyph } from '../components/ss/icons';
 
 const stagger = {
   hidden: {},
@@ -69,9 +72,9 @@ interface NearbyResponse {
 type TabKey = 'upcoming' | 'my' | 'nearby';
 
 const TABS: SegItem<TabKey>[] = [
-  { key: 'upcoming', label: 'Upcoming', icon: <Calendar /> },
-  { key: 'my', label: 'My events', icon: <Flag /> },
-  { key: 'nearby', label: 'Nearby', icon: <Target /> },
+  { key: 'upcoming', label: 'Upcoming', icon: <Calendar width={14} height={14} /> },
+  { key: 'my', label: 'My events', icon: <Flag width={14} height={14} /> },
+  { key: 'nearby', label: 'Nearby', icon: <Target width={14} height={14} /> },
 ];
 
 const NEARBY_RADIUS_KM = 10;
@@ -137,30 +140,23 @@ export function EventsPage() {
   const retryLocation = () => setGeo({ status: 'idle' });
 
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4 pb-6">
-        <motion.div variants={fadeUp} className="flex items-start justify-between">
+    <SSScreen active="events" bodyLabel="Events">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 13, paddingBottom: 24 }}>
+        <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
-            <h1 className="font-heading text-[22px] font-bold">Events</h1>
-            <p className="text-[11px] text-zinc-600 mt-0.5">Meet up, run together, vibe</p>
+            <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em' }}>Events</h1>
+            <p style={{ font: '500 11.5px var(--body)', color: 'var(--muted)', marginTop: 2 }}>Meet up, run together, vibe</p>
           </div>
           {tab === 'upcoming' && (
             <button
               onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-secondary border border-bg-tertiary text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
+              className={`ss-tab${viewMode === 'map' ? ' on' : ''}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 34 }}
               aria-label={viewMode === 'list' ? 'Switch to map view' : 'Switch to list view'}
+              aria-pressed={viewMode === 'map'}
             >
-              {viewMode === 'list' ? (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h8"/></svg>
-                  Map
-                </>
-              ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M6 2v12M10 2v12"/></svg>
-                  List
-                </>
-              )}
+              <Pin width={13} height={13} />
+              Map
             </button>
           )}
         </motion.div>
@@ -198,7 +194,7 @@ export function EventsPage() {
           />
         )}
       </motion.div>
-    </AppShell>
+    </SSScreen>
   );
 }
 
@@ -222,52 +218,37 @@ function UpcomingTab({
 
   return (
     <>
-      {/* Filter tabs */}
-      <motion.div variants={fadeUp} className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+      {/* Category filter pills */}
+      <motion.div variants={fadeUp} style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
         {FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => f.active && setActiveFilter(f.key)}
-            className={`relative px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
-              !f.active
-                ? 'bg-bg-secondary/50 border border-bg-tertiary/50 text-zinc-700 cursor-default'
-                : activeFilter === f.key
-                ? 'bg-accent text-white active:scale-95'
-                : 'bg-bg-secondary border border-bg-tertiary text-zinc-500 hover:text-zinc-300 active:scale-95'
-            }`}
+            className={`ss-tab${f.active && activeFilter === f.key ? ' on' : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: f.active ? 1 : .55, cursor: f.active ? 'pointer' : 'default' }}
+            aria-pressed={f.active ? activeFilter === f.key : undefined}
+            aria-disabled={!f.active || undefined}
           >
             {f.label}
-            {!f.active && <span className="ml-1 text-[11px] text-zinc-700 uppercase">Soon</span>}
+            {!f.active && <span className="ss-tag soon" style={{ fontSize: 7, padding: '1px 5px' }}>Soon</span>}
           </button>
         ))}
       </motion.div>
 
       {/* Map View */}
       {viewMode === 'map' && (
-        <motion.div variants={fadeUp} className="rounded-xl overflow-hidden border border-bg-tertiary h-[400px] bg-bg-secondary">
-          <EventMapView events={events} onEventClick={onEventClick} />
+        <motion.div variants={fadeUp} className="ss-surface ss-recess" style={{ borderRadius: 20, overflow: 'hidden', height: 400, padding: 0 }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+            <EventMapView events={events} onEventClick={onEventClick} />
+          </div>
         </motion.div>
       )}
 
       {/* Loading skeleton */}
       {viewMode === 'list' && isLoading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card p-4 animate-pulse space-y-3">
-              <div className="flex gap-2">
-                <div className="h-5 w-16 bg-bg-tertiary rounded-full" />
-                <div className="h-5 w-20 bg-bg-tertiary rounded-full" />
-              </div>
-              <div className="h-5 w-48 bg-bg-tertiary rounded" />
-              <div className="h-4 w-32 bg-bg-tertiary rounded" />
-              <div className="flex justify-between items-center">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map((j) => <div key={j} className="w-6 h-6 rounded-full bg-bg-tertiary" />)}
-                </div>
-                <div className="h-8 w-20 bg-bg-tertiary rounded-lg" />
-              </div>
-            </div>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SSSkeleton height={168} style={{ borderRadius: 22 }} />
+          {[0, 1].map((i) => <SSSkeleton key={i} height={112} style={{ borderRadius: 18 }} />)}
         </div>
       )}
 
@@ -291,22 +272,29 @@ function UpcomingTab({
         <motion.div variants={fadeUp}>
           <button
             onClick={() => onEventClick(events[0].id)}
-            className="w-full text-left rounded-2xl overflow-hidden border border-accent/20 bg-gradient-to-br from-accent/15 via-bg-secondary to-bg-primary p-5 space-y-3 active:scale-[0.98] transition-all"
+            className="ss-surface ss-hero"
+            style={{ width: '100%', textAlign: 'left', borderRadius: 22, padding: 16, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10 }}
+            data-testid="events-featured"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">Featured Event</span>
-              <CountdownBadge date={events[0].date} time={events[0].time} />
-            </div>
-            <h2 className="font-heading text-[18px] font-bold text-white leading-snug">{events[0].title}</h2>
-            <p className="text-[12px] text-zinc-400">{events[0].location_name}</p>
-            <div className="flex items-center justify-between pt-2">
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ font: '700 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: '.2em', color: 'var(--accent-2)' }}>Featured event</span>
+              <span style={{ marginLeft: 'auto' }}><CountdownBadge date={events[0].date} time={events[0].time} /></span>
+            </span>
+            <span style={{ font: '500 22px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', lineHeight: 1.25 }}>{events[0].title}</span>
+            {events[0].location_name && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Pin width={13} height={13} style={{ color: 'var(--muted-2)', flex: 'none' }} />
+                <span style={{ font: '500 11.5px var(--body)', color: 'var(--muted)' }}>{events[0].location_name}</span>
+              </span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 4 }}>
               <AttendeeAvatars attendees={events[0].friends_going} count={events[0].attendee_count} />
               {events[0].max_attendees && (
-                <span className="text-[10px] font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                <span className="ss-dchip warn">
                   {Math.max(0, events[0].max_attendees - (events[0].attendee_count || 0))} spots left
                 </span>
               )}
-            </div>
+            </span>
           </button>
         </motion.div>
       )}
@@ -355,7 +343,7 @@ function MyEventsTab({
   }
 
   return (
-    <div className="space-y-3" data-testid="events-my-panel">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="events-my-panel">
       {events.map((event) => (
         <motion.div key={event.id} variants={fadeUp}>
           <EventCard event={event} onClick={() => onEventClick(event.id)} />
@@ -382,7 +370,7 @@ function NearbyTab({
   if (geo.status === 'locating' || geo.status === 'idle') {
     return (
       <div data-testid="events-nearby-panel">
-        <p className="ss-pad text-[11px] text-zinc-500" style={{ paddingTop: 0 }}>
+        <p style={{ font: '500 11px var(--body)', color: 'var(--muted)', marginBottom: 10 }}>
           Finding events around you…
         </p>
         <TabSkeleton />
@@ -443,15 +431,15 @@ function NearbyTab({
   }
 
   return (
-    <div className="space-y-3" data-testid="events-nearby-panel">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="events-nearby-panel">
       {events.map((event) => (
-        <motion.div key={event.id} variants={fadeUp} className="relative">
+        <motion.div key={event.id} variants={fadeUp} style={{ position: 'relative' }}>
           {typeof event.distance_km === 'number' && (
             <span
               className="ss-dchip neutral"
               style={{ position: 'absolute', top: 12, right: 12, zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
-              <ChevronRight width={11} height={11} />
+              <Pin width={10} height={10} />
               {event.distance_km} km
             </span>
           )}
@@ -466,9 +454,9 @@ function NearbyTab({
 
 function TabSkeleton() {
   return (
-    <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {[0, 1, 2].map((i) => (
-        <SSSkeleton key={i} height={104} style={{ borderRadius: 16 }} />
+        <SSSkeleton key={i} height={112} style={{ borderRadius: 18 }} />
       ))}
     </div>
   );
@@ -480,40 +468,40 @@ function CountdownBadge({ date, time }: { date: string; time: string }) {
   const diffMs = eventDate.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays <= 0) return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full animate-pulse">TODAY!</span>;
-  if (diffDays === 1) return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">Tomorrow</span>;
-  if (diffDays <= 3) return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">{diffDays} days</span>;
-  if (diffDays <= 7) return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{diffDays} days</span>;
-  return <span className="text-[10px] font-semibold text-zinc-500 bg-bg-tertiary px-2 py-0.5 rounded-full">{diffDays} days</span>;
+  if (diffDays <= 0) return <span className="ss-tag go">Today</span>;
+  if (diffDays === 1) return <span className="ss-tag maybe">Tomorrow</span>;
+  if (diffDays <= 3) return <span className="ss-tag now">{diffDays} days</span>;
+  if (diffDays <= 7) return <span className="ss-tag maybe">{diffDays} days</span>;
+  return <span className="ss-tag full">{diffDays} days</span>;
 }
 
 function AttendeeAvatars({ attendees, count }: { attendees?: SSEvent['friends_going']; count?: number }) {
   const avatars = attendees?.slice(0, 4) ?? [];
   const remaining = (count || 0) - avatars.length;
 
-  if (!count || count === 0) return <span className="text-[10px] text-zinc-600">Be the first!</span>;
+  if (!count || count === 0) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '500 10.5px var(--body)', color: 'var(--muted-2)' }}>
+        <RunGlyph width={11} height={11} /> Be the first!
+      </span>
+    );
+  }
 
   return (
-    <div className="flex items-center">
-      <div className="flex -space-x-2">
+    <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+      <span style={{ display: 'flex' }} aria-hidden="true">
         {avatars.map((a, i) => (
-          <div key={a.id ?? i} className="w-6 h-6 rounded-full border-2 border-bg-primary overflow-hidden bg-bg-tertiary">
+          <span key={a.id ?? i} className="ss-puck" style={{ marginLeft: i === 0 ? 0 : -8, overflow: 'hidden' }}>
             {a.profile_image_url ? (
-              <img src={a.profile_image_url} alt="" className="w-full h-full object-cover" />
+              <img src={a.profile_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-zinc-500">
-                {a.name?.[0] || '?'}
-              </div>
+              a.name?.[0]?.toUpperCase() || '?'
             )}
-          </div>
+          </span>
         ))}
-        {remaining > 0 && (
-          <div className="w-6 h-6 rounded-full border-2 border-bg-primary bg-bg-tertiary flex items-center justify-center">
-            <span className="text-[11px] font-bold text-zinc-400">+{remaining}</span>
-          </div>
-        )}
-      </div>
-      <span className="text-[10px] text-zinc-500 ml-2">{count} going</span>
-    </div>
+        {remaining > 0 && <span className="ss-puck more" style={{ marginLeft: -8 }}>+{remaining}</span>}
+      </span>
+      <span className="num" style={{ font: '600 10.5px var(--mono)', color: 'var(--muted)' }}>{count} going</span>
+    </span>
   );
 }

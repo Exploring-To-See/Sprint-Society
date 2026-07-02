@@ -128,6 +128,12 @@ export const Dumbbell = (p: IconProps) => (
 export const Wind = (p: IconProps) => (
   <svg {...base(p)}><path d="M3 8.5h9.5a2.6 2.6 0 1 0-2.5-3.3" /><path d="M3 13h14.5a2.8 2.8 0 1 1-2.7 3.5" /><path d="M3 17.5h5.5" /></svg>
 );
+export const Pin = (p: IconProps) => (
+  <svg {...base(p)}><path d="M12 21.5s-7-6.6-7-11.5a7 7 0 0 1 14 0c0 4.9-7 11.5-7 11.5Z" /><circle cx="12" cy="9.8" r="2.6" /></svg>
+);
+export const Coffee = (p: IconProps) => (
+  <svg {...base(p)}><path d="M4 9h12v7a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z" /><path d="M16 10.5h1.8a2.7 2.7 0 0 1 0 5.4H16" /><path d="M7.5 3.5v2M10.5 3.5v2M13.5 3.5v2" /></svg>
+);
 export const Shoe = (p: IconProps) => (
   <svg {...base(p)}><path d="M2.8 17.5v-6c2.6.5 4.6-.7 5.6-2.5l2.3 2.2c1.6 1.5 4.1 2.6 6.7 3.1 1.9.35 3.8 1.2 3.8 2.7v.5Z" /><path d="M2.8 17.5h18.4" /><path d="M12.4 12.6l1.1-1.1M15.3 14.4l1.1-1.1" /></svg>
 );
