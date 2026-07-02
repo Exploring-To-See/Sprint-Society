@@ -1,22 +1,25 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+// Event detail (/events/:id) — rebuilt on ss-base. Hooks preserved: GET /events/:id,
+// /comments, /my-awards, /recap; POST /rsvp {status} (optimistic) / DELETE /rsvp;
+// POST /checkin {code}; POST /comments; share-card generation.
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
-import { AttendeeAvatars } from '../components/events/AttendeeAvatars';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import {
+  ArrowLeft, Calendar, Pin, Check, Medal, Trophy, RunGlyph, Coffee, Dumbbell,
+  CommunityOutline, Spark, Send,
+} from '../components/ss/icons';
 import { generateShareCard, shareOrDownload } from '../lib/shareCard';
 
-const EVENT_COLORS: Record<string, string> = {
-  group_run: 'from-orange-600/20 to-transparent',
-  coffee_meetup: 'from-amber-600/20 to-transparent',
-  workout: 'from-emerald-600/20 to-transparent',
-  social: 'from-violet-600/20 to-transparent',
-  custom: 'from-zinc-600/20 to-transparent',
-};
-
-const EVENT_ICONS: Record<string, string> = {
-  group_run: '🏃', coffee_meetup: '☕', workout: '💪', social: '🎉', custom: '⭐',
+const EVENT_TYPE_META: Record<string, { tag: string; Icon: (p: React.SVGProps<SVGSVGElement>) => JSX.Element }> = {
+  group_run: { tag: 'now', Icon: RunGlyph },
+  coffee_meetup: { tag: 'maybe', Icon: Coffee },
+  workout: { tag: 'go', Icon: Dumbbell },
+  social: { tag: 'soon', Icon: CommunityOutline },
+  custom: { tag: 'full', Icon: Spark },
 };
 
 function formatEventDateTime(date: string, time: string, duration: number): string {
@@ -27,6 +30,22 @@ function formatEventDateTime(date: string, time: string, duration: number): stri
   const m = duration % 60;
   const durStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
   return `${dateStr} at ${timeStr} · ${durStr}`;
+}
+
+function fmtPace(sec: number): string {
+  return `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+}
+
+function Puck({ name, image, size = 26 }: { name?: string; image?: string | null; size?: number }) {
+  return (
+    <span className="ss-puck" style={{ width: size, height: size, fontSize: size * 0.36, overflow: 'hidden' }} aria-hidden="true">
+      {image ? (
+        <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+      ) : (
+        name?.[0]?.toUpperCase() || '?'
+      )}
+    </span>
+  );
 }
 
 export function EventDetailPage() {
@@ -108,90 +127,80 @@ export function EventDetailPage() {
 
   if (isLoading) {
     return (
-      <AppShell>
-        <div className="space-y-4 animate-pulse pt-4">
-          <div className="h-6 w-32 bg-bg-tertiary rounded" />
-          <div className="h-8 w-64 bg-bg-tertiary rounded" />
-          <div className="h-4 w-48 bg-bg-tertiary rounded" />
-          <div className="h-12 w-full bg-bg-tertiary rounded-lg" />
+      <SSScreen active="events" bodyLabel="Event">
+        <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SSSkeleton height={120} style={{ borderRadius: 22 }} />
+          <SSSkeleton height={72} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={48} style={{ borderRadius: 13 }} />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   if (!event) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center py-20 gap-3">
-          <span className="text-3xl">🤷</span>
-          <p className="text-zinc-500 text-[13px]">Event not found</p>
-          <button onClick={() => navigate('/events')} className="text-accent text-[12px] font-semibold">
-            Back to events
-          </button>
+      <SSScreen active="events" bodyLabel="Event">
+        <div className="ss-pad">
+          <SSEmpty
+            icon={<Calendar width={22} height={22} />}
+            title="Event not found"
+            body="It may have been removed, or the link is off."
+            cta={
+              <button className="ss-btn ss-btn-soft" style={{ height: 42, padding: '0 22px', flex: 'none' }} onClick={() => navigate('/events')}>
+                Back to events
+              </button>
+            }
+            testid="event-not-found"
+          />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
-  const gradient = EVENT_COLORS[event.event_type] || EVENT_COLORS.custom;
+  const meta = EVENT_TYPE_META[event.event_type] || EVENT_TYPE_META.custom;
 
   return (
-    <AppShell>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 pb-6">
-        {/* Back button */}
+    <SSScreen active="events" bodyLabel={event.title}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }}>
+        {/* Back */}
         <button
           onClick={() => navigate('/events')}
-          className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', font: '500 12px var(--body)', color: 'var(--muted)', minHeight: 34, padding: 0 }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span className="text-[12px] font-medium">Events</span>
+          <ArrowLeft width={15} height={15} /> Events
         </button>
 
-        {/* Header with gradient */}
-        <div className={`relative rounded-xl overflow-hidden bg-gradient-to-b ${gradient} p-5`}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-2xl">{EVENT_ICONS[event.event_type] || '⭐'}</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-              {event.event_type.replace('_', ' ')}
+        {/* Hero header */}
+        <section className="ss-surface ss-hero" style={{ borderRadius: 22, padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span className={`ss-tag ${meta.tag}`}>
+              <meta.Icon width={10} height={10} />
+              {String(event.event_type).replace('_', ' ')}
             </span>
+            {event.status === 'live' && <span className="ss-tag go">Live</span>}
+            {event.status === 'completed' && <span className="ss-tag full">Completed</span>}
           </div>
-          <h1 className="font-heading text-[24px] font-bold text-white leading-tight">
+          <h1 style={{ font: '500 24px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', lineHeight: 1.2 }}>
             {event.title}
           </h1>
-        </div>
+        </section>
 
         {/* Date & location */}
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-bg-secondary border border-bg-tertiary flex items-center justify-center shrink-0">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-400">
-                <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M2 6h12" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M5 1v3M11 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div>
-              <p className="text-[13px] text-white font-medium">
-                {formatEventDateTime(event.date, event.time, event.duration_minutes)}
-              </p>
-            </div>
+        <div className="tile recess" style={{ borderRadius: 18, padding: 13, gap: 11 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+            <span className="ticon" style={{ flex: 'none' }}><Calendar width={14} height={14} style={{ color: 'var(--muted)' }} /></span>
+            <p style={{ font: '500 13px var(--body)', color: 'var(--fg)', paddingTop: 4 }}>
+              {formatEventDateTime(event.date, event.time, event.duration_minutes)}
+            </p>
           </div>
-
           {event.location_name && (
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-bg-secondary border border-bg-tertiary flex items-center justify-center shrink-0">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-400">
-                  <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="1.5"/>
-                  <circle cx="8" cy="6" r="1.5" stroke="currentColor" strokeWidth="1.5"/>
-                </svg>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+              <span className="ticon" style={{ flex: 'none' }}><Pin width={14} height={14} style={{ color: 'var(--muted)' }} /></span>
               <a
                 href={`https://maps.google.com/?q=${event.latitude || event.location_name},${event.longitude || ''}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[13px] text-accent hover:underline font-medium"
+                style={{ font: '600 13px var(--body)', color: 'var(--accent-2)', paddingTop: 4, textDecoration: 'none' }}
               >
                 {event.location_name}
               </a>
@@ -201,27 +210,21 @@ export function EventDetailPage() {
 
         {/* Description */}
         {event.description && (
-          <p className="text-[13px] text-zinc-400 leading-relaxed">{event.description}</p>
+          <p style={{ font: '400 13px/1.6 var(--body)', color: 'var(--muted)' }}>{event.description}</p>
         )}
 
         {/* Hosts */}
         {event.hosts?.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Hosted by</h3>
-            <div className="flex flex-wrap gap-2">
+          <div>
+            <p className="tlbl" style={{ marginBottom: 8 }}>Hosted by</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {event.hosts.map((host: any) => (
-                <div key={host.user_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-secondary border border-bg-tertiary">
-                  <div className="w-6 h-6 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center">
-                    {host.profile_image_url ? (
-                      <img src={host.profile_image_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[11px] font-bold text-zinc-500">{host.name?.[0]}</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-medium text-white">{host.name}</p>
-                    <p className="text-[11px] text-zinc-600">{host.role_label}</p>
-                  </div>
+                <div key={host.user_id} className="ss-qchip" style={{ height: 44, cursor: 'default' }}>
+                  <Puck name={host.name} image={host.profile_image_url} />
+                  <span>
+                    <span style={{ display: 'block', font: '600 11.5px var(--body)', color: 'var(--fg)' }}>{host.name}</span>
+                    <span style={{ display: 'block', font: '500 9.5px var(--body)', color: 'var(--muted-2)' }}>{host.role_label}</span>
+                  </span>
                 </div>
               ))}
             </div>
@@ -229,87 +232,93 @@ export function EventDetailPage() {
         )}
 
         {/* Attendees */}
-        <div className="space-y-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
-            Who's going · {event.attendee_count} going{event.maybe_count > 0 ? ` · ${event.maybe_count} maybe` : ''}
-          </h3>
+        <div>
+          <p className="tlbl" style={{ marginBottom: 8 }}>
+            Who's going · <span className="num">{event.attendee_count}</span> going{event.maybe_count > 0 ? <> · <span className="num">{event.maybe_count}</span> maybe</> : null}
+          </p>
           {event.attendees?.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
               {event.attendees.slice(0, 12).map((a: any) => (
-                <div key={a.user_id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-bg-secondary border border-bg-tertiary">
-                  <div className="w-5 h-5 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center">
-                    {a.profile_image_url ? (
-                      <img src={a.profile_image_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[11px] font-bold text-zinc-500">{a.name?.[0]}</span>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-zinc-400">{a.name?.split(' ')[0]}</span>
-                </div>
+                <span key={a.user_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 11px 0 4px', borderRadius: 16, background: 'var(--glass)', border: '1px solid var(--hair)' }}>
+                  <Puck name={a.name} image={a.profile_image_url} size={24} />
+                  <span style={{ font: '500 11px var(--body)', color: 'var(--muted)' }}>{a.name?.split(' ')[0]}</span>
+                </span>
               ))}
             </div>
           )}
         </div>
 
-        {/* RSVP Button */}
-        <div className="space-y-2">
-          {!event.user_rsvp ? (
-            <div className="flex gap-2">
-              <button
-                onClick={() => rsvpMutation.mutate('going')}
-                disabled={event.is_full || rsvpMutation.isPending}
-                className="flex-1 py-3 rounded-xl bg-accent text-white font-semibold text-[14px] disabled:opacity-40 active:scale-[0.98] transition-all"
-              >
-                {event.is_full ? 'Event Full' : "I'm Going"}
-              </button>
-              <button
-                onClick={() => rsvpMutation.mutate('maybe')}
-                disabled={rsvpMutation.isPending}
-                className="px-5 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-zinc-400 font-semibold text-[14px] active:scale-[0.98] transition-all"
-              >
-                Maybe
-              </button>
+        {/* RSVP */}
+        {!event.user_rsvp ? (
+          <div style={{ display: 'flex', gap: 9 }}>
+            <button
+              onClick={() => rsvpMutation.mutate('going')}
+              disabled={event.is_full || rsvpMutation.isPending}
+              className="ss-btn ss-btn-primary"
+              data-testid="rsvp-going"
+            >
+              {event.is_full ? 'Event full' : "I'm going"}
+            </button>
+            <button
+              onClick={() => rsvpMutation.mutate('maybe')}
+              disabled={rsvpMutation.isPending}
+              className="ss-btn ss-btn-soft"
+              style={{ flex: 'none', padding: '0 22px' }}
+              data-testid="rsvp-maybe"
+            >
+              Maybe
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <div
+              className="ss-btn"
+              style={{
+                flex: 1, cursor: 'default',
+                background: event.user_rsvp === 'going' ? 'rgba(52,211,153,.1)' : 'rgba(251,191,36,.1)',
+                border: `1px solid ${event.user_rsvp === 'going' ? 'rgba(52,211,153,.24)' : 'rgba(251,191,36,.24)'}`,
+                color: event.user_rsvp === 'going' ? 'var(--green)' : 'var(--amber)',
+              }}
+              data-testid="rsvp-status"
+            >
+              {event.user_rsvp === 'going' ? <><Check width={15} height={15} /> You're going</> : 'Maybe'}
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className={`flex-1 py-3 rounded-xl text-center font-semibold text-[14px] ${
-                event.user_rsvp === 'going'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
-              }`}>
-                {event.user_rsvp === 'going' ? '✓ You\'re going!' : '~ Maybe'}
-              </div>
-              <button
-                onClick={() => cancelRsvpMutation.mutate()}
-                className="px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-zinc-500 text-[12px] font-medium active:scale-95 transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
+            <button
+              onClick={() => cancelRsvpMutation.mutate()}
+              disabled={cancelRsvpMutation.isPending}
+              className="ss-btn ss-btn-ghost"
+              style={{ width: 'auto', padding: '0 18px', fontSize: 12.5 }}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
-        {/* Check-in (when event is live) */}
+        {/* Check-in (live events) */}
         {event.status === 'live' && (
-          <motion.div
+          <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 p-5"
+            className="tile"
+            style={{ borderRadius: 18, padding: 15, background: 'rgba(52,211,153,.07)', borderColor: 'rgba(52,211,153,.22)' }}
+            aria-label="Event check-in"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <p className="text-[12px] font-bold uppercase tracking-wider text-emerald-400">EVENT IS LIVE</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 0 3px rgba(52,211,153,.18)' }} aria-hidden="true" />
+              <p style={{ font: '700 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--green)' }}>Event is live</p>
             </div>
 
             {checkInStatus === 'success' ? (
-              <div className="text-center py-3">
-                <span className="text-3xl">✓</span>
-                <p className="text-[14px] font-semibold text-emerald-400 mt-2">{checkInMessage}</p>
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <span className="ss-dchip good" style={{ minHeight: 28 }}><Check width={12} height={12} /> Checked in</span>
+                <p style={{ font: '600 13px var(--body)', color: 'var(--green)', marginTop: 8 }}>{checkInMessage}</p>
               </div>
             ) : (
               <>
-                <p className="text-[12px] text-zinc-400 mb-3">Enter the code shared by the organizer to check in:</p>
-                <div className="flex gap-2">
+                <p style={{ font: '400 12px var(--body)', color: 'var(--muted)', marginBottom: 10 }}>
+                  Enter the code shared by the organizer to check in:
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     type="text"
                     value={checkInCode}
@@ -319,76 +328,73 @@ export function EventDetailPage() {
                     }}
                     placeholder="ENTER CODE"
                     maxLength={10}
-                    className="flex-1 px-4 py-3 rounded-lg bg-bg-primary border border-bg-tertiary text-center text-[16px] font-mono font-bold tracking-[0.3em] text-white placeholder:text-zinc-700 focus:border-emerald-500/50 focus:outline-none uppercase"
+                    className="ss-input num"
+                    style={{ textAlign: 'center', font: '700 16px var(--mono)', letterSpacing: '.3em', textTransform: 'uppercase' }}
+                    aria-label="Check-in code"
                   />
                   <button
                     onClick={() => checkInMutation.mutate(checkInCode)}
                     disabled={!checkInCode.trim() || checkInMutation.isPending}
-                    className="px-5 py-3 rounded-lg bg-emerald-500 text-white font-semibold text-[13px] disabled:opacity-40 active:scale-95 transition-all"
+                    className="ss-btn"
+                    style={{ flex: 'none', padding: '0 18px', background: 'rgba(52,211,153,.16)', border: '1px solid rgba(52,211,153,.32)', color: 'var(--green)', fontSize: 13 }}
                   >
-                    {checkInMutation.isPending ? '...' : 'Check In'}
+                    {checkInMutation.isPending ? '…' : 'Check in'}
                   </button>
                 </div>
                 {checkInStatus === 'error' && (
-                  <p className="text-[11px] text-red-400 mt-2">{checkInMessage}</p>
+                  <p style={{ font: '500 11px var(--body)', color: 'var(--amber)', marginTop: 8 }} role="alert">{checkInMessage}</p>
                 )}
               </>
             )}
-          </motion.div>
+          </motion.section>
         )}
 
-        {/* Post-Event Results + Share Card (when completed) */}
+        {/* Post-event results + share card */}
         {event.status === 'completed' && myAwards && (myAwards.awards?.length > 0 || myAwards.activity) && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+          <motion.section
+            initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl bg-gradient-to-b from-accent/10 via-bg-secondary to-bg-secondary border border-accent/20 p-5 space-y-4"
+            className="ss-surface ss-hero"
+            style={{ borderRadius: 22, padding: 16, display: 'flex', flexDirection: 'column', gap: 13 }}
+            aria-label="Your results"
           >
-            <div className="text-center">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent mb-1">YOUR RESULTS</p>
-              <h3 className="font-heading text-[18px] font-bold">{event.title}</h3>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ font: '700 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: '.2em', color: 'var(--accent-2)', marginBottom: 4 }}>Your results</p>
+              <h3 style={{ font: '600 17px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)' }}>{event.title}</h3>
             </div>
 
-            {/* Awards */}
             {myAwards.awards?.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
                 {myAwards.awards.map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-primary border border-bg-tertiary">
-                    <span className="text-[18px]">{a.award_icon}</span>
-                    <div>
-                      <p className="text-[11px] font-semibold text-white">{a.award_title}</p>
-                      {a.stat_value && <p className="text-[10px] text-zinc-500 font-mono">{a.stat_value}</p>}
-                    </div>
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 13, background: 'rgba(251,191,36,.1)', border: '1px solid rgba(251,191,36,.24)' }}>
+                    <Trophy width={15} height={15} style={{ color: 'var(--amber)', flex: 'none' }} />
+                    <span>
+                      <span style={{ display: 'block', font: '600 11.5px var(--body)', color: 'var(--fg)' }}>{a.award_title}</span>
+                      {a.stat_value && <span className="num" style={{ display: 'block', font: '500 10px var(--mono)', color: 'var(--muted)' }}>{a.stat_value}</span>}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Activity stats */}
             {myAwards.activity && (
-              <div className="flex justify-center gap-6 py-2">
-                <div className="text-center">
-                  <p className="font-mono font-bold text-[20px] text-white">{(myAwards.activity.distance_meters / 1000).toFixed(1)}</p>
-                  <p className="text-[11px] text-zinc-600 uppercase">km</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-mono font-bold text-[20px] text-accent">
-                    {Math.floor(myAwards.activity.average_pace_per_km / 60)}:{String(Math.round(myAwards.activity.average_pace_per_km % 60)).padStart(2, '0')}
-                  </p>
-                  <p className="text-[11px] text-zinc-600 uppercase">pace/km</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-mono font-bold text-[20px] text-white">
-                    {Math.floor(myAwards.activity.moving_time_seconds / 60)}:{String(myAwards.activity.moving_time_seconds % 60).padStart(2, '0')}
-                  </p>
-                  <p className="text-[11px] text-zinc-600 uppercase">time</p>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, padding: '4px 0' }}>
+                {[
+                  { v: (myAwards.activity.distance_meters / 1000).toFixed(1), k: 'km', hue: 'var(--fg)' },
+                  { v: fmtPace(myAwards.activity.average_pace_per_km), k: 'pace/km', hue: 'var(--accent-2)' },
+                  { v: `${Math.floor(myAwards.activity.moving_time_seconds / 60)}:${String(myAwards.activity.moving_time_seconds % 60).padStart(2, '0')}`, k: 'time', hue: 'var(--fg)' },
+                ].map((s) => (
+                  <div key={s.k} style={{ textAlign: 'center' }}>
+                    <p className="num" style={{ font: '700 20px var(--mono)', color: s.hue, lineHeight: 1 }}>{s.v}</p>
+                    <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 5 }}>{s.k}</p>
+                  </div>
+                ))}
               </div>
             )}
 
-            <div className="text-center">
-              <p className="text-[11px] text-zinc-700 uppercase tracking-wider">Sprint Society · {event.date}</p>
-            </div>
+            <p style={{ font: '600 9.5px var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', textAlign: 'center' }}>
+              Sprint Society · {event.date}
+            </p>
 
             <button
               onClick={async () => {
@@ -397,7 +403,7 @@ export function EventDetailPage() {
                   subtitle: event.date,
                   stats: myAwards.activity ? [
                     { label: 'Distance', value: `${(myAwards.activity.distance_meters / 1000).toFixed(1)}km` },
-                    { label: 'Pace', value: `${Math.floor(myAwards.activity.average_pace_per_km / 60)}:${String(Math.round(myAwards.activity.average_pace_per_km % 60)).padStart(2, '0')}` },
+                    { label: 'Pace', value: fmtPace(myAwards.activity.average_pace_per_km) },
                     { label: 'Time', value: `${Math.floor(myAwards.activity.moving_time_seconds / 60)}m` },
                   ] : [{ label: 'Status', value: 'Completed' }],
                   awards: myAwards.awards?.map((a: any) => ({ icon: a.award_icon, title: a.award_title })),
@@ -405,53 +411,50 @@ export function EventDetailPage() {
                 });
                 if (blob) await shareOrDownload(blob, `sprint-society-${event.id}.png`);
               }}
-              className="w-full py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent font-semibold text-[13px] active:scale-[0.98] transition-all"
+              className="ss-btn ss-btn-soft"
+              data-testid="share-results"
             >
               Share to Instagram Story
             </button>
-          </motion.div>
+          </motion.section>
         )}
 
-        {/* Event Recap Leaderboard (completed events) */}
+        {/* Event recap leaderboard */}
         {event.status === 'completed' && <EventRecap eventId={id!} />}
 
         {/* Comments */}
-        <div className="space-y-3 pt-2 border-t border-bg-tertiary/50">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Discussion</h3>
+        <div style={{ borderTop: '1px solid var(--hair)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="tlbl">Discussion</p>
 
           {comments?.length > 0 && (
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {comments.map((c: any) => (
-                <div key={c.id} className="flex gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center shrink-0 mt-0.5">
-                    {c.profile_image_url ? (
-                      <img src={c.profile_image_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[11px] font-bold text-zinc-500">{c.user_name?.[0]}</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[11px] font-semibold text-white">{c.user_name}</span>
-                      <span className="text-[11px] text-zinc-700">
+                <div key={c.id} style={{ display: 'flex', gap: 9 }}>
+                  <Puck name={c.user_name} image={c.profile_image_url} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <span style={{ font: '600 11.5px var(--body)', color: 'var(--fg)' }}>{c.user_name}</span>
+                      <span className="num" style={{ font: '500 9.5px var(--mono)', color: 'var(--muted-2)' }}>
                         {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-[12px] text-zinc-400 mt-0.5">{c.body}</p>
+                    <p style={{ font: '400 12.5px/1.5 var(--body)', color: 'var(--muted)', marginTop: 2 }}>{c.body}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="text"
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
               placeholder="Say something..."
               maxLength={500}
-              className="flex-1 px-3 py-2.5 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-zinc-600 focus:outline-none"
+              className="ss-input"
+              style={{ height: 44 }}
+              aria-label="Add a comment"
               onKeyDown={e => {
                 if (e.key === 'Enter' && commentText.trim()) commentMutation.mutate(commentText);
               }}
@@ -459,14 +462,19 @@ export function EventDetailPage() {
             <button
               onClick={() => commentText.trim() && commentMutation.mutate(commentText)}
               disabled={!commentText.trim() || commentMutation.isPending}
-              className="px-4 py-2.5 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95 transition-all"
+              aria-label="Post comment"
+              style={{
+                width: 44, height: 44, borderRadius: 13, flex: 'none', display: 'grid', placeItems: 'center', cursor: 'pointer',
+                background: 'linear-gradient(135deg,var(--accent),var(--accent-2))', border: 'none', color: '#fff',
+                opacity: !commentText.trim() || commentMutation.isPending ? .4 : 1,
+              }}
             >
-              Post
+              <Send width={16} height={16} />
             </button>
           </div>
         </div>
       </motion.div>
-    </AppShell>
+    </SSScreen>
   );
 }
 
@@ -478,49 +486,45 @@ function EventRecap({ eventId }: { eventId: string }) {
 
   if (!recap?.stats || recap.leaderboard.length === 0) return null;
 
+  const medalColor = (rank: number) =>
+    rank === 1 ? 'var(--amber)' : rank === 2 ? 'var(--muted)' : 'var(--accent-2)';
+
   return (
-    <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-600">Event Recap</p>
-        <span className="text-[10px] text-zinc-600">{recap.attendee_count} attended</span>
+    <section className="tile recess" style={{ borderRadius: 18, padding: 13, gap: 11 }} aria-label="Event recap">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p className="tlbl">Event recap</p>
+        <span className="num" style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)' }}>{recap.attendee_count} attended</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div>
-          <p className="font-mono text-lg font-bold text-white">{recap.stats.total_distance_km}</p>
-          <p className="text-[11px] text-zinc-600 uppercase">km total</p>
-        </div>
-        <div>
-          <p className="font-mono text-lg font-bold text-white">{recap.stats.total_runs}</p>
-          <p className="text-[11px] text-zinc-600 uppercase">runs</p>
-        </div>
-        <div>
-          <p className="font-mono text-lg font-bold text-accent">
-            {recap.stats.avg_pace ? `${Math.floor(recap.stats.avg_pace / 60)}:${String(Math.round(recap.stats.avg_pace % 60)).padStart(2, '0')}` : '--'}
-          </p>
-          <p className="text-[11px] text-zinc-600 uppercase">avg pace</p>
-        </div>
-      </div>
-
-      {/* Leaderboard */}
-      <div className="space-y-1.5">
-        {recap.leaderboard.slice(0, 5).map((entry: any) => (
-          <div key={entry.rank} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-primary">
-            <span className="text-[10px] font-mono text-zinc-600 w-5">
-              {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : `#${entry.rank}`}
-            </span>
-            <div className="w-5 h-5 rounded-full bg-bg-tertiary overflow-hidden flex-shrink-0">
-              {entry.profile_image_url ? (
-                <img src={entry.profile_image_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[7px] font-bold text-zinc-500 flex items-center justify-center w-full h-full">{entry.name?.[0]}</span>
-              )}
-            </div>
-            <span className="text-[11px] text-zinc-300 flex-1 truncate">{entry.name}</span>
-            <span className="font-mono text-[10px] text-accent font-semibold">{entry.distance_km}km</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, textAlign: 'center' }}>
+        {[
+          { v: recap.stats.total_distance_km, k: 'km total', hue: 'var(--fg)' },
+          { v: recap.stats.total_runs, k: 'runs', hue: 'var(--fg)' },
+          { v: recap.stats.avg_pace ? fmtPace(recap.stats.avg_pace) : '--', k: 'avg pace', hue: 'var(--accent-2)' },
+        ].map((s) => (
+          <div key={s.k}>
+            <p className="num" style={{ font: '700 18px var(--mono)', color: s.hue, lineHeight: 1 }}>{s.v}</p>
+            <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 5 }}>{s.k}</p>
           </div>
         ))}
       </div>
-    </div>
+
+      <div>
+        {recap.leaderboard.slice(0, 5).map((entry: any, i: number) => (
+          <div key={entry.rank} style={{ display: 'flex', alignItems: 'center', gap: 9, minHeight: 40, padding: '7px 0', borderBottom: i === Math.min(recap.leaderboard.length, 5) - 1 ? 'none' : '1px solid var(--hair)' }}>
+            <span style={{ width: 20, textAlign: 'center', flex: 'none' }}>
+              {entry.rank <= 3 ? (
+                <Medal width={14} height={14} style={{ color: medalColor(entry.rank) }} aria-label={`Rank ${entry.rank}`} />
+              ) : (
+                <span className="num" style={{ font: '700 10px var(--mono)', color: 'var(--muted-2)' }}>#{entry.rank}</span>
+              )}
+            </span>
+            <Puck name={entry.name} image={entry.profile_image_url} size={22} />
+            <span style={{ flex: 1, minWidth: 0, font: '500 11.5px var(--body)', color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</span>
+            <span className="num" style={{ font: '700 11px var(--mono)', color: 'var(--accent-2)' }}>{entry.distance_km}km</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
