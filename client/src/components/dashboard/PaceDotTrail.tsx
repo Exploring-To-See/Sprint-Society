@@ -1,5 +1,8 @@
-﻿import { useQuery } from '@tanstack/react-query';
+// Pace → target dot trail — recess tile with a mono instrument readout.
+// Data: GET /runs/chart-data?weeks=6 + GET /training/paces (unchanged).
+import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
+import { Chart } from '../ss/icons';
 
 export function PaceDotTrail() {
   const { data: chartData } = useQuery({
@@ -36,7 +39,6 @@ export function PaceDotTrail() {
   const targetY = paceToY(targetPace);
   const latestPace = pacesArr[pacesArr.length - 1];
   const oldestPace = pacesArr[0];
-  const improvement = oldestPace - latestPace;
   const secToGoal = Math.max(0, latestPace - targetPace);
 
   function formatPace(sec: number): string {
@@ -46,21 +48,19 @@ export function PaceDotTrail() {
   }
 
   return (
-    <div className="rounded-xl bg-bg-secondary border border-bg-tertiary p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Pace → Target</span>
-        <span className="text-[11px] font-bold text-accent-green">
-          {secToGoal > 0 ? `${Math.round(secToGoal)}s to goal` : '🎯 At target!'}
+    <div className="tile recess" style={{ borderRadius: 18, padding: 13 }} data-testid="pace-trail">
+      <div className="thead">
+        <span className="ticon"><Chart width={14} height={14} style={{ color: 'var(--muted)' }} /></span>
+        <span className="tlbl">Pace → target</span>
+        <span className="ss-dchip good" style={{ marginLeft: 'auto' }}>
+          {secToGoal > 0 ? `${Math.round(secToGoal)}s to goal` : 'At target'}
         </span>
       </div>
 
-      <svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
-        {/* Target line */}
-        <line
-          x1="0" y1={targetY} x2={chartW} y2={targetY}
-          stroke="rgba(34,197,94,0.4)" strokeWidth="1.5" strokeDasharray="4"
-        />
-        <text x={chartW - 2} y={targetY - 4} textAnchor="end" fontSize="7" fill="#22c55e">
+      <svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" aria-hidden="true">
+        {/* Target line — the plan marker (violet, the AI signal) */}
+        <line x1="0" y1={targetY} x2={chartW} y2={targetY} stroke="rgba(167,139,250,.4)" strokeWidth="1" strokeDasharray="4 4" />
+        <text x={chartW - 2} y={targetY - 4} textAnchor="end" fontSize="7" fill="#A78BFA" fontFamily="JetBrains Mono, monospace">
           {formatPace(targetPace)} target
         </text>
 
@@ -68,7 +68,7 @@ export function PaceDotTrail() {
         <line
           x1={padding} y1={paceToY(oldestPace)}
           x2={chartW - padding} y2={paceToY(latestPace)}
-          stroke="rgba(249,115,22,0.15)" strokeWidth="1"
+          stroke="rgba(249,115,22,.15)" strokeWidth="1"
         />
 
         {/* Dots */}
@@ -83,18 +83,18 @@ export function PaceDotTrail() {
               key={i}
               cx={x} cy={y}
               r={isLast ? 5 : 3.5}
-              fill={run.average_pace_per_km <= targetPace ? '#22c55e' : '#f97316'}
+              fill={run.average_pace_per_km <= targetPace ? '#34D399' : '#F97316'}
               opacity={opacity}
-              stroke={isLast ? '#fff' : 'none'}
+              stroke={isLast ? '#F4F4F8' : 'none'}
               strokeWidth={isLast ? 1.5 : 0}
             />
           );
         })}
       </svg>
 
-      <div className="flex justify-between mt-1">
-        <span className="text-[11px] text-zinc-600">{formatPace(oldestPace)}/km</span>
-        <span className="text-[11px] text-zinc-600">{formatPace(latestPace)}/km (latest)</span>
+      <div className="num" style={{ display: 'flex', justifyContent: 'space-between', font: '600 8.5px var(--mono)', color: 'var(--muted-2)', marginTop: 4 }}>
+        <span>{formatPace(oldestPace)}/km</span>
+        <span>{formatPace(latestPace)}/km (latest)</span>
       </div>
     </div>
   );

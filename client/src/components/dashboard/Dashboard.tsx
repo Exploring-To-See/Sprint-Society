@@ -1,4 +1,8 @@
-﻿import { useState, useEffect, useRef } from 'react';
+// Home content — rebuilt on ss-base (reference: templates/pages/home.html).
+// Every hook from the old Dashboard is preserved: the /dashboard batch (which primes
+// the xp/tier/challenges/run-stats caches), level-up confetti + toast + sound, the
+// tier bar, the pending-profile nudge and the new-user checklist.
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -13,36 +17,32 @@ import { PaceDotTrail } from './PaceDotTrail';
 import { AthleteCard } from './AthleteCard';
 import { ProgressPill } from './ProgressPill';
 import { Confetti, CelebrationToast } from '../celebrations/Confetti';
-import { DashboardSkeleton } from '../ui/Skeleton';
+import { SSSkeleton } from '../ss/SSStates';
+import { Flame, Spark, ChevronRight, Check, Camera, Lock, RunGlyph } from '../ss/icons';
 
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 28 } },
-};
-
-const viewportOnce = { once: true, margin: '-50px' };
-
-function StatCard({ label, value, unit, animate }: { label: string; value: string | number; unit?: string; animate?: boolean }) {
+function StatTile({ label, value, unit, animate }: { label: string; value: string | number; unit?: string; animate?: boolean }) {
   const numericValue = typeof value === 'number' ? value : parseInt(value as string, 10);
   const animatedValue = useCountUp(animate && !isNaN(numericValue) ? numericValue : 0, 900);
   const displayValue = animate && !isNaN(numericValue) ? animatedValue : value;
 
   return (
-    <div className="flex-1 p-4">
-      <p className="text-label uppercase text-zinc-500 mb-2">{label}</p>
-      <div className="flex items-baseline gap-1">
-        <span className="font-mono font-bold text-h1 tabular-nums tracking-tight text-white">
-          {displayValue}
-        </span>
-        {unit && <span className="text-label text-zinc-600">{unit}</span>}
+    <div className="tile recess" style={{ flex: 1, borderRadius: 18, padding: '12px 13px' }}>
+      <div className="num" style={{ font: '700 var(--m-lg) var(--mono)', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 3 }}>
+        {displayValue}
+        {unit && <small style={{ font: '500 11px var(--mono)', color: 'var(--muted)' }}>{unit}</small>}
+      </div>
+      <div style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 6 }}>
+        {label}
       </div>
     </div>
   );
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Morning';
+  if (h < 17) return 'Afternoon';
+  return 'Evening';
 }
 
 export function Dashboard() {
@@ -56,6 +56,13 @@ export function Dashboard() {
   const { data: dashboard, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-batch'],
     queryFn: () => api.get('/dashboard').then(r => r.data),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Readiness feeds the stat strip + the hero orb (shared cache with Coach · Insights).
+  const { data: readiness } = useQuery({
+    queryKey: ['training-readiness'],
+    queryFn: () => api.get('/training/readiness').then(r => r.data).catch(() => null),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -86,10 +93,22 @@ export function Dashboard() {
   const level = xp?.current_level || 1;
   const progressPercent = xp?.level_progress_percent || 0;
   const xpToNext = xp?.xp_to_next_level || 100;
-  const tierName = tier?.tier || 'beginner';
+  const streak = xp?.current_streak_days || 0;
+  const tierName: string = tier?.tier || 'beginner';
 
   const isNewUser = !stats?.total_runs || stats.total_runs === 0;
   const hasProfile = profilingStatus?.complete;
+  const readyScore: number | undefined = typeof readiness?.score === 'number' ? readiness.score : undefined;
+
+  const firstName = (user?.name || 'Runner').trim().split(' ')[0];
+  const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const checklist = [
+    { done: true, label: 'Create your account', Icon: Check },
+    { done: !!user?.profile_image_url, label: 'Add a profile photo', Icon: Camera, action: () => navigate('/profile') },
+    { done: !!hasProfile, label: 'Complete AI profiling', Icon: Spark, action: () => navigate('/profiling') },
+    { done: false, label: 'Log your first run', Icon: RunGlyph, action: () => navigate('/run/track') },
+  ];
 
   return (
     <>
@@ -98,157 +117,176 @@ export function Dashboard() {
         <CelebrationToast title={levelUpToast.title} message={levelUpToast.message} type="gold" visible={!!levelUpToast} onDismiss={() => setLevelUpToast(null)} />
       )}
 
-      <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={viewportOnce} className="space-y-4 pb-6">
-        {/* Tier + Level bar */}
-        <motion.div variants={fadeUp}>
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-[11px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-md ${
-              tierName === 'advanced' ? 'bg-accent-gold/10 text-accent-gold border border-accent-gold/20' :
-              tierName === 'intermediate' ? 'bg-accent/10 text-accent border border-accent/20' :
-              'bg-accent-green/10 text-accent-green border border-accent-green/20'
-            }`}>
-              {tierName}
+      {/* GREETING + STAT STRIP */}
+      <div className="greet">
+        <div className="g-l">
+          <h1>{greeting()}, {firstName}</h1>
+          <div className="date">{dateStr}</div>
+        </div>
+        <div className="statstrip" aria-label="Readiness, streak and level">
+          {readyScore !== undefined && (
+            <span className="schip" title={`Readiness ${Math.round(readyScore)}`}>
+              <span className="dot" aria-hidden="true" />
+              {Math.round(readyScore)}
             </span>
-            <div className="flex-1 h-[3px] rounded-full bg-bg-tertiary overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-accent to-accent-gold"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.3 }}
-              />
-            </div>
-            <span className="text-[10px] font-mono text-zinc-600 tabular-nums">L{level}</span>
-          </div>
-          {xpToNext > 0 && (
-            <p className="text-[11px] text-zinc-600">{xpToNext} XP to Level {level + 1}</p>
           )}
-        </motion.div>
+          {streak > 0 && (
+            <span className="schip" title={`${streak} day streak`}>
+              <Flame width={12} height={12} style={{ color: 'var(--amber)' }} />
+              {streak}
+            </span>
+          )}
+          <span className="schip" title={`Level ${level}`}>L{level}</span>
+        </div>
+      </div>
 
-        {/* PENDING PROFILE — always-visible prompt to finish profiling (any account
-            without a completed profile, not just brand-new zero-run users) */}
-        {dashboard && !hasProfile && (
-          <motion.div variants={fadeUp}>
-            <button
-              onClick={() => navigate('/profiling')}
-              className="w-full flex items-center gap-3 rounded-xl bg-gradient-to-br from-accent/[0.12] via-bg-secondary to-bg-secondary border border-accent/25 p-4 text-left active:scale-[0.98] transition-transform"
-            >
-              <span className="text-[22px]">🧬</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-white">Complete your profile</p>
-                <p className="text-[11px] text-zinc-400">Unlock your AI coach, pace zones &amp; training plan.</p>
-              </div>
-              <span className="text-accent text-[18px]">→</span>
-            </button>
-          </motion.div>
+      {/* TIER + LEVEL BAR */}
+      <div className="ss-pad ss-rise" style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4 }}>
+          <span className={`ss-tag ${tierName === 'advanced' ? 'maybe' : tierName === 'intermediate' ? 'now' : 'go'}`}>{tierName}</span>
+          <div style={{ flex: 1, height: 4, borderRadius: 3, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }} aria-hidden="true">
+            <motion.div
+              style={{ height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,var(--accent),var(--amber))' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.3 }}
+            />
+          </div>
+          <span className="num" style={{ font: '600 10px var(--mono)', color: 'var(--muted-2)' }}>L{level}</span>
+        </div>
+        {xpToNext > 0 && (
+          <p className="num" style={{ font: '500 11px var(--body)', color: 'var(--muted-2)' }}>{xpToNext} XP to Level {level + 1}</p>
         )}
+      </div>
 
-        {/* NEW USER STATE */}
-        {isNewUser && (
-          <motion.div variants={fadeUp}>
-            <div className="rounded-xl bg-gradient-to-br from-accent/[0.06] via-bg-secondary to-bg-secondary border border-accent/15 p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">Get Started</p>
-              <div className="space-y-2.5">
-                {[
-                  { done: true, label: 'Create your account', icon: '✓' },
-                  { done: !!(user as any)?.profile_image_url, label: 'Add a profile photo', icon: '📸', action: () => navigate('/profile') },
-                  { done: hasProfile, label: 'Complete AI profiling', icon: '🧬', action: () => navigate('/profiling') },
-                  { done: false, label: 'Log your first run', icon: '🏃', action: () => navigate('/run/track') },
-                ].map((step, i) => (
-                  <button
-                    key={i}
-                    onClick={step.action}
-                    disabled={step.done}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                      step.done
-                        ? 'bg-accent-green/5 border border-accent-green/10'
-                        : 'bg-bg-primary/50 border border-bg-tertiary hover:border-accent/30 active:scale-[0.98]'
-                    }`}
+      {/* PENDING PROFILE — the one violet AI surface on Home */}
+      {dashboard && !hasProfile && (
+        <div className="ss-pad ss-rise" style={{ marginBottom: 12 }}>
+          <button
+            className="tile ss-ai"
+            data-testid="profile-nudge"
+            onClick={() => navigate('/profiling')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 13 }}
+          >
+            <span className="ticon" style={{ background: 'linear-gradient(135deg,var(--violet),var(--accent))', border: 'none' }}>
+              <Spark width={15} height={15} style={{ color: '#fff' }} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
+              <span style={{ display: 'block', font: '600 13px var(--head)', color: '#fff' }}>Complete your profile</span>
+              <span style={{ display: 'block', font: '400 11px var(--body)', color: '#D7D7E4', marginTop: 2 }}>
+                Unlock your AI coach, pace zones &amp; training plan.
+              </span>
+            </span>
+            <ChevronRight width={16} height={16} style={{ color: 'var(--violet-2)', flex: 'none' }} />
+          </button>
+        </div>
+      )}
+
+      {/* NEW USER — getting-started checklist + locked coach */}
+      {isNewUser && (
+        <div className="ss-pad ss-rise" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div className="tile recess" style={{ borderRadius: 18, padding: 16 }}>
+            <p className="tlbl" style={{ color: 'var(--accent-2)', marginBottom: 12 }}>Get started</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {checklist.map((step, i) => (
+                <button
+                  key={i}
+                  onClick={step.action}
+                  disabled={step.done}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 44,
+                    padding: '10px 12px', borderRadius: 12, textAlign: 'left', cursor: step.done ? 'default' : 'pointer',
+                    background: step.done ? 'rgba(52,211,153,.07)' : 'rgba(255,255,255,.04)',
+                    border: `1px solid ${step.done ? 'rgba(52,211,153,.16)' : 'var(--hair)'}`,
+                    color: 'inherit', font: 'inherit',
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', flex: 'none',
+                      background: step.done ? 'rgba(52,211,153,.16)' : 'rgba(255,255,255,.06)',
+                      color: step.done ? 'var(--green)' : 'var(--muted)',
+                    }}
                   >
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                      step.done ? 'bg-accent-green/20 text-accent-green' : 'bg-bg-tertiary text-zinc-500'
-                    }`}>
-                      {step.done ? '✓' : step.icon}
-                    </span>
-                    <span className={`text-[12px] font-medium ${step.done ? 'text-zinc-500 line-through' : 'text-zinc-300'}`}>
-                      {step.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                    {step.done ? <Check width={11} height={11} /> : <step.Icon width={12} height={12} />}
+                  </span>
+                  <span style={{
+                    font: '500 12.5px var(--body)',
+                    color: step.done ? 'var(--muted-2)' : 'var(--fg)',
+                    textDecoration: step.done ? 'line-through' : 'none',
+                  }}>
+                    {step.label}
+                  </span>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Locked Coach */}
-            <div className="mt-3 rounded-2xl bg-bg-secondary border border-bg-tertiary p-4 opacity-40">
-              <div className="flex items-center gap-3">
-                <span className="text-[18px]">🔒</span>
-                <div>
-                  <p className="text-[12px] font-bold text-zinc-500">AI Coach locked</p>
-                  <p className="text-[10px] text-zinc-600">Complete profiling to unlock</p>
-                </div>
+          <div className="tile" style={{ borderRadius: 18, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11, opacity: .45 }}>
+            <span className="ticon"><Lock width={14} height={14} style={{ color: 'var(--muted)' }} /></span>
+            <span>
+              <span style={{ display: 'block', font: '600 12px var(--head)', color: 'var(--muted)' }}>AI Coach locked</span>
+              <span style={{ display: 'block', font: '400 10.5px var(--body)', color: 'var(--muted-2)' }}>Complete profiling to unlock</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ACTIVE USER */}
+      {!isNewUser && (
+        <>
+          {statsLoading && !stats && (
+            <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <SSSkeleton height={196} style={{ borderRadius: 22 }} />
+              <div style={{ display: 'flex', gap: 11 }}>
+                {[0, 1, 2].map(i => <SSSkeleton key={i} height={68} style={{ flex: 1, borderRadius: 18 }} />)}
               </div>
+              <SSSkeleton height={120} style={{ borderRadius: 18 }} />
             </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* ACTIVE USER STATE */}
-        {!isNewUser && (
-          <>
-            {/* Loading skeleton */}
-            {statsLoading && !stats && (
-              <motion.div variants={fadeUp}>
-                <DashboardSkeleton />
-              </motion.div>
-            )}
+          <ProgressPill />
 
-            {/* Progress vs Plan */}
-            <motion.div variants={fadeUp}>
-              <ProgressPill />
-            </motion.div>
+          <div className="ss-pad ss-rise">
+            <TodaySession streak={streak} readinessScore={readyScore} readinessLabel={readiness?.label} />
+          </div>
 
-            {/* Today's Session */}
-            <motion.div variants={fadeUp}>
-              <TodaySession streak={xp?.current_streak_days || 0} />
-            </motion.div>
+          {/* STATS ROW */}
+          <div className="ss-pad ss-rise" style={{ display: 'flex', gap: 'var(--gap)', marginBottom: 11 }}>
+            <StatTile label="Runs" value={stats?.total_runs || 0} animate />
+            <StatTile label="KM" value={stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0} animate />
+            <StatTile
+              label="Best /km"
+              value={stats?.best_pace ? `${Math.floor(stats.best_pace / 60)}:${String(Math.round(stats.best_pace % 60)).padStart(2, '0')}` : '—'}
+            />
+          </div>
 
-            {/* Stats Row */}
-            <motion.div variants={fadeUp}>
-              <div className="flex gap-[1px] bg-bg-tertiary rounded-xl overflow-hidden">
-                <StatCard label="Runs" value={stats?.total_runs || 0} animate />
-                <StatCard label="KM" value={stats?.total_distance ? Math.round(stats.total_distance / 1000) : 0} animate />
-                <StatCard label="Best" value={stats?.best_pace ? `${Math.floor(stats.best_pace / 60)}:${String(Math.round(stats.best_pace % 60)).padStart(2, '0')}` : '—'} />
+          <div className="ss-pad ss-rise" style={{ marginBottom: 11 }}>
+            <PaceDotTrail />
+          </div>
+
+          <div className="ss-pad ss-rise">
+            <RecentRuns />
+          </div>
+
+          <div className="ss-pad ss-rise" style={{ marginTop: 14 }}>
+            <AthleteCard />
+          </div>
+
+          {challenges && challenges.length > 0 && (
+            <div className="ss-pad ss-rise" style={{ marginTop: 14 }}>
+              <div className="railhead" style={{ margin: '0 0 9px' }}>
+                <span className="rt">Challenges</span>
+                <button className="more" onClick={() => navigate('/challenges')}>
+                  See all <ChevronRight width={12} height={12} />
+                </button>
               </div>
-            </motion.div>
-
-            {/* Pace Dot Trail */}
-            <motion.div variants={fadeUp}>
-              <PaceDotTrail />
-            </motion.div>
-
-            {/* Recent Runs */}
-            <motion.div variants={fadeUp}>
-              <RecentRuns />
-            </motion.div>
-
-            {/* Athlete Card */}
-            <motion.div variants={fadeUp}>
-              <AthleteCard />
-            </motion.div>
-
-            {/* Challenges */}
-            {challenges && challenges.length > 0 && (
-              <motion.div variants={fadeUp}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-heading font-semibold text-[14px]">Challenges</h3>
-                  <button onClick={() => navigate('/challenges')} className="text-[11px] text-accent font-semibold">
-                    See all
-                  </button>
-                </div>
-                <ChallengeList />
-              </motion.div>
-            )}
-          </>
-        )}
-      </motion.div>
+              <ChallengeList />
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }

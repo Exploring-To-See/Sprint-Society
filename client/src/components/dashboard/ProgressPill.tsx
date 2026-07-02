@@ -1,7 +1,10 @@
+// Plan progress strip — "On track · Week n/N" with an expandable plan summary.
+// Data: GET /training/plan (unchanged).
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/api';
+import { Check } from '../ss/icons';
 
 export function ProgressPill() {
   const [expanded, setExpanded] = useState(false);
@@ -19,13 +22,15 @@ export function ProgressPill() {
   const daysLeft = plan.race_date ? Math.ceil((new Date(plan.race_date).getTime() - Date.now()) / 86400000) : null;
 
   return (
-    <div className="mb-3">
+    <div className="ss-pad ss-rise" style={{ marginBottom: 11 }}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-green/10 border border-accent-green/20 active:scale-[0.97] transition-transform"
+        aria-expanded={expanded}
+        data-testid="progress-pill"
+        className="ss-tag go num"
+        style={{ cursor: 'pointer', minHeight: 28 }}
       >
-        <span className="text-[10px] font-bold text-accent-green">✓ On track</span>
-        <span className="text-[10px] text-accent-green/70">· Week {currentWeek}/{totalWeeks}</span>
+        <Check width={10} height={10} /> On track · Week {currentWeek}/{totalWeeks}
       </button>
 
       <AnimatePresence>
@@ -34,13 +39,16 @@ export function ProgressPill() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
+            style={{ overflow: 'hidden' }}
           >
-            <div className="mt-2 p-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-[10px] text-zinc-400 leading-relaxed">
-              <span className="font-bold text-white">{goalName}</span>
-              {daysLeft && <span> · {daysLeft} days to race</span>}
-              <br />
-              Week {currentWeek} of {totalWeeks} · Phase: {plan.current_phase || 'Build'}
+            <div className="tile recess" style={{ marginTop: 8, borderRadius: 14, padding: 12 }}>
+              <p style={{ font: '600 12px var(--body)', color: 'var(--fg)' }}>
+                {goalName}
+                {daysLeft !== null && <span className="num" style={{ color: 'var(--muted)', fontWeight: 500 }}> · {daysLeft} days to race</span>}
+              </p>
+              <p className="num" style={{ font: '500 11px var(--body)', color: 'var(--muted)', marginTop: 3 }}>
+                Week {currentWeek} of {totalWeeks} · Phase: {plan.current_phase || 'Build'}
+              </p>
             </div>
           </motion.div>
         )}

@@ -1,4 +1,6 @@
-﻿import { useQuery } from '@tanstack/react-query';
+// Athlete card — the VO₂-max hero identity tile (reference: home.html .ath-hero).
+// Data: GET /coaching/tier + GET /runs/stats + GET /profiling/dna (unchanged).
+import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -40,66 +42,59 @@ export function AthleteCard() {
 
   if (!vo2max && !stats?.total_runs) return null;
 
+  const cells: { v: string; k: string }[] = [
+    { v: ageGrade ? `${Math.round(ageGrade)}%` : '—', k: 'Age grade' },
+    { v: vdot ? vdot.toFixed(1) : '—', k: 'VDOT' },
+    { v: formatPace(bestPace), k: 'Best /km' },
+    { v: totalKm, k: 'Total km' },
+  ];
+
   return (
-    <div className="rounded-2xl bg-[#0a0a0f] border border-accent/20 p-5 relative overflow-hidden">
-      {/* Subtle gradient overlay */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-accent/[0.03] to-transparent pointer-events-none" />
-
-      {/* Header: SS branding + Tier */}
-      <div className="flex items-center justify-between mb-4 relative">
-        <span className="text-[11px] font-bold text-accent uppercase tracking-[0.2em]">Sprint Society</span>
-        <span className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-accent/10 border border-accent/20 text-accent uppercase tracking-wider">
-          {tierName}
-        </span>
-      </div>
-
-      {/* Name + Photo */}
-      <div className="flex items-center gap-3 mb-5 relative">
+    <section className="tile" style={{ borderRadius: 18, padding: '16px 14px', alignItems: 'center', textAlign: 'center' }} aria-label="Athlete card" data-testid="athlete-card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%' }}>
         {profileImage ? (
-          <img src={profileImage} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-accent/30" loading="lazy" />
+          <img
+            src={profileImage}
+            alt=""
+            loading="lazy"
+            style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', flex: 'none', border: '1px solid var(--hair)' }}
+          />
         ) : (
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-accent to-accent-gold flex items-center justify-center text-[14px] font-bold text-white border-2 border-accent/30">
+          <span aria-hidden="true" style={{
+            width: 46, height: 46, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center',
+            background: 'linear-gradient(135deg,var(--accent),var(--violet))', font: '700 15px var(--head)', color: '#fff',
+          }}>
             {initials}
-          </div>
+          </span>
         )}
-        <div>
-          <p className="text-[14px] font-bold text-white">{name}</p>
-          <p className="text-[11px] text-zinc-500">{totalKm}km lifetime</p>
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+          <p style={{ font: '600 15px var(--head)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</p>
+          <p className="num" style={{ font: '500 11px var(--mono)', color: 'var(--muted)' }}>{totalKm} km lifetime</p>
         </div>
+        <span className="ss-tag now">{tierName}</span>
       </div>
 
-      {/* Hero VO2 */}
-      <div className="text-center mb-4 relative">
-        <div className="text-[42px] font-extralight tracking-tight text-white leading-none">
-          {vo2max ? vo2max.toFixed(1) : '—'}
-        </div>
-        <p className="text-[10px] text-zinc-500 mt-1">
-          VO₂ Max
-          {dna?.vo2max_change ? (
-            <span className="text-accent-green ml-1">↑ {dna.vo2max_change.toFixed(1)}</span>
-          ) : null}
-        </p>
+      <div className="num" style={{ font: '700 42px var(--mono)', lineHeight: 1, margin: '14px 0 3px' }}>
+        {vo2max ? vo2max.toFixed(1) : '—'}
+      </div>
+      <div style={{
+        font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)',
+        color: 'var(--muted-2)', display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        VO₂ max
+        {dna?.vo2max_change ? (
+          <span className="ss-dchip good">+{dna.vo2max_change.toFixed(1)}</span>
+        ) : null}
       </div>
 
-      {/* Stats row */}
-      <div className="flex justify-between pt-3 border-t border-white/[0.05] relative">
-        <div className="text-center">
-          <p className="text-[13px] font-bold text-white">{ageGrade ? `${Math.round(ageGrade)}%` : '—'}</p>
-          <p className="text-[7px] text-zinc-600 mt-0.5">Age Grade</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[13px] font-bold text-white">{vdot ? vdot.toFixed(1) : '—'}</p>
-          <p className="text-[7px] text-zinc-600 mt-0.5">VDOT</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[13px] font-bold text-white">{formatPace(bestPace)}</p>
-          <p className="text-[7px] text-zinc-600 mt-0.5">Best /km</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[13px] font-bold text-white">{totalKm}</p>
-          <p className="text-[7px] text-zinc-600 mt-0.5">Total km</p>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, width: '100%', marginTop: 12, borderTop: '1px solid var(--hair)', paddingTop: 10 }}>
+        {cells.map((c) => (
+          <div key={c.k} style={{ padding: '4px 2px', textAlign: 'center' }}>
+            <div className="num" style={{ font: '700 14px var(--mono)' }}>{c.v}</div>
+            <div style={{ font: '600 8.5px var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 4 }}>{c.k}</div>
+          </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
