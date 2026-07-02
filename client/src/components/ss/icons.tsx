@@ -116,6 +116,9 @@ export const Lock = (p: IconProps) => (
 export const Flame = (p: IconProps) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...p}><path d="M12.6 2.4c.3-.3.8-.1.8.3.2 2.3 1.1 3.9 2.5 5.5 1.5 1.7 3.1 3.5 3.1 6.3 0 4.1-3.1 7.5-7 7.5s-7-3.4-7-7.5c0-2 1-4 2.3-5.5.3-.3.8-.1.8.3v1.5c0 .9.6 1.6 1.4 1.6.8 0 1.3-.6 1.4-1.4.2-2.9-.5-6.3 1.7-8.6Z" /></svg>
 );
+export const BellOff = (p: IconProps) => (
+  <svg {...base({ strokeWidth: 1.9, ...p })}><path d="M6.4 5.6A6 6 0 0 0 6 8c0 7-3 9-3 9h14" /><path d="M18 8a6 6 0 0 0-9.3-5" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /><path d="M3 3l18 18" /></svg>
+);
 export const Camera = (p: IconProps) => (
   <svg {...base(p)}><path d="M4 7.5h2.4l1.5-2.3a1 1 0 0 1 .84-.45h6.5a1 1 0 0 1 .85.45l1.5 2.3H20a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5Z" /><circle cx="12" cy="13.3" r="3.4" /></svg>
 );

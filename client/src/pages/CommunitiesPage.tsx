@@ -8,7 +8,8 @@ import api from '../lib/api';
 import { SSScreen } from '../components/ss/SSScreen';
 import { CommunityCard } from '../components/communities/CommunityCard';
 import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
-import { CommunityOutline, Plus, ChevronRight, RunGlyph, Target, Leaf, Heart, Spark } from '../components/ss/icons';
+import { CommunityOutline, Plus, ChevronRight } from '../components/ss/icons';
+import { categoryIcon } from '../components/communities/categoryIcons';
 
 const stagger = {
   hidden: {},
@@ -28,16 +29,6 @@ const CATEGORIES = [
   { key: 'wellness', label: 'Wellness' },
   { key: 'social', label: 'Social' },
 ] as const;
-
-export const CATEGORY_ICONS: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
-  run_club: RunGlyph,
-  training: Target,
-  nutrition: Leaf,
-  wellness: Heart,
-  social: CommunityOutline,
-  brand: Spark,
-  custom: Spark,
-};
 
 export function CommunitiesPage() {
   const navigate = useNavigate();
@@ -80,7 +71,7 @@ export function CommunitiesPage() {
             <p className="tlbl" style={{ marginBottom: 8 }}>Your communities</p>
             <div className="tile recess" style={{ borderRadius: 18, padding: '2px 13px' }}>
               {myCommunities.map((c: any, i: number) => {
-                const Icon = CATEGORY_ICONS[c.category] || Spark;
+                const Icon = categoryIcon(c.category);
                 return (
                   <button
                     key={c.id}

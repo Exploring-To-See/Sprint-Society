@@ -1,15 +1,6 @@
 // Community card — recess glass row (reference: communities.html .cm-row).
-import { RunGlyph, Target, Leaf, Heart, CommunityOutline, Spark, Check } from '../ss/icons';
-
-const CATEGORY_ICONS: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
-  run_club: RunGlyph,
-  training: Target,
-  nutrition: Leaf,
-  wellness: Heart,
-  social: CommunityOutline,
-  brand: Spark,
-  custom: Spark,
-};
+import { Check } from '../ss/icons';
+import { categoryIcon } from './categoryIcons';
 
 interface CommunityCardProps {
   community: any;
@@ -17,7 +8,7 @@ interface CommunityCardProps {
 }
 
 export function CommunityCard({ community, onClick }: CommunityCardProps) {
-  const Icon = CATEGORY_ICONS[community.category] || Spark;
+  const Icon = categoryIcon(community.category);
 
   return (
     <button
