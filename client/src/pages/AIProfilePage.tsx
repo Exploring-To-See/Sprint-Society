@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
-import { useAuth } from '../context/AuthContext';
-import { AppShell } from '../components/layout/AppShell';
-import { Button } from '../components/ui/Button';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
+import { Spark } from '../components/ss/icons';
 
 // --- Animations ---
 const stagger = {
@@ -42,6 +42,26 @@ interface AIProfile {
     total_tokens: number;
   };
 }
+
+const TIER_COLOR: Record<string, string> = {
+  advanced: 'var(--amber)',
+  intermediate: 'var(--accent-2)',
+  beginner: 'var(--green)',
+};
+
+const sectionLabel: React.CSSProperties = {
+  font: '600 var(--lbl) var(--mono)', textTransform: 'uppercase',
+  letterSpacing: 'var(--trk-sm)', color: 'var(--muted)', margin: '0 0 11px',
+};
+
+const kStyle: React.CSSProperties = { font: '500 10.5px var(--body)', color: 'var(--muted-2)', margin: 0 };
+const vStyle: React.CSSProperties = { font: '600 13px var(--body)', color: 'var(--fg)', margin: '2px 0 0' };
+
+const inputStyle: React.CSSProperties = {
+  flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 11,
+  background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)',
+  font: '500 13px var(--body)', color: 'var(--fg)', outline: 'none',
+};
 
 // --- Editable List Component ---
 function EditableList({
@@ -82,25 +102,27 @@ function EditableList({
   };
 
   return (
-    <motion.div variants={fadeUp} className="bg-bg-secondary border border-bg-tertiary rounded-2xl p-4">
-      <h3 className="text-xs text-zinc-400 uppercase tracking-wider font-mono mb-3">{title}</h3>
+    <motion.div variants={fadeUp} className="tile" style={{ padding: '14px 15px' }}>
+      <h3 style={sectionLabel}>{title}</h3>
 
       {localItems.length === 0 && !editing && (
-        <p className="text-sm text-zinc-500 italic mb-3">No items yet. Tap edit to add.</p>
+        <p style={{ font: '400 12.5px var(--body)', color: 'var(--muted-2)', fontStyle: 'italic', margin: '0 0 10px' }}>
+          No items yet. Tap edit to add.
+        </p>
       )}
 
-      <div className="space-y-2 mb-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: localItems.length > 0 ? 10 : 0 }}>
         {localItems.map((item, i) => (
           <div
             key={`${field}-${i}`}
-            className="flex items-center justify-between bg-bg-tertiary/50 rounded-lg px-3 py-2 group hover:bg-bg-tertiary transition-colors"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '9px 12px', borderRadius: 11, background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)' }}
           >
-            <span className="text-sm text-white flex-1">{item}</span>
+            <span style={{ font: '500 12.5px var(--body)', color: 'var(--fg)', flex: 1, minWidth: 0 }}>{item}</span>
             {editing && (
               <button
                 onClick={() => handleRemove(i)}
-                className="ml-2 text-zinc-500 hover:text-red-400 transition-colors text-lg leading-none"
                 aria-label={`Remove ${item}`}
+                style={{ font: '500 16px var(--body)', lineHeight: 1, color: 'var(--muted-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', flex: 'none' }}
               >
                 &times;
               </button>
@@ -110,24 +132,29 @@ function EditableList({
       </div>
 
       {editing && (
-        <div className="flex gap-2">
+        <div style={{ display: 'flex', gap: 8 }}>
           <input
             type="text"
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             placeholder={placeholder}
-            className="flex-1 bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent transition-colors"
+            style={inputStyle}
           />
-          <Button size="sm" onClick={handleAdd} disabled={!newItem.trim() || saving}>
+          <button
+            className="ss-btn ss-btn-primary"
+            style={{ height: 40, fontSize: 12.5, flex: 'none', padding: '0 16px' }}
+            onClick={handleAdd}
+            disabled={!newItem.trim() || saving}
+          >
             Add
-          </Button>
+          </button>
         </div>
       )}
 
       <button
         onClick={() => setEditing(!editing)}
-        className="mt-3 text-xs text-accent hover:text-accent-warm transition-colors font-medium"
+        style={{ font: '600 11.5px var(--body)', color: 'var(--accent-2)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 10, padding: 0 }}
       >
         {editing ? 'Done' : 'Edit'}
       </button>
@@ -137,7 +164,6 @@ function EditableList({
 
 // --- Main Page ---
 export function AIProfilePage() {
-  const { user } = useAuth();
   const [profile, setProfile] = useState<AIProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,45 +205,49 @@ export function AIProfilePage() {
   // --- Loading State ---
   if (loading) {
     return (
-      <AppShell>
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 w-56 bg-bg-secondary rounded-lg" />
-          <div className="h-32 bg-bg-secondary rounded-2xl" />
-          <div className="h-24 bg-bg-secondary rounded-2xl" />
-          <div className="h-24 bg-bg-secondary rounded-2xl" />
-          <div className="h-24 bg-bg-secondary rounded-2xl" />
+      <SSScreen bodyLabel="AI profile">
+        <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 10 }}>
+          <SSSkeleton height={32} style={{ width: 220, borderRadius: 10 }} />
+          <SSSkeleton height={128} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={96} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={96} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={96} style={{ borderRadius: 18 }} />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   // --- Error State ---
   if (error) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="text-4xl mb-4">😵</div>
-          <h2 className="text-lg font-semibold text-white mb-2">Something went wrong</h2>
-          <p className="text-sm text-zinc-400 mb-6">{error}</p>
-          <Button onClick={fetchProfile}>Try Again</Button>
+      <SSScreen bodyLabel="AI profile">
+        <div className="pad" style={{ paddingTop: 40 }}>
+          <SSError onRetry={fetchProfile} message={error} testid="ai-profile-error" />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   // --- Empty / First-time State ---
   if (!profile) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="text-5xl mb-4">🧠</div>
-          <h2 className="text-lg font-semibold text-white mb-2">No AI Profile Yet</h2>
-          <p className="text-sm text-zinc-400 mb-6">
-            Start chatting with your AI coach to build your profile. The more you talk, the more personalized your coaching becomes.
-          </p>
-          <Button onClick={() => window.location.href = '/coaching'}>Start Coaching</Button>
+      <SSScreen bodyLabel="AI profile">
+        <div className="pad" style={{ paddingTop: 40 }}>
+          <SSEmpty
+            icon={<Spark width={22} height={22} />}
+            title="No AI Profile Yet"
+            body="Start chatting with your AI coach to build your profile. The more you talk, the more personalized your coaching becomes."
+            testid="ai-profile-empty"
+          />
+          <button
+            className="ss-btn ss-btn-primary"
+            style={{ height: 46, fontSize: 14, width: '100%', marginTop: 14 }}
+            onClick={() => { window.location.href = '/coaching'; }}
+          >
+            Start Coaching
+          </button>
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
@@ -226,80 +256,76 @@ export function AIProfilePage() {
     ? Math.min((usage_stats.today.used / usage_stats.today.limit) * 100, 100)
     : 0;
 
-  const tierColors: Record<string, string> = {
-    advanced: 'text-accent-gold',
-    intermediate: 'text-accent',
-    beginner: 'text-accent-green',
-  };
-
   return (
-    <AppShell>
+    <SSScreen bodyLabel="What your AI coach knows">
       <motion.div
         variants={stagger}
         initial="hidden"
         animate="show"
-        className="space-y-4"
+        className="pad"
+        style={{ display: 'flex', flexDirection: 'column', gap: 13, paddingTop: 6, paddingBottom: 24 }}
       >
-        {/* Header */}
-        <motion.div variants={fadeUp} className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">🧠</span>
-          <div>
-            <h1 className="text-xl font-bold text-white font-heading">What Your AI Coach Knows</h1>
-            <p className="text-xs text-zinc-400">
+        {/* Header — violet = the AI signal */}
+        <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ width: 40, height: 40, borderRadius: 12, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(124,107,240,.16)', border: '1px solid rgba(124,107,240,.28)' }}>
+            <Spark width={18} height={18} style={{ color: 'var(--violet-2)' }} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: 0 }}>
+              What Your AI Coach Knows
+            </h1>
+            <p style={{ font: '400 11px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>
               Last updated {profile.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'never'}
             </p>
           </div>
         </motion.div>
 
         {/* Section 1: Runner Summary */}
-        <motion.div
-          variants={fadeUp}
-          className="bg-gradient-to-br from-accent/5 via-bg-secondary to-bg-secondary border border-bg-tertiary rounded-2xl p-4"
-        >
-          <h3 className="text-xs text-zinc-400 uppercase tracking-wider font-mono mb-3">Runner Summary</h3>
-          <div className="grid grid-cols-2 gap-3">
+        <motion.div variants={fadeUp} className="tile" style={{ padding: '14px 15px' }}>
+          <h3 style={sectionLabel}>Runner Summary</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
             <div>
-              <p className="text-[11px] text-zinc-500">Name</p>
-              <p className="text-sm text-white font-medium">{profile.user?.name || 'Unknown'}</p>
+              <p style={kStyle}>Name</p>
+              <p style={vStyle}>{profile.user?.name || 'Unknown'}</p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-500">Tier</p>
-              <p className={`text-sm font-medium capitalize ${tierColors[profile.user?.tier?.toLowerCase()] || 'text-white'}`}>
+              <p style={kStyle}>Tier</p>
+              <p style={{ ...vStyle, textTransform: 'capitalize', color: TIER_COLOR[profile.user?.tier?.toLowerCase()] || 'var(--fg)' }}>
                 {profile.user?.tier || 'Unclassified'}
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-500">VDOT</p>
-              <p className="text-sm text-white font-medium">{profile.user?.vdot || '--'}</p>
+              <p style={kStyle}>VDOT</p>
+              <p className="num" style={{ ...vStyle, font: '700 13px var(--mono)' }}>{profile.user?.vdot || '--'}</p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-500">Fitness Level</p>
-              <p className="text-sm text-white font-medium capitalize">{profile.user?.fitness_level || '--'}</p>
+              <p style={kStyle}>Fitness Level</p>
+              <p style={{ ...vStyle, textTransform: 'capitalize' }}>{profile.user?.fitness_level || '--'}</p>
             </div>
-            <div className="col-span-2">
-              <p className="text-[11px] text-zinc-500">Experience</p>
-              <p className="text-sm text-white font-medium">{profile.user?.experience || '--'}</p>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <p style={kStyle}>Experience</p>
+              <p style={vStyle}>{profile.user?.experience || '--'}</p>
             </div>
           </div>
           {profile.running_profile && (
-            <div className="mt-3 pt-3 border-t border-bg-tertiary grid grid-cols-3 gap-2">
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--hair)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               <div>
-                <p className="text-[11px] text-zinc-500">Weekly</p>
-                <p className="text-sm text-white font-medium">{profile.running_profile.weekly_km} km</p>
+                <p style={kStyle}>Weekly</p>
+                <p className="num" style={{ ...vStyle, font: '700 13px var(--mono)' }}>{profile.running_profile.weekly_km} km</p>
               </div>
               <div>
-                <p className="text-[11px] text-zinc-500">Preferred</p>
-                <p className="text-sm text-white font-medium">{profile.running_profile.preferred_distance}</p>
+                <p style={kStyle}>Preferred</p>
+                <p style={vStyle}>{profile.running_profile.preferred_distance}</p>
               </div>
               <div>
-                <p className="text-[11px] text-zinc-500">Pace Zone</p>
-                <p className="text-sm text-white font-medium">{profile.running_profile.pace_zone}</p>
+                <p style={kStyle}>Pace Zone</p>
+                <p style={vStyle}>{profile.running_profile.pace_zone}</p>
               </div>
             </div>
           )}
         </motion.div>
 
-        {/* Section 2: Health Notes */}
+        {/* Sections 2–5: editable lists */}
         <EditableList
           title="Health Notes"
           items={profile.health_notes || []}
@@ -308,8 +334,6 @@ export function AIProfilePage() {
           saving={saving}
           placeholder="e.g., Knee pain after 10km..."
         />
-
-        {/* Section 3: Goals */}
         <EditableList
           title="Running Goals"
           items={profile.goals || []}
@@ -318,8 +342,6 @@ export function AIProfilePage() {
           saving={saving}
           placeholder="e.g., Sub-25 min 5K by December..."
         />
-
-        {/* Section 4: Diet Preferences */}
         <EditableList
           title="Diet Preferences"
           items={profile.diet_preferences || []}
@@ -328,8 +350,6 @@ export function AIProfilePage() {
           saving={saving}
           placeholder="e.g., Vegetarian, no dairy..."
         />
-
-        {/* Section 5: Personal Context */}
         <EditableList
           title="Personal Context"
           items={profile.personal_context || []}
@@ -339,19 +359,19 @@ export function AIProfilePage() {
           placeholder="e.g., Work 9-6, can only run mornings..."
         />
 
-        {/* Section 6: AI Insights (read-only) */}
-        <motion.div variants={fadeUp} className="bg-bg-secondary border border-bg-tertiary rounded-2xl p-4">
-          <h3 className="text-xs text-zinc-400 uppercase tracking-wider font-mono mb-3">AI Insights</h3>
+        {/* Section 6: AI Insights (read-only, violet-tinted — the AI signal) */}
+        <motion.div variants={fadeUp} className="tile" style={{ padding: '14px 15px', borderColor: 'rgba(124,107,240,.18)' }}>
+          <h3 style={{ ...sectionLabel, color: 'var(--violet-2)' }}>AI Insights</h3>
           {(!profile.conversation_insights || profile.conversation_insights.length === 0) ? (
-            <p className="text-sm text-zinc-500 italic">
+            <p style={{ font: '400 12.5px var(--body)', color: 'var(--muted-2)', fontStyle: 'italic', margin: 0 }}>
               No insights yet. Keep chatting with your coach to build context.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {profile.conversation_insights.map((insight, i) => (
-                <div key={`insight-${i}`} className="flex gap-3">
-                  <div className="flex-shrink-0 w-2 h-2 rounded-full bg-accent mt-2" />
-                  <p className="text-sm text-zinc-300">{insight}</p>
+                <div key={`insight-${i}`} style={{ display: 'flex', gap: 10 }}>
+                  <span style={{ flex: 'none', width: 7, height: 7, borderRadius: '50%', background: 'var(--violet-2)', marginTop: 6 }} />
+                  <p style={{ font: '400 12.5px var(--body)', color: 'var(--fg)', lineHeight: 1.5, margin: 0 }}>{insight}</p>
                 </div>
               ))}
             </div>
@@ -359,37 +379,37 @@ export function AIProfilePage() {
         </motion.div>
 
         {/* Section 7: Usage Stats */}
-        <motion.div variants={fadeUp} className="bg-bg-secondary border border-bg-tertiary rounded-2xl p-4">
-          <h3 className="text-xs text-zinc-400 uppercase tracking-wider font-mono mb-3">Usage Stats</h3>
-          <div className="space-y-3">
+        <motion.div variants={fadeUp} className="tile recess" style={{ padding: '14px 15px' }}>
+          <h3 style={sectionLabel}>Usage Stats</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-sm text-zinc-300">Messages today</span>
-                <span className="text-sm text-white font-medium">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+                <span style={{ font: '500 12.5px var(--body)', color: 'var(--fg)' }}>Messages today</span>
+                <span className="num" style={{ font: '700 12.5px var(--mono)', color: 'var(--fg)' }}>
                   {usage_stats?.today?.used ?? 0}/{usage_stats?.today?.limit ?? 30}
                 </span>
               </div>
-              <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden">
+              <div style={{ height: 6, borderRadius: 4, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }}>
                 <motion.div
-                  className="h-full bg-gradient-to-r from-accent to-accent-warm rounded-full"
+                  style={{ height: '100%', borderRadius: 4, background: 'linear-gradient(90deg,var(--accent),var(--accent-2))' }}
                   initial={{ width: 0 }}
                   animate={{ width: `${usagePercent}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
                 />
               </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-zinc-400">Total messages</span>
-              <span className="text-sm text-white">{usage_stats?.total_messages ?? 0}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ font: '500 12px var(--body)', color: 'var(--muted)' }}>Total messages</span>
+              <span className="num" style={{ font: '600 12px var(--mono)', color: 'var(--fg)' }}>{usage_stats?.total_messages ?? 0}</span>
             </div>
           </div>
         </motion.div>
 
         {/* Footer Note */}
-        <motion.p variants={fadeUp} className="text-xs text-zinc-500 text-center px-4 pb-4">
+        <motion.p variants={fadeUp} style={{ font: '400 11px var(--body)', color: 'var(--muted-2)', textAlign: 'center', padding: '0 16px 8px', margin: 0 }}>
           This helps your AI coach give personalized advice. The more it knows, the better it coaches.
         </motion.p>
       </motion.div>
-    </AppShell>
+    </SSScreen>
   );
 }
