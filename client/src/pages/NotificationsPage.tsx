@@ -1,8 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { ComponentType, SVGProps } from 'react';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import {
+  Bell, Heart, Chat, Hand, Calendar, Check, Send, CommunityOutline, Trophy, Chart, Spark,
+} from '../components/ss/icons';
 
 const stagger = {
   hidden: {},
@@ -14,10 +19,19 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 28 } },
 };
 
-const NOTIFICATION_ICONS: Record<string, string> = {
-  kudos: '❤️', comment: '💬', follow: '👋', event_reminder: '📅',
-  event_rsvp: '🎉', community_post: '📝', community_join: '🏘️',
-  achievement: '🏆', level_up: '⬆️', xp_award: '✨',
+type SsIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+const NOTIFICATION_ICONS: Record<string, SsIcon> = {
+  kudos: Heart,
+  comment: Chat,
+  follow: Hand,
+  event_reminder: Calendar,
+  event_rsvp: Check,
+  community_post: Send,
+  community_join: CommunityOutline,
+  achievement: Trophy,
+  level_up: Chart,
+  xp_award: Spark,
 };
 
 function formatTimeAgo(date: string): string {
@@ -46,28 +60,38 @@ export function NotificationsPage() {
     queryFn: () => api.get('/notifications').then(r => r.data),
   });
 
+  const invalidateUnread = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    // the shell badge reads 'notifications-unread'; the legacy key is kept for safety
+    queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+    queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+  };
+
   const markAllRead = useMutation({
     mutationFn: () => api.post('/notifications/read-all'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
-    },
+    onSuccess: invalidateUnread,
   });
 
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3 pb-6">
-        <motion.div variants={fadeUp} className="flex items-center justify-between">
+    <SSScreen bodyLabel="Notifications">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 6, paddingBottom: 24 }}>
+
+        {/* Header */}
+        <motion.div variants={fadeUp} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
-            <h1 className="font-heading text-[22px] font-bold">Notifications</h1>
+            <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: 0 }}>
+              Notifications
+            </h1>
             {data?.unread_count > 0 && (
-              <p className="text-[11px] text-accent mt-0.5">{data.unread_count} new</p>
+              <p className="num" style={{ font: '600 11px var(--mono)', color: 'var(--accent-2)', marginTop: 3 }}>
+                {data.unread_count} new
+              </p>
             )}
           </div>
           {data?.unread_count > 0 && (
             <button
               onClick={() => markAllRead.mutate()}
-              className="text-[11px] text-zinc-500 font-medium hover:text-zinc-300 transition-colors"
+              style={{ font: '600 11px var(--body)', color: 'var(--violet-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}
             >
               Mark all read
             </button>
@@ -76,70 +100,70 @@ export function NotificationsPage() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="flex gap-3 p-3 animate-pulse">
-                <div className="w-8 h-8 rounded-full bg-bg-tertiary" />
-                <div className="space-y-1.5 flex-1">
-                  <div className="h-3 w-48 bg-bg-tertiary rounded" />
-                  <div className="h-2.5 w-32 bg-bg-tertiary rounded" />
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1, 2, 3, 4].map(i => <SSSkeleton key={i} height={58} style={{ borderRadius: 14 }} />)}
           </div>
         )}
 
         {/* Empty */}
         {!isLoading && (!data?.notifications || data.notifications.length === 0) && (
-          <motion.div variants={fadeUp} className="flex flex-col items-center py-16 gap-3">
-            <div className="w-12 h-12 rounded-xl bg-bg-secondary border border-bg-tertiary flex items-center justify-center">
-              <span className="text-2xl">🔔</span>
-            </div>
-            <p className="text-[13px] text-zinc-500 text-center">No notifications yet</p>
-          </motion.div>
+          <SSEmpty
+            icon={<Bell width={22} height={22} />}
+            title="No notifications yet"
+            body="Kudos, comments and event reminders will land here."
+            testid="notifications-empty"
+          />
         )}
 
         {/* Notification list */}
         {data?.notifications?.map((n: any) => {
           const link = getNotificationLink(n);
+          const Icon = NOTIFICATION_ICONS[n.type] || Bell;
           return (
             <motion.div key={n.id} variants={fadeUp}>
               <button
                 onClick={() => {
                   if (!n.read) {
                     api.post(`/notifications/${n.id}/read`);
-                    queryClient.invalidateQueries({ queryKey: ['notifications'] });
-                    queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+                    invalidateUnread();
                   }
                   if (link) navigate(link);
                 }}
-                className={`w-full text-left flex items-start gap-3 px-3 py-3 rounded-xl transition-all active:scale-[0.98] ${
-                  n.read ? 'opacity-60' : 'bg-bg-secondary/50 border border-bg-tertiary/50'
-                }`}
+                className={`tile ${n.read ? 'recess' : ''} w-full`}
+                style={{
+                  flexDirection: 'row', alignItems: 'flex-start', gap: 11, padding: '12px 13px',
+                  cursor: 'pointer', textAlign: 'left', opacity: n.read ? 0.62 : 1,
+                }}
               >
-                {/* Actor avatar or icon */}
-                <div className="w-9 h-9 rounded-full bg-bg-tertiary overflow-hidden flex items-center justify-center shrink-0">
+                {/* Actor avatar or type icon */}
+                <span style={{ width: 34, height: 34, borderRadius: '50%', flex: 'none', overflow: 'hidden', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.05)', border: '1px solid var(--hair)' }}>
                   {n.actor_image ? (
-                    <img src={n.actor_image} alt="" className="w-full h-full object-cover" />
+                    <img src={n.actor_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span className="text-sm">{NOTIFICATION_ICONS[n.type] || '🔔'}</span>
+                    <Icon width={14} height={14} style={{ color: n.read ? 'var(--muted-2)' : 'var(--accent-2)' }} />
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] text-white font-medium leading-snug">{n.title}</p>
-                  {n.body && <p className="text-[11px] text-zinc-600 mt-0.5 truncate">{n.body}</p>}
-                </div>
-                <span className="text-[10px] text-zinc-700 font-mono shrink-0 mt-0.5">
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', font: '600 12.5px var(--body)', color: 'var(--fg)', lineHeight: 1.35 }}>
+                    {n.title}
+                  </span>
+                  {n.body && (
+                    <span style={{ display: 'block', font: '400 11px var(--body)', color: 'var(--muted-2)', marginTop: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {n.body}
+                    </span>
+                  )}
+                </span>
+                <span className="num" style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)', flex: 'none', marginTop: 2 }}>
                   {formatTimeAgo(n.created_at)}
                 </span>
                 {!n.read && (
-                  <div className="w-2 h-2 rounded-full bg-accent shrink-0 mt-1.5" />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flex: 'none', marginTop: 6, boxShadow: '0 0 0 3px rgba(249,115,22,.16)' }} />
                 )}
               </button>
             </motion.div>
           );
         })}
       </motion.div>
-    </AppShell>
+    </SSScreen>
   );
 }
