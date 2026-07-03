@@ -5,7 +5,7 @@
 // Reaction picker still SENDS emoji strings to the API (contract unchanged) — the
 // buttons themselves render crafted SVG.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
@@ -187,7 +187,7 @@ export function CommunityDetailPage() {
       </div>
 
       <div className="ss-pad" style={{ paddingBottom: community.is_member && activeView === 'feed' ? 88 : 24 }}>
-        <AnimatePresence mode="wait">
+        {/* Keyed conditional mounts — an AnimatePresence mode="wait" nested under the route-level one stalls the entering child at opacity 0 */}
           {activeView === 'feed' && (
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Pinned post */}
@@ -388,7 +388,6 @@ export function CommunityDetailPage() {
               {isAdminRole && <BroadcastSection communityId={parseInt(id!)} />}
             </motion.div>
           )}
-        </AnimatePresence>
       </div>
 
       {/* Compose bar — floats above the glide-pill nav */}

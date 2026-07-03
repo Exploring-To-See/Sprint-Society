@@ -275,15 +275,20 @@ function CreateChallengeModal({ onClose }: { onClose: () => void }) {
 
         <div>
           <label style={labelStyle}>Stake (5–50 Kendu)</label>
-          <input
-            type="range"
-            min={5}
-            max={50}
-            step={5}
-            value={stakeAmount}
-            onChange={e => setStakeAmount(parseInt(e.target.value))}
-            style={{ width: '100%', accentColor: 'var(--accent)' }}
-          />
+          {/* Global CSS strips the native range track — draw our own rail + fill */}
+          <div style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.1)' }} />
+            <div style={{ position: 'absolute', left: 0, width: `${((stakeAmount - 5) / 45) * 100}%`, height: 4, borderRadius: 2, background: 'linear-gradient(90deg,var(--accent),var(--accent-2))' }} />
+            <input
+              type="range"
+              min={5}
+              max={50}
+              step={5}
+              value={stakeAmount}
+              onChange={e => setStakeAmount(parseInt(e.target.value))}
+              style={{ position: 'relative', width: '100%', margin: 0 }}
+            />
+          </div>
           <p className="num" style={{ textAlign: 'center', font: '700 13px var(--mono)', color: 'var(--accent-2)', marginTop: 4 }}>
             {stakeAmount} Kendu
           </p>

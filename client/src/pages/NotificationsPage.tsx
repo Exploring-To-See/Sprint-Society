@@ -91,7 +91,7 @@ export function NotificationsPage() {
           {data?.unread_count > 0 && (
             <button
               onClick={() => markAllRead.mutate()}
-              style={{ font: '600 11px var(--body)', color: 'var(--violet-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}
+              style={{ font: '600 11px var(--body)', color: 'var(--accent-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}
             >
               Mark all read
             </button>

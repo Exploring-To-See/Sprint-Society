@@ -148,14 +148,21 @@ function OptionCell({ on, onClick, Icon, label, row, big }: {
 }
 
 function Slider({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
+  // Global CSS strips the native range track (bg-transparent), so draw our own
+  // recess rail + accent fill behind the input.
+  const pct = ((value - min) / (max - min)) * 100;
   return (
     <div>
       <label style={fieldLabel}>{label}</label>
-      <input
-        type="range" min={min} max={max} value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-        style={{ width: '100%', accentColor: 'var(--accent)' }}
-      />
+      <div style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.1)' }} />
+        <div style={{ position: 'absolute', left: 0, width: `${pct}%`, height: 4, borderRadius: 2, background: 'linear-gradient(90deg,var(--accent),var(--accent-2))' }} />
+        <input
+          type="range" min={min} max={max} value={value}
+          onChange={(e) => onChange(parseInt(e.target.value))}
+          style={{ position: 'relative', width: '100%', margin: 0 }}
+        />
+      </div>
     </div>
   );
 }

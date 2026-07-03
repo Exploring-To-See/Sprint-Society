@@ -4,7 +4,7 @@
 // Paused (map + instrument overlay), Finished (stats + RPE + save), Analysis (score
 // orb + AI commentary + cascade rewards + PR celebration via GET /records/check/:id).
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
@@ -594,7 +594,7 @@ export function RunTrackerPage() {
           </div>
         )}
 
-        <AnimatePresence mode="wait">
+        {/* Keyed conditional mounts — an AnimatePresence mode="wait" nested under the route-level one stalls the entering child at opacity 0 */}
           {/* IDLE */}
           {state === 'IDLE' && (
             <motion.div key="idle" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
@@ -787,7 +787,6 @@ export function RunTrackerPage() {
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
 
         {gpsError && immersive && (
           <div style={{ position: 'absolute', top: 8, left: 12, right: 12, zIndex: 20, borderRadius: 11, background: 'rgba(251,191,36,.12)', border: '1px solid rgba(251,191,36,.25)', padding: '7px 12px', backdropFilter: 'blur(8px)' }}>

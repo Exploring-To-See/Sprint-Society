@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import api from '../lib/api';
 import { SSScreen } from '../components/ss/SSScreen';
@@ -109,10 +109,11 @@ export function SetGoalPage() {
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* Step 0: Choose type */}
+        {/* Steps — conditional keyed mounts (an AnimatePresence mode="wait" nested
+            under the route-level one stalls: the entering step stays at opacity 0) */}
+        {/* Step 0: Choose type */}
           {step === 0 && (
-            <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <h1 style={h1Style}>What's your goal?</h1>
               <p style={subStyle}>Your AI coach builds a personalized plan around this.</p>
 
@@ -144,7 +145,7 @@ export function SetGoalPage() {
 
           {/* Step 1: Configure goal */}
           {step === 1 && (
-            <motion.div key="config" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <motion.div key="config" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {(goalType === 'race' || goalType === 'pace') && (
                 <>
                   <h1 style={h1Style}>Pick your distance</h1>
@@ -197,7 +198,7 @@ export function SetGoalPage() {
 
               <button
                 className="ss-btn ss-btn-primary"
-                style={{ height: 50, fontSize: 14.5, width: '100%', marginTop: 'auto' }}
+                style={{ height: 50, fontSize: 14.5, width: '100%', marginTop: 'auto', flex: 'none' }}
                 onClick={() => setStep(2)}
                 disabled={(goalType !== 'volume' && !distance) || (goalType === 'volume' && !volumeKm)}
               >
@@ -209,7 +210,7 @@ export function SetGoalPage() {
 
           {/* Step 2: Time target + timeline */}
           {step === 2 && (
-            <motion.div key="time" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <motion.div key="time" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {goalType !== 'volume' && (
                 <>
                   <h1 style={h1Style}>Target time?</h1>
@@ -259,7 +260,7 @@ export function SetGoalPage() {
 
               <button
                 className="ss-btn ss-btn-primary"
-                style={{ height: 50, fontSize: 14.5, width: '100%', marginTop: 'auto' }}
+                style={{ height: 50, fontSize: 14.5, width: '100%', marginTop: 'auto', flex: 'none' }}
                 onClick={handleGenerate}
                 disabled={generating}
               >
@@ -286,7 +287,7 @@ export function SetGoalPage() {
               </p>
               <button
                 className="ss-btn ss-btn-primary"
-                style={{ height: 50, fontSize: 14.5, width: '100%' }}
+                style={{ height: 50, fontSize: 14.5, width: '100%', flex: 'none' }}
                 onClick={() => navigate('/coach', { state: { tab: 'plan' } })}
               >
                 View My Plan
@@ -296,7 +297,6 @@ export function SetGoalPage() {
               </button>
             </motion.div>
           )}
-        </AnimatePresence>
       </div>
     </SSScreen>
   );

@@ -312,14 +312,14 @@ export function HomePage() {
 
               {/* Card section */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px 20px 16px' }}>
-                {/* Card */}
+                {/* Card — keyed remount crossfade (a nested AnimatePresence mode="wait"
+                    stalls under the route-level AnimatePresence, leaving the card at
+                    opacity 0; the keyed motion.div replays initial->animate reliably) */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                  <AnimatePresence mode="wait">
                     <motion.div
                       key={activeCard}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.25 }}
                       className="tile"
                       style={{ position: 'absolute', inset: 0, padding: 18 }}
@@ -347,7 +347,6 @@ export function HomePage() {
                       {/* Infographic */}
                       <CardInfographic index={activeCard} />
                     </motion.div>
-                  </AnimatePresence>
                 </div>
 
                 {/* Dots */}
@@ -366,10 +365,10 @@ export function HomePage() {
 
                 {/* CTA — Google sign-in lives on the Join (register) and Log in pages, not here */}
                 <div style={{ paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  <button className="ss-btn ss-btn-primary" style={{ height: 50, fontSize: 15 }} onClick={() => { window.location.href = '/register'; }}>
+                  <button className="ss-btn ss-btn-primary" style={{ height: 50, fontSize: 15, flex: 'none' }} onClick={() => { window.location.href = '/register'; }}>
                     Join with Email
                   </button>
-                  <button className="ss-btn ss-btn-soft" style={{ height: 46, fontSize: 13.5 }} onClick={() => setShowLogin(true)}>
+                  <button className="ss-btn ss-btn-soft" style={{ height: 46, fontSize: 13.5, flex: 'none' }} onClick={() => setShowLogin(true)}>
                     Already a member? Log in
                   </button>
                   <p style={{ font: '400 10px var(--body)', color: 'var(--muted-2)', opacity: 0.6, textAlign: 'center', margin: 0 }}>by Kendu Entertainment</p>
@@ -406,7 +405,7 @@ export function HomePage() {
                 <input type="text" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Email or phone number" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} autoFocus />
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
                 {error && <p style={{ font: '500 12.5px var(--body)', color: 'var(--amber)', textAlign: 'center', margin: 0 }}>{error}</p>}
-                <button className="ss-btn ss-btn-primary" style={{ height: 50, fontSize: 15 }} onClick={handleLogin} disabled={loading}>
+                <button className="ss-btn ss-btn-primary" style={{ height: 50, fontSize: 15, flex: 'none' }} onClick={handleLogin} disabled={loading}>
                   {loading ? 'Logging in…' : 'Log in'}
                 </button>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 4 }}>
