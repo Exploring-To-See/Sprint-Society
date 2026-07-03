@@ -125,6 +125,9 @@ export const Camera = (p: IconProps) => (
 export const Hand = (p: IconProps) => (
   <svg {...base(p)}><path d="M7 11.5V6.2a1.4 1.4 0 0 1 2.8 0v4.3" /><path d="M9.8 10.5V4.4a1.4 1.4 0 0 1 2.8 0v6.1" /><path d="M12.6 10.5V5.4a1.4 1.4 0 0 1 2.8 0v5.6" /><path d="M15.4 11.6V7.4a1.4 1.4 0 0 1 2.8 0v6.6c0 3.9-2.6 6.5-6.2 6.5-2.8 0-4.4-1.2-5.8-3.3l-2.5-3.9a1.35 1.35 0 0 1 2.2-1.55L7 13.6" /></svg>
 );
+export const Crown = (p: IconProps) => (
+  <svg {...base(p)}><path d="M3.5 8.5 7 11.5 12 5l5 6.5 3.5-3-1.6 9a1.5 1.5 0 0 1-1.5 1.2H6.6a1.5 1.5 0 0 1-1.5-1.2Z" /></svg>
+);
 export const Drop = (p: IconProps) => (
   <svg {...base(p)}><path d="M12 3.2s6.3 6.6 6.3 11a6.3 6.3 0 0 1-12.6 0c0-4.4 6.3-11 6.3-11Z" /><path d="M9.2 14.5a3 3 0 0 0 2 2.6" /></svg>
 );
