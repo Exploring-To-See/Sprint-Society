@@ -2,9 +2,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSEmpty } from '../components/ss/SSStates';
+import { ArrowLeft, Shoe, Trophy, Lock, Camera, ChevronRight } from '../components/ss/icons';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
 import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 import { formatPace, formatDistance, formatDuration, formatDate } from '../lib/formatters';
 import { RouteShape } from '../components/share/RouteShape';
@@ -19,16 +20,16 @@ const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transit
 
 type TemplateName = 'dark_minimal' | 'gradient_pace' | 'achievement' | 'streak_fire' | 'race_recap' | 'photo_route' | 'neon_glow' | 'gold_elite' | 'midnight_run';
 
-const TEMPLATES: { key: TemplateName; label: string; icon: string; premium?: boolean }[] = [
-  { key: 'dark_minimal', label: 'Dark', icon: '🖤' },
-  { key: 'gradient_pace', label: 'Gradient', icon: '🌈' },
-  { key: 'photo_route', label: 'Photo', icon: '📸' },
-  { key: 'achievement', label: 'Achievement', icon: '🏆' },
-  { key: 'streak_fire', label: 'Streak', icon: '🔥' },
-  { key: 'race_recap', label: 'Recap', icon: '📊' },
-  { key: 'neon_glow', label: 'Neon', icon: '💜', premium: true },
-  { key: 'gold_elite', label: 'Gold', icon: '👑', premium: true },
-  { key: 'midnight_run', label: 'Midnight', icon: '🌙', premium: true },
+const TEMPLATES: { key: TemplateName; label: string; premium?: boolean }[] = [
+  { key: 'dark_minimal', label: 'Dark' },
+  { key: 'gradient_pace', label: 'Gradient' },
+  { key: 'photo_route', label: 'Photo' },
+  { key: 'achievement', label: 'Achievement' },
+  { key: 'streak_fire', label: 'Streak' },
+  { key: 'race_recap', label: 'Recap' },
+  { key: 'neon_glow', label: 'Neon', premium: true },
+  { key: 'gold_elite', label: 'Gold', premium: true },
+  { key: 'midnight_run', label: 'Midnight', premium: true },
 ];
 
 function CardTemplate({ template, run, userName, streak, tier, backgroundImage }: {
@@ -511,59 +512,62 @@ export function SharePage() {
   const runs = data?.runs || data || [];
 
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+    <SSScreen bodyLabel="Share your run">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 6, paddingBottom: 24 }}>
         <motion.div variants={fadeUp}>
-          <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-600">Social</p>
-          <h1 className="font-heading text-xl font-bold mt-0.5">Share Your Run</h1>
+          <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', margin: 0 }}>Social</p>
+          <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: '3px 0 0' }}>Share Your Run</h1>
         </motion.div>
 
         {!selectedRun ? (
           <>
-            <motion.p variants={fadeUp} className="text-zinc-500 text-sm">
+            <motion.p variants={fadeUp} style={{ font: '500 12.5px var(--body)', color: 'var(--muted)', margin: 0 }}>
               Pick a run to create a shareable card
             </motion.p>
-            <motion.div variants={fadeUp} className="space-y-2">
+            <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {runs.map((run: any) => (
                 <button
                   key={run.id}
                   onClick={() => setSelectedRunId(run.id)}
-                  className="w-full card p-4 text-left hover:border-zinc-600 transition-colors"
+                  className="tile w-full"
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '12px 14px', cursor: 'pointer', textAlign: 'left' }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <span className="text-sm">🏃</span>
-                      </div>
-                      <div>
-                        <p className="font-mono text-sm font-bold">{(run.distance_meters / 1000).toFixed(1)} km</p>
-                        <p className="text-[11px] text-zinc-500">{formatDate(run.start_date)}</p>
-                      </div>
-                    </div>
-                    <span className="text-zinc-600 text-sm">→</span>
-                  </div>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,.14)', border: '1px solid rgba(249,115,22,.28)' }}>
+                    <Shoe width={16} height={16} style={{ color: 'var(--accent-2)' }} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="num" style={{ display: 'block', font: '700 13.5px var(--mono)', color: 'var(--fg)' }}>
+                      {(run.distance_meters / 1000).toFixed(1)} km
+                    </span>
+                    <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>
+                      {formatDate(run.start_date)}
+                    </span>
+                  </span>
+                  <ChevronRight width={15} height={15} style={{ color: 'var(--muted-2)', flex: 'none' }} />
                 </button>
               ))}
               {runs.length === 0 && (
-                <div className="text-center py-16">
-                  <p className="text-3xl mb-3">🏆</p>
-                  <p className="text-zinc-500 text-sm">Complete a run first</p>
-                  <p className="text-zinc-600 text-xs mt-1">Then come back to create shareable cards</p>
-                </div>
+                <SSEmpty
+                  icon={<Trophy width={22} height={22} />}
+                  title="Complete a run first"
+                  body="Then come back to create shareable cards."
+                  testid="share-empty"
+                />
               )}
             </motion.div>
           </>
         ) : (
-          <motion.div variants={fadeUp} className="space-y-4">
+          <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
             <button
               onClick={() => setSelectedRunId(null)}
-              className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12px var(--body)', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', alignSelf: 'flex-start' }}
             >
-              ← Pick different run
+              <ArrowLeft width={14} height={14} />
+              Pick different run
             </button>
 
             {/* Template selector */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            <div className="flex overflow-x-auto" style={{ gap: 6, paddingBottom: 4, scrollbarWidth: 'none' }}>
               {TEMPLATES.map(t => {
                 const isOwned = !t.premium || (ownedSkins as string[]).includes(t.key);
                 const isLocked = t.premium && !isOwned;
@@ -577,17 +581,11 @@ export function SharePage() {
                         setActiveTemplate(t.key);
                       }
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
-                      activeTemplate === t.key
-                        ? 'bg-accent/10 text-accent border border-accent/20'
-                        : isLocked
-                          ? 'bg-orange-500/5 text-orange-400/60 border border-orange-500/20'
-                          : 'bg-bg-secondary text-zinc-500 border border-bg-tertiary hover:text-zinc-300'
-                    }`}
+                    className={`ss-tab ${activeTemplate === t.key ? 'on' : ''}`}
+                    style={isLocked ? { color: 'var(--accent-2)', opacity: 0.75, display: 'inline-flex', alignItems: 'center', gap: 5 } : { display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
-                    <span>{t.icon}</span>
                     {t.label}
-                    {isLocked && <span className="text-[11px] ml-0.5">🔒</span>}
+                    {isLocked && <Lock width={11} height={11} />}
                   </button>
                 );
               })}
@@ -595,7 +593,7 @@ export function SharePage() {
 
             {/* Background image picker for photo template */}
             {activeTemplate === 'photo_route' && (
-              <div className="max-w-[320px] mx-auto">
+              <div style={{ maxWidth: 320, margin: '0 auto', width: '100%' }}>
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -612,15 +610,16 @@ export function SharePage() {
                 />
                 <button
                   onClick={() => imageInputRef.current?.click()}
-                  className="w-full py-2.5 rounded-lg border border-dashed border-zinc-700 text-[11px] font-semibold text-zinc-400 hover:text-accent hover:border-accent/30 transition-colors mb-3"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 0', borderRadius: 12, border: '1px dashed var(--hair)', background: 'rgba(255,255,255,.03)', font: '600 11.5px var(--body)', color: 'var(--muted)', cursor: 'pointer' }}
                 >
-                  {backgroundImage ? '📸 Change background photo' : '📸 Add background photo'}
+                  <Camera width={14} height={14} />
+                  {backgroundImage ? 'Change background photo' : 'Add background photo'}
                 </button>
               </div>
             )}
 
-            {/* Card preview */}
-            <div ref={cardRef} className="max-w-[320px] mx-auto">
+            {/* Card preview — the templates below are the exported artwork, untouched */}
+            <div ref={cardRef} style={{ maxWidth: 320, margin: '0 auto', width: '100%' }}>
               <CardTemplate
                 template={activeTemplate}
                 run={selectedRun}
@@ -632,13 +631,13 @@ export function SharePage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 max-w-[320px] mx-auto">
-              <Button onClick={handleDownload} variant="secondary" fullWidth disabled={downloading}>
-                {downloading ? 'Saving...' : 'Download'}
-              </Button>
-              <Button onClick={handleShare} fullWidth>
+            <div style={{ display: 'flex', gap: 9, maxWidth: 320, margin: '0 auto', width: '100%' }}>
+              <button className="ss-btn ss-btn-soft" style={{ height: 46, fontSize: 14 }} onClick={handleDownload} disabled={downloading}>
+                {downloading ? 'Saving…' : 'Download'}
+              </button>
+              <button className="ss-btn ss-btn-primary" style={{ height: 46, fontSize: 14 }} onClick={handleShare}>
                 Share
-              </Button>
+              </button>
             </div>
           </motion.div>
         )}
@@ -654,6 +653,6 @@ export function SharePage() {
         currentBalance={kenduBalance?.spendable_balance ?? 0}
         loading={buySkinMutation.isPending}
       />
-    </AppShell>
+    </SSScreen>
   );
 }

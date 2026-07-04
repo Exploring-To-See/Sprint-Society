@@ -1,0 +1,687 @@
+/* ============================================================================
+   Sprint Society — SS-BASE  (shared design system, V1 LOCKED)
+   Extracted verbatim from the locked Home (sprint-society-home.html). Single source
+   of truth for: design tokens, sculpted aurora, chrome (status/topbar/brand/bell/avatar),
+   liquid-glass + recess surfaces, bento tile system, segmented toggle, readiness gauge/orb,
+   the Glide-Pill floating nav (.f2-*), shared atoms (chips/buttons/tap-chevrons/section heads),
+   entrance motion scale, tactile press, per-family focus rings, and reduced-motion pins.
+   Every page links this; page-specific layout lives in each page file. Do NOT redefine tokens.
+   ============================================================================ */
+  /* ============================================================================
+     SPRINT SOCIETY — HOME (FINAL)
+     A-dominant paired bento. Locked language: aurora, liquid-glass dual-edge,
+     ONE accent, mono tabular metrics, locked 5-tab nav, reduced-motion. NO JS.
+
+     THIS REVISION (per Ishan's marked screenshots):
+       · HERO → full-size swipeable SESSION carousel. Cards stay BIG (each = full
+         hero width), Today / Tomorrow / Thursday. A low-key floating ›-chevron +
+         dot indicators signal "swipe to next". Pure CSS scroll-snap, NO JS.
+       · KEPT (final): top header strip, benefit-led coach, Pace/Load/HR Trends
+         toggle, Level ⟷ Streak halves, Recent runs, "Jump back in" chip rail.
+       · REMOVED: the 2-up club cover cards (Saturday Long Run / Tempo Tuesday).
+     ============================================================================ */
+  :root{
+    --bg:#08080F; --bg2:#0B0A16; --glass:rgba(255,255,255,.045); --glass-2:rgba(255,255,255,.07);
+    --hair:rgba(255,255,255,.09); --fg:#F4F4F8; --muted:#9A9CB0; --muted-2:#86899E;
+    --accent:#F97316; --accent-2:#FB923C; --violet:#7C6BF0; --violet-2:#A78BFA;
+    --green:#34D399; --amber:#FBBF24;
+    --head:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+    --ease:cubic-bezier(0.16,1,0.3,1);
+    --ease-pop:cubic-bezier(0.34,1.45,0.64,1);
+    --ease-pill:cubic-bezier(0.22,1,0.36,1);
+    --ease-morph:cubic-bezier(0.65,0,0.35,1);  /* ease-in-out for between-state TRAVEL (seg pill) */
+    --stag:38ms; --press:.97; --press-dur:120ms;
+    /* MOTION SCALE (council §8.1) — the entrance choreography tokens the 5 pages inherit.
+       Lead = the readiness orb arrives first; support cascades BEHIND it on a longer beat. */
+    --in-fast:.42s; --in-base:.52s; --in-slow:.62s; --lead-delay:.04s; --support-gap:.10s;
+    --num:"tnum" 1; font-variant-numeric:tabular-nums;
+    --m-hero:26px; --m-lg:19px; --m-md:15px; --lbl:9.5px;
+    --trk:.07em; --trk-sm:.09em;  /* caps track looser as they shrink — --trk-sm only on the 9.5px --lbl labels */
+    --gap:11px;
+  }
+  /* COUNCIL: slashed-zero instrument numerals — turns the locked mono metrics into identity (lap-timer / GPS-watch
+     reference) on top of tabular-nums. 'zero' is JetBrains Mono's slashed-zero feature; 'tnum' keeps tabular. */
+  .num,.gnum,.tval,.sstat .v,.streak-num,.lvn,.schip,.run .ri .t b,.hr-t,.rv,.lvx,.pace-tgt,.wk-target span,.badge{font-feature-settings:"tnum" 1,"zero" 1}
+  /* ADAPTED FOR THE REACT APP — mockup-frame rules (body flex-centering, .device, .label, .screen)
+     removed; the gradient + aurora now live on .ss-screen / .ss-aura so the page scrolls naturally and
+     the aurora stays fixed to the viewport. Tailwind preflight owns the reset. */
+  .ss-screen{position:relative;min-height:100dvh;color:var(--fg);max-width:480px;margin:0 auto;
+    font-family:var(--body);overflow-x:hidden}
+  .ss-aura{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,var(--bg2),var(--bg) 45%)}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ============ SCULPTED AURORA FIELD ============
+     Reverted the 'dawn horizon' band + ridge silhouette (the sun look) per Ishan — back to the
+     normal field. KEPT the warmer orange-led balance (lock #1: orange leads, violet recedes) and
+     the detuned drift periods (13/19/23s, so the loops never phase-align into a visible pulse). */
+  .aurora{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .aurora .mesh{position:absolute;inset:-10%;
+    background:
+      radial-gradient(58% 42% at 78% -6%, rgba(124,107,240,.13), rgba(124,107,240,0) 62%),
+      radial-gradient(48% 42% at -8% 40%, rgba(249,115,22,.19), rgba(249,115,22,0) 60%),
+      radial-gradient(50% 46% at 108% 88%, rgba(167,139,250,.10), rgba(167,139,250,0) 60%),
+      radial-gradient(34% 30% at 18% 96%, rgba(251,146,60,.10), rgba(251,146,60,0) 62%);
+    filter:blur(8px);will-change:transform;animation:meshdrift 13s ease-in-out -2s infinite}
+  .aurora .sweep{position:absolute;top:-26%;right:-30%;width:96%;height:96%;border-radius:50%;
+    background:conic-gradient(from 200deg at 50% 50%,
+      rgba(124,107,240,.13),rgba(124,107,240,0) 28%,rgba(249,115,22,.14) 60%,rgba(124,107,240,0) 88%);
+    filter:blur(30px);will-change:transform;animation:sweepdrift 19s ease-in-out -7s infinite}
+  /* the single violet god-ray = the AI signal, deliberately kept violet */
+  .aurora .ray{position:absolute;top:-14%;right:6%;width:160px;height:150%;
+    background:linear-gradient(168deg, rgba(167,139,250,.13), rgba(167,139,250,0) 46%);
+    transform:rotate(13deg);transform-origin:top center;filter:blur(22px);
+    will-change:transform;animation:raydrift 23s ease-in-out -11s infinite}
+  .aurora .grain{position:absolute;inset:0;opacity:.035;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .aurora .vignette{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(135% 105% at 50% 38%, transparent 56%, rgba(5,5,11,.34) 86%, rgba(3,3,8,.55) 100%)}
+  @keyframes meshdrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(7px,6px) scale(1.015)}}
+  @keyframes sweepdrift{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-8px,5px) rotate(4deg)}}
+  @keyframes raydrift{0%,100%{transform:rotate(13deg) translateY(0)}50%{transform:rotate(11deg) translateY(8px)}}
+  .veil{position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(125% 52% at 50% 24%,transparent 0%,transparent 40%,rgba(8,8,15,.42) 100%)}
+
+  /* ============ CHROME (forked verbatim) ============ */
+  .status{height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font:600 14px var(--body);flex:none;position:relative;z-index:4}
+  .topbar{height:50px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:relative;z-index:4}
+  .brand{font:700 16px var(--head);letter-spacing:-.01em;white-space:nowrap}
+  .brand b{background:linear-gradient(90deg,var(--accent),var(--violet-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .icons{display:flex;align-items:center;gap:11px}
+  .iconbtn{width:35px;height:35px;border-radius:50%;border:1px solid var(--hair);display:grid;place-items:center;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);position:relative}
+  .badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:#fff;font:700 10px var(--mono);display:grid;place-items:center;padding:0 4px;border:2px solid var(--bg)}
+  .avatar{width:35px;height:35px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--violet));display:grid;place-items:center;font:700 12px var(--head);color:#fff;position:relative}
+  .iconbtn::after,.avatar::after{content:"";position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
+
+  /* ============ SCROLLING BODY ============ */
+  .body{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 0 104px;position:relative;z-index:2}
+  .body::-webkit-scrollbar{display:none}
+  .pad{padding:0 16px}
+
+  /* ===== HEADER STATUS STRIP (the marked top: greeting + readiness / streak / level) ===== */
+  /* COUNCIL: chips share the h1's top axis (was center-aligned against the 2-line block, so they floated) */
+  .greet{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;padding:0 16px}
+  .greet .g-l{min-width:0}
+  .greet .statstrip{margin-top:2px}
+  .greet h1{font:600 var(--m-lg) var(--head);letter-spacing:-.02em;white-space:nowrap}
+  .greet .date{color:var(--muted);font:500 11.5px var(--body);white-space:nowrap;margin-top:1px}
+  .statstrip{display:flex;align-items:center;gap:7px;flex:none}
+  .schip{display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:9px;
+    background:var(--glass);border:1px solid var(--hair);font:600 11px var(--mono);
+    font-variant-numeric:tabular-nums;color:var(--fg);white-space:nowrap;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .schip svg{width:12px;height:12px;flex:none}
+  .schip .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none;box-shadow:0 0 0 3px rgba(52,211,153,.18)}
+
+  /* shared liquid-glass tile recipe (used by hero + recess tiles) */
+  .glass{position:relative;overflow:hidden;background:var(--glass);
+    backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.02), 0 10px 24px -20px rgba(0,0,0,.55)}
+  .glass.recess{background:rgba(255,255,255,.022);border-color:rgba(255,255,255,.05);
+    backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), inset 0 10px 22px -12px rgba(0,0,0,.66), inset 0 -1px 0 rgba(0,0,0,.28), 0 6px 16px -18px rgba(0,0,0,.4)}
+
+  /* ===============================================================================
+     SESSION CAROUSEL — full-size swipeable hero cards. Each card = full content
+     width; horizontal scroll-snap; NO JS. A low-key floating next-chevron + dot
+     indicators hint "swipe". The track bleeds the 16px gutter via edge spacers so
+     the next card peeks ~10px at the right edge.
+     =============================================================================== */
+  .carousel{position:relative;margin-bottom:11px}
+  .ctrack{display:flex;gap:11px;overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;scroll-padding:0 16px;-webkit-overflow-scrolling:touch;
+    padding:4px 0 6px;scrollbar-width:none;
+    /* COUNCIL: alpha-mask the edges so the peeked card feathers into the gutter instead of hard-clipping
+       (alpha only on the scroll container — cards keep their own backdrop-filter, §2 rule respected) */
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%)}
+  .ctrack::-webkit-scrollbar{display:none}
+  .ctrack::before,.ctrack::after{content:"";flex:0 0 5px}
+  .ctrack > .scard:first-of-type{margin-left:16px}
+  .ctrack > .scard:last-of-type{margin-right:16px}
+  /* each card is BIG: full content column (390 − 16·2 = 358), so only ~one shows + a peek */
+  .scard{scroll-snap-align:start;flex:0 0 calc(390px - 32px - 12px);max-width:calc(390px - 32px - 12px);
+    position:relative;overflow:hidden;border-radius:22px;padding:16px;display:flex;flex-direction:column}
+  .scard > *{position:relative;z-index:1}
+
+  /* TODAY card — brightest "featured" glass, floats */
+  .scard.today{
+    background:linear-gradient(158deg,rgba(249,115,22,.20),rgba(124,107,240,.09) 56%,rgba(255,255,255,.06) 100%);
+    backdrop-filter:blur(26px) saturate(165%);-webkit-backdrop-filter:blur(26px) saturate(165%);
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(255,255,255,.04), inset 0 -10px 24px -20px rgba(0,0,0,.4), 0 30px 50px -24px rgba(0,0,0,.7), 0 9px 18px -12px rgba(0,0,0,.55)}
+  /* COUNCIL glass-realism: crisper specular streak on the top-light stops + deeper trailing bevel = thick lit glass */
+  .scard.today::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:0;padding:1px;
+    background:linear-gradient(150deg, rgba(255,255,255,.5) 0, rgba(255,255,255,.42) 4%, rgba(255,255,255,.06) 14%, rgba(255,255,255,0) 54%, rgba(0,0,0,.2) 80%, rgba(0,0,0,.42));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);mask-composite:exclude}
+  /* UP-NEXT cards — recessed well, same BIG footprint */
+  .scard.next{
+    background:rgba(255,255,255,.022);backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%);
+    border:1px solid rgba(255,255,255,.05);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), inset 0 10px 22px -12px rgba(0,0,0,.66), inset 0 -1px 0 rgba(0,0,0,.28), 0 6px 16px -18px rgba(0,0,0,.4)}
+  .scard.next::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:0;padding:1px;
+    background:linear-gradient(150deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 34%, rgba(255,255,255,0) 58%, rgba(0,0,0,.2) 84%, rgba(0,0,0,.38));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);mask-composite:exclude}
+  /* COUNCIL: AA scrim for the up-next wells (matches the recess tiles) + a cool depth-fog that thickens on the
+     furthest card so swiping forward reads as 'the road ahead' (violet = cool distance, lock #1 intact). */
+  .scard.next .cover::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,transparent 38%,rgba(6,6,12,.2)),radial-gradient(140% 90% at 50% 120%,rgba(124,107,240,.05),transparent 60%)}
+
+  /* editorial cover bleed (stride watermark) */
+  .scard .cover{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+  .scard .cover svg{position:absolute;right:-26px;top:-18px;width:190px;height:190px;opacity:.10;color:var(--accent-2);transform:rotate(-8deg)}
+  .scard.next .cover svg{color:var(--violet-2);opacity:.08}
+  /* COUNCIL: the identical 120deg fake-light streak on ALL three cards was an AI-glass tell + it flattened the
+     recess wells' depth. Keep it ONLY on Today, tightened into a focused specular caustic aligned to the aurora's
+     top-light; the .next wells rely on their own inset shadow (no sheen). */
+  .scard.today .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(118deg,transparent 46%,rgba(255,255,255,.07) 60%,rgba(255,255,255,0) 70%)}
+  /* specular top-light highlight (white light, not a hue) — the 'wet glass lip' on the floating hero */
+  .scard.today .cover::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+    background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04) 26%,transparent 42%)}
+
+  .shead{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .sicon{width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .scard.today .sicon{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.28)}
+  .slbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted);white-space:nowrap}
+  .stag{margin-left:auto;font:700 8.5px var(--body);text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:7px;white-space:nowrap}
+  .stag.now{color:var(--accent-2);background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.3)}
+  .stag.soon{color:var(--violet-2);background:rgba(124,107,240,.16);border:1px solid rgba(124,107,240,.28)}
+
+  .stop{display:flex;gap:14px;align-items:center}
+  .sinfo{flex:1;min-width:0}
+  .scard h2{font:600 22px var(--head);letter-spacing:-.02em;margin:3px 0 3px}
+  /* COUNCIL: on Today the title competed with the readiness number for the first glance — weight+color inversion
+     (NOT a size change, scale untouched) so only the gauge carries 700 and the orb's competitor clears. */
+  .scard.today h2{font-weight:500;color:#ECECF2}
+  .scard .sub{font:500 11.5px var(--body);color:var(--muted);margin-bottom:10px}
+  .sstats{display:flex;gap:8px}
+  .sstat{flex:1;min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:11px;padding:8px 9px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .sstat .v{font:600 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;line-height:1;display:flex;align-items:baseline;gap:2px;white-space:nowrap}
+  /* COUNCIL: unit suffix recast to mono so number+unit read as one instrument value */
+  .sstat .v small{font:500 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .sstat .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:5px;white-space:nowrap}
+
+  .gauge{position:relative;width:88px;height:88px;flex:none}
+  .gauge svg{transform:rotate(-90deg);overflow:visible}
+  .gauge .grtrack{stroke:rgba(255,255,255,.09);fill:none}
+  .gauge .grfill{fill:none;stroke:url(#gaugeGrad);stroke-linecap:round;stroke-dasharray:226.19;stroke-dashoffset:226.19;animation:gaugefill 1s var(--ease) .42s forwards}
+  @keyframes gaugefill{to{stroke-dashoffset:49.76}}
+  /* number now lands AS the arc finishes (~1.42s), not 370ms early */
+  .gauge .gnum{opacity:0;transform:translateY(6px);animation:numpop .42s var(--ease-pop) 1.02s both}
+  .gauge .gctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .gauge .gnum{font:700 var(--m-hero) var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+  .gauge .gcap{font:700 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--green);margin-top:3px}
+
+  /* ===== LIVING READINESS ORB — the app's ONE signature moment (Today gauge only) =====
+     COUNCIL (5-seat consensus): the readiness gauge is the emotional core of the glance.
+     A soft orange bloom on the arc + ONE gentle breath after entrance. (De-sunned per Ishan:
+     removed the radiating tick register and the glow blob behind the number.)
+     Up-next .plan gauges stay completely inert. Everything else on Home stays still (restraint). */
+  .scard.today .gauge .grfill{filter:drop-shadow(0 0 6px rgba(249,115,22,.5))}
+  .scard.today .gctr{animation:gbreath 4.6s var(--ease) 1.7s infinite}
+  @keyframes gbreath{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+  /* up-next gauge has no live readiness yet → muted plan marker */
+  .gauge.plan .grfill{stroke:rgba(167,139,250,.5)}
+  .gauge.plan .gcap{color:var(--violet-2)}
+  @keyframes numpop{to{opacity:1;transform:none}}
+
+  .cta{display:flex;gap:9px;margin-top:14px}
+  .btn{height:48px;border-radius:13px;border:none;font:600 15px var(--head);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+  .btn-primary{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 10px 26px -10px rgba(249,115,22,.55)}
+  .btn-ghost{flex:none;width:48px;background:rgba(255,255,255,.05);border:1px solid var(--hair);color:var(--muted)}
+  .btn-soft{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--hair);color:var(--fg)}
+  /* COUNCIL: the disabled state the system was missing — e.g. a future day's session isn't startable yet */
+  .btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;box-shadow:none;filter:saturate(.6)}
+  .btn:disabled:active,.btn[aria-disabled="true"]:active{transform:none}
+
+  /* LOW-KEY SWIPE CUE — quiet ‹ › over the carousel edges. Decorative only (aria-hidden, non-focusable,
+     pointer-events:none) — the peeking next card is the real affordance; active paging is React. */
+  .cnav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;pointer-events:none;
+    width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(11,10,22,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid var(--hair);color:var(--muted);opacity:.65;
+    box-shadow:0 6px 16px -8px rgba(0,0,0,.6)}
+  .cprev{left:6px}
+  .cnext{right:6px}
+  .cnav svg{width:16px;height:16px}
+  /* DOT INDICATORS — three quiet dots, first active. Left-aligned onto the 16px content axis. */
+  .cdots{display:flex;justify-content:flex-start;gap:6px;margin-top:2px;padding-left:16px}
+  .cdots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18)}
+  .cdots i.on{width:18px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+
+  /* ===== BENTO GRID — 2-col base that HOLDS at 390px ===== */
+  .bento{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
+  .tspan{grid-column:1 / -1}
+  .thalf{grid-column:span 1;min-width:0}
+  .tile{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:18px;padding:13px;
+    background:var(--glass);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+    border:1px solid rgba(255,255,255,.06);min-width:0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.02), 0 10px 24px -20px rgba(0,0,0,.55)}
+  .tile::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:0;padding:1px;
+    background:linear-gradient(150deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 32%, rgba(255,255,255,0) 55%, rgba(0,0,0,.18) 82%, rgba(0,0,0,.34));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);mask-composite:exclude}
+  .tile.recess{background:rgba(255,255,255,.022);border-color:rgba(255,255,255,.05);
+    backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), inset 0 10px 22px -12px rgba(0,0,0,.66), inset 0 -1px 0 rgba(0,0,0,.28), 0 6px 16px -18px rgba(0,0,0,.4)}
+  .tile.recess::before{background:linear-gradient(150deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 34%, rgba(255,255,255,0) 58%, rgba(0,0,0,.2) 84%, rgba(0,0,0,.38))}
+  /* COUNCIL: the top-edge well-darkening PLUS a faint bottom scrim so the 9.5px --muted-2 caps labels keep WCAG AA
+     even where the bright aurora node bleeds through the glass (lock #9 gate). */
+  .tile.recess::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:radial-gradient(120% 90% at 50% -10%,transparent 50%,rgba(8,8,15,.3)),linear-gradient(180deg,transparent 40%,rgba(6,6,12,.22))}
+  button.tile{text-align:left;cursor:pointer;font-family:inherit;color:inherit;width:100%}
+  .tap{margin-left:auto;flex:none;color:var(--muted-2);display:grid;place-items:center;width:18px;height:18px}
+  .tap svg{width:14px;height:14px}
+  .thead{display:flex;align-items:center;gap:8px;margin-bottom:9px;position:relative;z-index:1}
+  .ticon{width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .tlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted);white-space:nowrap}
+  .tile>*{position:relative;z-index:1}
+
+  /* ---- COACH NUDGE — violet AI, benefit-led headline + waveform ---- */
+  .nudge{background:linear-gradient(150deg,rgba(124,107,240,.16),rgba(124,107,240,.05) 60%,var(--glass) 100%);
+    border:1px solid rgba(167,139,250,.18);padding:13px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 16px 30px -24px rgba(124,107,240,.45)}
+  .nudge .ticon{background:linear-gradient(135deg,var(--violet),var(--accent));border:none;box-shadow:0 6px 16px -6px rgba(124,107,240,.7)}
+  .nudge .tlbl{color:var(--violet-2)}
+  .tg{font:600 9px var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--violet-2);background:rgba(124,107,240,.2);padding:2px 6px;border-radius:5px;margin-left:auto}
+  /* coach effort chips (the marked 2/4/6/8 RPE selector) */
+  /* COUNCIL: display-grammar headline — tighter leading + tracking so the benefit promise lifts off the body;
+     cap the why-line measure so it wraps into a clean ragged edge instead of butting the glass border. */
+  .clead{font:600 14px/1.15 var(--head);letter-spacing:-.015em;color:#fff;margin-top:2px}
+  .clead b{color:var(--accent-2);font-weight:700}
+  .cwhy{font:400 12px/1.45 var(--body);color:#D7D7E4;margin-top:5px;max-width:34ch}
+  .cwhy b{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+  .rpe-lbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted);margin:13px 0 7px;display:flex;align-items:center;gap:6px}
+  .rpe-lbl .det{margin-left:auto;font:600 10px var(--body);color:var(--violet-2);text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer}
+  /* RPE selector = a REAL pure-CSS radio group (hidden radios + label chips), same pattern as the Trends toggle.
+     Selection MORPHS (interruptible) instead of hard-cutting: solid base bg transitions, and an always-present
+     gradient ::before fades 0->1 on :checked (gradients can't transition, opacity can). NO JS. */
+  .rpe{display:flex;gap:7px}
+  .rpe .rpe-radio{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .rchip{position:relative;overflow:hidden;flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--hair);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    transition:border-color var(--press-dur) var(--ease),box-shadow var(--press-dur) var(--ease),background-color var(--press-dur) var(--ease)}
+  .rchip::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--press-dur) var(--ease);
+    background:linear-gradient(180deg,rgba(124,107,240,.32),rgba(124,107,240,.14))}
+  .rchip .rv{position:relative;z-index:1;font:700 16px var(--mono);font-variant-numeric:tabular-nums;line-height:1;color:var(--muted);transition:color var(--press-dur) var(--ease)}
+  .rchip .rk{position:relative;z-index:1;font:600 8px var(--body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);transition:color var(--press-dur) var(--ease)}
+  .rpe-radio:checked + .rchip{border-color:rgba(167,139,250,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 16px -10px rgba(124,107,240,.6)}
+  .rpe-radio:checked + .rchip::before{opacity:1}
+  .rpe-radio:checked + .rchip .rv{color:#fff}
+  .rpe-radio:checked + .rchip .rk{color:var(--violet-2)}
+  .rpe-radio:focus-visible + .rchip{outline:2px solid var(--accent-2);outline-offset:2px}
+
+  /* ===== TRENDS TILE — pure-CSS Pace/Load/HR segmented toggle (the marked one). NO JS. ===== */
+  .trends .seg-radio{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .trends .trends-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  /* COUNCIL: 27px was 1px LARGER than --m-hero (26) — pulled onto the locked 22px club-title step so the
+     readiness gauge stays the loudest number; unit suffix recast to mono (a measurement is number + unit). */
+  .trends .tval{font:700 22px var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px;letter-spacing:-.01em}
+  .trends .tval small{font:500 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .trends .tsub{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px;white-space:nowrap}
+  .trends .tdelta{font:600 11px var(--mono);white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border-radius:8px;border:1px solid transparent}
+  .d-good{color:var(--green);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.22)!important}
+  .d-info{color:var(--violet-2);background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.22)!important}
+  /* COUNCIL: the readout now cross-fades with the chart panel (was a hard cut while the chart animated) */
+  .trends .readout{display:none}
+  #t-pace:checked ~ .trends-head .readout.r-pace,
+  #t-load:checked ~ .trends-head .readout.r-load,
+  #t-hr:checked   ~ .trends-head .readout.r-hr{display:block;animation:readoutin .26s var(--ease) both}
+  @keyframes readoutin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+  .seg{position:relative;display:flex;gap:3px;padding:3px;border-radius:12px;margin-top:12px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .seg .seg-pill{position:absolute;top:3px;left:3px;bottom:3px;width:calc((100% - 6px - 6px) / 3);
+    border-radius:9px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 10px -6px rgba(0,0,0,.6);
+    transform:translateX(0);transition:transform 200ms var(--ease-morph);z-index:0;pointer-events:none}/* COUNCIL: ease-in-out for travel, 200ms sized to the 1/3-tile distance (was 120ms ease-out) */
+  #t-load:checked ~ .seg .seg-pill{transform:translateX(calc(100% + 3px))}
+  #t-hr:checked   ~ .seg .seg-pill{transform:translateX(calc(200% + 6px))}
+  .seg label{position:relative;z-index:1;flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;
+    cursor:pointer;border-radius:9px;font:600 11px var(--body);letter-spacing:.02em;color:var(--muted-2);transition:color var(--press-dur) var(--ease)}
+  .seg label svg{width:13px;height:13px;opacity:.7;transition:opacity var(--press-dur) var(--ease)}
+  #t-pace:checked ~ .seg label[for=t-pace],
+  #t-load:checked ~ .seg label[for=t-load],
+  #t-hr:checked   ~ .seg label[for=t-hr]{color:var(--fg)}
+  #t-pace:checked ~ .seg label[for=t-pace] svg,
+  #t-load:checked ~ .seg label[for=t-load] svg,
+  #t-hr:checked   ~ .seg label[for=t-hr] svg{opacity:1}
+  #t-pace:focus-visible ~ .seg label[for=t-pace],
+  #t-load:focus-visible ~ .seg label[for=t-load],
+  #t-hr:focus-visible   ~ .seg label[for=t-hr]{outline:2px solid var(--accent-2);outline-offset:2px}
+  .stage{position:relative;margin-top:12px;height:96px}
+  .panel{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end}
+  #t-pace:checked ~ .trends-stage .panel.p-pace,
+  #t-load:checked ~ .trends-stage .panel.p-load,
+  #t-hr:checked   ~ .trends-stage .panel.p-hr{display:flex;animation:panelin .22s var(--ease) both}
+  /* COUNCIL: reveals through a blur-mask wipe (not a positional rise that pulls the eye off the data); <300ms */
+  @keyframes panelin{from{opacity:0;filter:blur(4px)}to{opacity:1;filter:none}}
+  .pace-spark{display:block}
+  .pace-tgt{position:absolute;top:30px;right:0;font:600 8px var(--mono);font-variant-numeric:tabular-nums;color:var(--violet-2);background:var(--bg2);padding:0 3px;border-radius:3px;transform:translateY(-50%)}
+  .wk-chart{position:relative;height:78px;display:flex;align-items:flex-end;gap:7px}
+  .wk-target{position:absolute;left:0;right:0;height:0;border-top:1px dashed rgba(167,139,250,.4);z-index:1}
+  .wk-target span{position:absolute;right:0;top:-7px;font:600 8px var(--mono);color:var(--violet-2);background:var(--bg2);padding:0 3px}
+  .wk-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+  .wk-bar .col{width:100%;border-radius:5px 5px 3px 3px;background:rgba(167,139,250,.22);border:1px solid rgba(167,139,250,.28);min-height:4px;transform-origin:bottom}
+  .wk-bar.rest .col{background:rgba(255,255,255,.07);border-color:transparent;border-radius:2px}
+  .wk-bar.today .col{background:linear-gradient(180deg,rgba(251,146,60,.55),rgba(249,115,22,.42));border-color:rgba(249,115,22,.4)}
+  .wk-bar .lab{font:600 8.5px var(--mono);color:var(--muted-2)}
+  .wk-bar.today .lab{color:var(--accent-2)}
+  .hr-chart{display:flex;flex-direction:column;gap:6px;justify-content:center;height:100%}
+  .hr-row{display:flex;align-items:center;gap:8px}
+  .hr-z{font:600 8.5px var(--mono);color:var(--muted-2);width:18px;flex:none}
+  .hr-track{flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,.05);border:1px solid var(--hair);overflow:hidden}
+  .hr-fill{height:100%;border-radius:5px}
+  .hr-t{font:600 8.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);width:30px;text-align:right;flex:none;white-space:nowrap}
+
+  /* ---- PAIR: LEVEL ⟷ STREAK ---- */
+  .chip{display:inline-flex;align-items:center;gap:3px;font:600 var(--lbl) var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding:2px 6px;border-radius:6px;margin-top:5px;
+    background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.22)}
+  .chip.violet{background:rgba(167,139,250,.14);color:var(--violet-2);border-color:rgba(167,139,250,.26)}
+  .chip.amber{background:rgba(251,191,36,.13);color:var(--amber);border-color:rgba(251,191,36,.26)}
+  .lv-body{display:flex;align-items:center;gap:10px;margin-top:1px}
+  .lvring{position:relative;width:50px;height:50px;flex:none}
+  .lvring svg{transform:rotate(-90deg)}
+  .lvring .lvtrack{stroke:rgba(255,255,255,.09);fill:none}
+  .lvring .lvfill{fill:none;stroke:rgba(167,139,250,.6);stroke-linecap:round;stroke-dasharray:138.23;stroke-dashoffset:138.23;animation:lvfill .9s var(--ease) .5s forwards}
+  @keyframes lvfill{to{stroke-dashoffset:80.17}}
+  /* COUNCIL: Level number bumped to 18px so the paired halves share one hero-metric step (Streak '3' is 19px) */
+  .lvring .lvn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 18px var(--mono);font-variant-numeric:tabular-nums}
+  .lv-meta{min-width:0;display:flex;flex-direction:column}
+  /* COUNCIL: weight inversion — the live question is 'how far to L2' (the XP metric), so promote .lvx and demote
+     'Beginner' to a quiet caps category label above it. DOM reorder: category → metric → status chip. */
+  .lv-meta .lvk{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);white-space:nowrap}
+  .lv-meta .lvx{font:600 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);margin-top:2px;white-space:nowrap}
+  .streak-num{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
+  .streak-num small{font:500 var(--lbl) var(--mono);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted)}
+  .pips{display:flex;gap:3px;margin-top:auto}
+  .pip{flex:1;min-width:0;height:20px;border-radius:5px;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .pip.on{background:linear-gradient(180deg,rgba(251,191,36,.28),rgba(249,115,22,.18));border-color:rgba(251,191,36,.4)}
+  .pip.today{background:linear-gradient(180deg,rgba(251,191,36,.42),rgba(249,115,22,.3));border-color:rgba(251,191,36,.65);box-shadow:0 0 0 1px rgba(251,191,36,.2)}
+  .pip svg{width:11px;height:11px}
+  .pip .d{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.18)}
+  .pip.on svg,.pip.today svg{animation:pippop .4s var(--ease-pop) both;animation-delay:calc(.85s + var(--p,0) * 110ms)}
+  /* COUNCIL: lands like a stamp (rise+fade) instead of ballooning from scale(.4) — the overshoot now reads on the y-axis */
+  @keyframes pippop{from{opacity:0;transform:translateY(3px) scale(.92)}to{opacity:1;transform:none}}
+
+  /* ---- RECENT RUNS (layered card) ---- */
+  .run{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:0 -10px;border-radius:10px;border-bottom:1px solid var(--hair);transition:background-color var(--press-dur) var(--ease)}
+  .run:last-child{border-bottom:none;padding-bottom:2px}
+  .run:first-of-type{padding-top:2px}
+  /* COUNCIL: per-row press feedback (full React = each row its own button; this is the mockup visual) */
+  .run:active{background:rgba(255,255,255,.04)}
+  .runico{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid var(--hair);display:grid;place-items:center;flex:none}
+  .run .ri{flex:1;min-width:0}
+  .run .ri .t{font:600 13px var(--body);display:flex;align-items:center;gap:6px}
+  .run .ri .t b{font:700 13px var(--mono);font-variant-numeric:tabular-nums}
+  .prtag{font:700 8.5px var(--body);text-transform:uppercase;letter-spacing:.03em;color:var(--amber);background:rgba(251,191,36,.16);padding:2px 5px;border-radius:5px;white-space:nowrap}
+  .run .ri .s{font:500 10.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-top:2px;white-space:nowrap}
+  .run .rt{font:600 10.5px var(--mono);color:var(--muted);white-space:nowrap}
+
+  /* ===== "JUMP BACK IN" CHIP RAIL (the marked quick-actions) ===== */
+  .railhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:18px 16px 9px}
+  .railhead .rt{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted)}
+  .railhead .more{font:600 11px var(--body);color:var(--violet-2);display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer}
+  .chiprail{display:flex;gap:9px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;padding:2px 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .chiprail::-webkit-scrollbar{display:none}
+  .qchip{scroll-snap-align:start;flex:none;display:flex;align-items:center;gap:8px;height:44px;padding:0 15px 0 12px;border-radius:14px;cursor:pointer;
+    background:var(--glass);border:1px solid var(--hair);color:var(--fg);font:600 12.5px var(--head);white-space:nowrap;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .qchip .qi{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .qchip .qi svg{width:14px;height:14px}
+  .qchip.accent .qi{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.3)}
+  .qchip.violet .qi{background:rgba(124,107,240,.18);border-color:rgba(124,107,240,.3)}
+
+  /* ============================================================================
+     LOCKED 5-tab nav — "GLIDE PILL" floating capsule (council-selected · icon-only).
+     ONE active signal: a single orange-tinted glass pill behind the active icon +
+     the icon swaps outline→filled. No tab labels, no idle loops. In React the pill
+     FLIP-glides between tabs (shared-layout). True locked nav-glass recipe.
+     Self-contained under .f2-* so it never collides with the rest of Home.
+     ============================================================================ */
+  .f2-nav{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:0;z-index:60;height:108px;pointer-events:none}
+  .f2-nav *{box-sizing:border-box}
+  /* floating glass capsule — detached on all edges, hovering over the aurora */
+  .f2-cap{pointer-events:auto;position:absolute;left:14px;right:14px;bottom:20px;height:60px;border-radius:26px;
+    background:rgba(11,10,22,.6);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);
+    border:1px solid var(--hair);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 18px 40px -20px rgba(0,0,0,.75), 0 6px 16px -10px rgba(0,0,0,.55);
+    animation:f2-capin .55s var(--ease) both}
+  /* dual-edge refraction ring (1px) — bright top-left light → dark bottom-right bevel */
+  .f2-cap::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;padding:1px;
+    background:linear-gradient(150deg,rgba(255,255,255,.22),rgba(255,255,255,.04) 30%,rgba(255,255,255,0) 56%,rgba(0,0,0,.20) 84%,rgba(0,0,0,.36));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+  .f2-row{position:relative;z-index:1;height:100%;display:flex;align-items:stretch}
+  .f2-it{position:relative;flex:1;min-width:0;min-height:44px;display:flex;align-items:center;justify-content:center;
+    background:none;border:none;cursor:pointer;padding:0;color:var(--muted-2);
+    transition:color .2s var(--ease),transform var(--press-dur) var(--ease)}
+  .f2-slot{flex:0 0 64px}
+  .f2-ico{position:relative;width:24px;height:24px;display:grid;place-items:center}
+  .f2-ico svg{position:absolute;width:24px;height:24px;color:currentColor;transition:opacity .22s var(--ease)}
+  .f2-fill{opacity:0}
+  /* ===== THE ONE ACTIVE SIGNAL ===== */
+  .f2-it.on{color:var(--fg)}
+  .f2-it.on .f2-out{opacity:0}
+  .f2-it.on .f2-fill{opacity:1;color:var(--accent-2);filter:drop-shadow(0 1px 5px rgba(249,115,22,.45))}
+  /* the gliding pill — NEUTRAL frosted glass (same language as the Trends seg-pill), so the
+     orange comes only from the active ICON. Parked behind Home; React FLIP-glides it between tabs. */
+  .f2-pill{position:absolute;z-index:0;top:50%;left:calc((100% - 64px)/8 - 23px);width:46px;height:42px;
+    transform:translateY(-50%);border-radius:15px;
+    background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.05));
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 4px 12px -7px rgba(0,0,0,.55);
+    animation:f2-pillin .42s var(--ease-pop) .18s both}
+  @keyframes f2-pillin{from{opacity:0;transform:translateY(-50%) scale(.9)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+  /* raised Run FAB — the one warm center anchor crowning the capsule */
+  .f2-fab{pointer-events:auto;position:absolute;left:50%;bottom:46px;transform:translateX(-50%);
+    width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:grid;place-items:center;cursor:pointer;border:4px solid var(--bg2);
+    box-shadow:0 10px 30px -6px rgba(249,115,22,.7), 0 2px 6px rgba(0,0,0,.4);z-index:2;
+    animation:f2-fabin .5s var(--ease-pop) .12s both}
+  .f2-fab svg{width:22px;height:22px;margin-left:1px}
+  @keyframes f2-capin{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes f2-fabin{from{opacity:0;transform:translateX(-50%) translateY(14px) scale(.92)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+  .f2-it:active{transform:scale(.92)}
+  .f2-fab:active{transform:translateX(-50%) scale(.94)}
+  @media (hover:hover){.f2-it:not(.on):hover{color:var(--muted)}.f2-fab:hover{transform:translateX(-50%) translateY(-1px)}}
+  .f2-it:focus-visible{outline:2px solid var(--accent-2);outline-offset:-8px;border-radius:15px}
+  .f2-fab:focus-visible{outline:2px solid var(--accent-2);outline-offset:3px;border-radius:50%}
+  @media (prefers-reduced-motion:reduce){
+    .f2-cap,.f2-fab,.f2-pill{animation:none!important}
+    .f2-cap{opacity:1!important;transform:none!important}
+    .f2-fab{opacity:1!important;transform:translateX(-50%)!important}
+    .f2-pill{opacity:1!important;transform:translateY(-50%)!important}
+    .f2-it,.f2-fab,.f2-ico svg{transition:none!important}
+  }
+  .caption{color:#86899c;font:500 12px var(--body);max-width:390px;text-align:center;line-height:1.5}
+
+  /* ============ ENTRANCE — pure CSS · CINEMATIC LEAD (council #1 motion item) ============
+     The readiness orb is the PROTAGONIST: the Today hero card arrives first and settles, the
+     greeting tucks in just under it, and the rest of the screen (bento tiles, rail) cascades
+     BEHIND the lead on a clearly later beat — so the eye is led to the orb, then the screen
+     assembles around it. .carousel fades only (cards own the rise → no double-rise stutter). */
+  .greet,.bento>.tile,.railsec{opacity:0;transform:translateY(16px)}
+  .carousel{opacity:0}
+  /* LEAD: hero card first (shortest delay, slightly longer travel = more 'weight') */
+  .carousel{animation:fadein var(--in-base) var(--ease) both;animation-delay:var(--lead-delay)}
+  .scard{opacity:0;transform:translateY(18px);animation:rise var(--in-slow) var(--ease) both;animation-delay:calc(var(--lead-delay) + var(--i,0) * 55ms)}
+  /* the orb itself resolves a touch after its card lands — it's the true focal point */
+  .scard.today .gauge{opacity:0;transform:scale(.92);animation:orbarrive .6s var(--ease-pop) .30s both}
+  @keyframes orbarrive{to{opacity:1;transform:none}}
+  /* SUPPORT: everything else waits for the lead, then cascades in behind it */
+  .greet{animation:rise var(--in-fast) var(--ease) both;animation-delay:calc(var(--lead-delay) + var(--support-gap))}
+  .bento>.tile{animation:rise var(--in-base) var(--ease) both;animation-delay:calc(.34s + var(--i,0) * var(--stag))}
+  .railsec{animation:rise var(--in-base) var(--ease) both;animation-delay:.58s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @keyframes fadein{to{opacity:1}}
+
+  /* ============ TACTILE — transform-only ============ */
+  .btn,.iconbtn,.avatar,.fab,.nav .it,button.tile,.scard,.seg label,.qchip,.rchip,.railhead .more{transition:transform var(--press-dur) var(--ease)}
+  .btn:active,.iconbtn:active,.avatar:active,.nav .it:active,.rchip:active{transform:scale(var(--press))}
+  .fab:active{transform:scale(.94)}
+  button.tile:active,.qchip:active,.scard:active{transform:scale(.985)}
+  .seg label:active{transform:scale(.96)}
+  /* COUNCIL: focus ring shape now MATCHES each control family (was a 14px rounded rect on everything,
+     so round buttons got a rounded-box halo). Circles get a circular ring; nav tabs hug icon+label; pills stay 14px. */
+  .iconbtn:focus-visible,.avatar:focus-visible,.fab:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:50%}
+  .nav .it:focus-visible{outline:2px solid var(--accent-2);outline-offset:-4px;border-radius:10px}
+  .btn:focus-visible,button.tile:focus-visible,.qchip:focus-visible,.railhead .more:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:14px}
+  @media (hover:hover){
+    button.tile:hover{transform:translateY(-2px)}
+    button.tile:active{transform:translateY(-1px) scale(.99)}
+    .qchip:hover{transform:translateY(-1px)}
+    .nav .it:hover{color:var(--muted)}
+    .iconbtn:hover,.avatar:hover{transform:translateY(-1px)}
+    .seg label:hover{color:var(--muted)}
+  }
+
+  /* ============ REDUCED MOTION — pin every final resting state ============ */
+  @media (prefers-reduced-motion:reduce){
+    .aurora .mesh,.aurora .sweep,.aurora .ray{animation:none!important}
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .greet,.carousel,.bento>.tile,.railsec,.scard{opacity:1!important;transform:none!important;filter:none!important}
+    .gauge .grfill{stroke-dashoffset:49.76!important}
+    .gauge .gnum{opacity:1!important;transform:none!important}
+    .lvring .lvfill{stroke-dashoffset:80.17!important}
+    .pip.on svg,.pip.today svg{opacity:1!important;transform:none!important}
+    .seg .seg-pill{transition:none!important}
+    .panel{animation:none!important;filter:none!important}
+    /* COUNCIL additions — pin the new signature/craft motion to rest */
+    .scard.today .gctr{animation:none!important;transform:none!important}  /* readiness-orb breath */
+    .scard.today .gauge{animation:none!important;opacity:1!important;transform:none!important}  /* orb arrival */
+    .trends .readout{animation:none!important;opacity:1!important;transform:none!important}  /* readout cross-fade */
+    .gauge .grfill{filter:drop-shadow(0 0 6px rgba(249,115,22,.5))!important}  /* keep the orb bloom (static) */
+  }
+  @media (max-width:430px){:root{--gap:10px}}
+
+  /* ============================================================================
+     SS-SURFACE ALIAS CLASSES (V1.1) — the locked liquid-glass surface system as
+     reusable modifiers so NO page re-authors background/border/shadow. Attach in
+     markup: class="ss-surface" (standard mid tile), add .ss-recess (sunk well) or
+     .ss-hero (floating featured). Page CSS keeps LAYOUT ONLY (padding/radius/grid).
+     Recipes replicate .glass / .tile.recess / .scard.today VERBATIM (council fix).
+     ============================================================================ */
+  .ss-surface{position:relative;overflow:hidden;
+    background:var(--glass);
+    backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.02), 0 10px 24px -20px rgba(0,0,0,.55)}
+  .ss-surface > *{position:relative;z-index:1}
+  .ss-surface::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:0;padding:1px;
+    background:linear-gradient(150deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 32%, rgba(255,255,255,0) 55%, rgba(0,0,0,.18) 82%, rgba(0,0,0,.34));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);mask-composite:exclude}
+  .ss-surface.ss-recess{background:rgba(255,255,255,.022);border-color:rgba(255,255,255,.05);
+    backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), inset 0 10px 22px -12px rgba(0,0,0,.66), inset 0 -1px 0 rgba(0,0,0,.28), 0 6px 16px -18px rgba(0,0,0,.4)}
+  .ss-surface.ss-recess::before{background:linear-gradient(150deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 34%, rgba(255,255,255,0) 58%, rgba(0,0,0,.2) 84%, rgba(0,0,0,.38))}
+  .ss-surface.ss-recess::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:0;
+    background:radial-gradient(120% 90% at 50% -10%,transparent 50%,rgba(8,8,15,.3)),linear-gradient(180deg,transparent 40%,rgba(6,6,12,.22))}
+  .ss-surface.ss-hero{
+    background:linear-gradient(158deg,rgba(249,115,22,.20),rgba(124,107,240,.09) 56%,rgba(255,255,255,.06) 100%);
+    backdrop-filter:blur(26px) saturate(165%);-webkit-backdrop-filter:blur(26px) saturate(165%);
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(255,255,255,.04), inset 0 -10px 24px -20px rgba(0,0,0,.4), 0 30px 50px -24px rgba(0,0,0,.7), 0 9px 18px -12px rgba(0,0,0,.55)}
+  .ss-surface.ss-hero::before{background:linear-gradient(150deg, rgba(255,255,255,.5) 0, rgba(255,255,255,.42) 4%, rgba(255,255,255,.06) 14%, rgba(255,255,255,0) 54%, rgba(0,0,0,.2) 80%, rgba(0,0,0,.42))}
+
+  /* ============================================================================
+     SHARED INTERACTIVE VOCABULARY (V1.2) — the locked component treatments promoted
+     from Home so NO page improvises a filled-color selection / tag / toggle again.
+     One look per element type. (Component-conformance council fix → UI-UX-V1 §14.)
+     ============================================================================ */
+  /* sub-tab pill — active = NEUTRAL frosted glide-pill, never a hue */
+  .ss-tab{flex:none;min-height:34px;padding:0 14px;border-radius:11px;border:1px solid transparent;background:none;color:var(--muted-2);font:600 12.5px var(--head);white-space:nowrap;cursor:pointer;transition:color .2s var(--ease),background-color .2s var(--ease),border-color .2s var(--ease)}
+  .ss-tab.on{color:var(--fg);background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 10px -6px rgba(0,0,0,.6)}
+  .ss-tab:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:11px}
+  /* segmented toggle — neutral sliding pill */
+  .ss-seg{position:relative;display:flex;gap:3px;padding:3px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .ss-seg-pill{position:absolute;top:3px;bottom:3px;border-radius:9px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 10px -6px rgba(0,0,0,.6);transition:transform 200ms var(--ease-morph);z-index:0;pointer-events:none}
+  /* status / category tag — low-alpha tint + hairline + hue TEXT, never a saturated fill */
+  .ss-tag{font:700 8.5px var(--body);text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:7px;border:1px solid;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  .ss-tag.now{color:var(--accent-2);background:rgba(249,115,22,.14);border-color:rgba(249,115,22,.3)}
+  .ss-tag.soon{color:var(--violet-2);background:rgba(124,107,240,.16);border-color:rgba(124,107,240,.28)}
+  .ss-tag.go{color:var(--green);background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.22)}
+  .ss-tag.maybe{color:var(--amber);background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.22)}
+  .ss-tag.full{color:var(--muted);background:rgba(255,255,255,.05);border-color:var(--hair)}
+  /* delta / trust chip — mono, low-alpha tint, paired with a metric */
+  .ss-dchip{display:inline-flex;align-items:center;gap:4px;font:600 var(--lbl) var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"zero" 1;padding:2px 6px;border-radius:6px;border:1px solid;white-space:nowrap}
+  .ss-dchip.good{color:var(--green);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.22)}
+  .ss-dchip.info{color:var(--violet-2);background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.26)}
+  .ss-dchip.warn{color:var(--amber);background:rgba(251,191,36,.13);border-color:rgba(251,191,36,.26)}
+  .ss-dchip.neutral{color:var(--muted);background:rgba(255,255,255,.05);border-color:var(--hair)}
+  /* PR tag */
+  .ss-prtag{font:700 8.5px var(--body);text-transform:uppercase;letter-spacing:.03em;color:var(--amber);background:rgba(251,191,36,.16);padding:2px 5px;border-radius:5px;white-space:nowrap}
+  /* notification badge — the ONLY locked saturated-orange fill */
+  .ss-badge{min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:#fff;font:700 10px var(--mono);font-feature-settings:"tnum" 1,"zero" 1;display:grid;place-items:center;padding:0 4px;border:2px solid var(--bg)}
+  /* button family — ONE filled-orange primary per surface */
+  .ss-btn{height:48px;border-radius:13px;border:none;font:600 15px var(--head);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+  .ss-btn-primary{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 10px 26px -10px rgba(249,115,22,.55)}
+  .ss-btn-soft{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--hair);color:var(--fg)}
+  .ss-btn-ghost{flex:none;width:48px;background:rgba(255,255,255,.05);border:1px solid var(--hair);color:var(--muted)}
+  .ss-btn:disabled,.ss-btn[aria-disabled="true"]{opacity:.45;filter:saturate(.6);box-shadow:none;cursor:not-allowed}
+  .ss-btn:disabled:active{transform:none}
+  /* quick-action chip — neutral glass body; tint only on the .qi tile */
+  .ss-qchip{display:flex;align-items:center;gap:8px;height:44px;padding:0 15px 0 12px;border-radius:14px;background:var(--glass);border:1px solid var(--hair);color:var(--fg);font:600 12.5px var(--head);white-space:nowrap;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .ss-qchip .qi{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .ss-qchip.accent .qi{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.3)}
+  .ss-qchip.violet .qi{background:rgba(124,107,240,.18);border-color:rgba(124,107,240,.3)}
+  /* indicator dots — active elongates into the orange pill */
+  .ss-dots{display:flex;gap:6px}
+  .ss-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18)}
+  .ss-dots i.on{width:18px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  /* AI surface + badge — violet leads ONLY here */
+  .ss-ai{background:linear-gradient(150deg,rgba(124,107,240,.16),rgba(124,107,240,.05) 60%,var(--glass) 100%);border:1px solid rgba(167,139,250,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 16px 30px -24px rgba(124,107,240,.45)}
+  .ss-aibadge{font:600 9px var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--violet-2);background:rgba(124,107,240,.2);padding:2px 6px;border-radius:5px}
+  @media (prefers-reduced-motion:reduce){.ss-seg-pill{transition:none!important}}
+
+  /* ============================================================================
+     REACT-APP SHELL HELPERS (V1.1) — sticky chrome + scrolling body for the live app.
+     The mockup pinned chrome via the .device frame; here the page scrolls so the topbar
+     is sticky (z>=4, does not scroll away — gate §49) and the body clears the floating nav.
+     ============================================================================ */
+  .ss-topbar{position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,var(--bg) 28%,rgba(8,8,15,.62) 78%,transparent);
+    backdrop-filter:blur(8px) saturate(140%);-webkit-backdrop-filter:blur(8px) saturate(140%)}
+  .ss-body{position:relative;z-index:1;padding:8px 0 128px}
+  /* sub-tab segmented control: the active glide-pill rides above the labels (React FLIP via Motion) */
+  .ss-segbar{position:relative;display:flex;gap:3px;padding:3px;border-radius:13px;
+    background:rgba(255,255,255,.04);border:1px solid var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .ss-segbar .ss-segtab{position:relative;z-index:1;flex:1;min-width:0;min-height:40px;display:flex;align-items:center;justify-content:center;gap:6px;
+    cursor:pointer;border:none;background:none;border-radius:10px;font:600 12px var(--head);letter-spacing:.01em;color:var(--muted-2);white-space:nowrap;
+    transition:color .2s var(--ease)}
+  .ss-segbar .ss-segtab.on{color:var(--fg)}
+  .ss-segbar .ss-segtab svg{width:14px;height:14px;opacity:.7;transition:opacity .2s var(--ease)}
+  .ss-segbar .ss-segtab.on svg{opacity:1}
+  .ss-segbar .ss-segtab:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:10px}
+  .ss-segpill{position:absolute;inset:0;z-index:0;border-radius:10px;
+    background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.12);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 10px -6px rgba(0,0,0,.6);pointer-events:none}
+  /* the gliding nav pill — neutral frosted glass behind the active icon (React FLIP via Motion layoutId) */
+  .ss-navpill{position:absolute;z-index:0;top:9px;left:50%;margin-left:-23px;width:46px;height:42px;border-radius:15px;
+    background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.13);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 12px -7px rgba(0,0,0,.55)}
+  /* typing-dots + chat composer atoms (Chat sub-tab) */
+  .ss-typing{display:flex;gap:5px}
+  .ss-typing i{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:ss-bounce .9s var(--ease) infinite}
+  .ss-typing i:nth-child(2){animation-delay:.15s}
+  .ss-typing i:nth-child(3){animation-delay:.3s}
+  @keyframes ss-bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+  .ss-input{flex:1;min-width:0;height:48px;padding:0 16px;border-radius:13px;background:rgba(255,255,255,.04);
+    border:1px solid var(--hair);color:var(--fg);font:500 13.5px var(--body);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    transition:border-color .2s var(--ease)}
+  .ss-input::placeholder{color:var(--muted-2)}
+  .ss-input:focus{outline:none;border-color:rgba(255,255,255,.18)}
+  @media (prefers-reduced-motion:reduce){.ss-typing i{animation:none!important}}
+
+  /* skeletons — match the recess surface, shimmer once (killed under reduced-motion) */
+  .ss-skel{position:relative;overflow:hidden;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid var(--hair)}
+  .ss-skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:ss-shimmer 1.4s infinite}
+  @keyframes ss-shimmer{100%{transform:translateX(100%)}}
+  /* staggered content entrance — transform+opacity only (gate §52) */
+  .ss-rise{opacity:0;transform:translateY(14px);animation:ss-rise var(--in-base) var(--ease) both}
+  @keyframes ss-rise{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.ss-skel::after{animation:none!important}.ss-rise{animation:none!important;opacity:1!important;transform:none!important}}

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
-import { SSSkeleton } from '../components/ss/SSStates';
-import { Pulse, Spark, ChevronDown } from '../components/ss/icons';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import { Pulse, Spark, ChevronDown, RunGlyph } from '../components/ss/icons';
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
@@ -233,39 +233,36 @@ function RunRow({ run }: { run: any }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="card overflow-hidden">
+    <div className="tile recess" style={{ borderRadius: 18, padding: 0 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={`Run on ${formatDate(run.start_date)}, ${open ? 'collapse' : 'expand'} details`}
-        className="w-full text-left p-4 active:scale-[0.99] transition-transform"
-        style={{ minHeight: 44 }}
+        style={{ width: '100%', textAlign: 'left', padding: 13, minHeight: 44, cursor: 'pointer' }}
       >
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-[11px] text-zinc-500">{formatDate(run.start_date)}</p>
-          <div className="flex items-center gap-2.5">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <p className="num" style={{ font: '500 11px var(--mono)', color: 'var(--muted)' }}>{formatDate(run.start_date)}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {run.elevation_gain > 0 && (
-              <span className="text-[10px] text-zinc-600">↑{Math.round(run.elevation_gain)}m</span>
+              <span className="num" style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)' }}>+{Math.round(run.elevation_gain)}m</span>
             )}
             <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ display: 'inline-flex', color: 'var(--muted-2)' }}>
               <ChevronDown width={14} height={14} />
             </motion.span>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <p className="font-mono text-[17px] font-bold">{(run.distance_meters / 1000).toFixed(1)}</p>
-            <p className="text-[10px] text-zinc-500 uppercase mt-0.5">km</p>
-          </div>
-          <div>
-            <p className="font-mono text-[17px] font-bold">{formatPace(run.average_pace_per_km)}</p>
-            <p className="text-[10px] text-zinc-500 uppercase mt-0.5">pace</p>
-          </div>
-          <div>
-            <p className="font-mono text-[17px] font-bold">{Math.floor(run.moving_time_seconds / 60)}</p>
-            <p className="text-[10px] text-zinc-500 uppercase mt-0.5">min</p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+          {[
+            { v: (run.distance_meters / 1000).toFixed(1), k: 'km' },
+            { v: formatPace(run.average_pace_per_km), k: 'pace' },
+            { v: String(Math.floor(run.moving_time_seconds / 60)), k: 'min' },
+          ].map((s) => (
+            <div key={s.k}>
+              <p className="num" style={{ font: '700 17px var(--mono)', color: 'var(--fg)', lineHeight: 1 }}>{s.v}</p>
+              <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 4 }}>{s.k}</p>
+            </div>
+          ))}
         </div>
       </button>
 
@@ -278,7 +275,7 @@ function RunRow({ run }: { run: any }) {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             style={{ overflow: 'hidden' }}
           >
-            <div className="px-4 pb-4 pt-1 space-y-2.5">
+            <div style={{ padding: '2px 13px 13px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <HrAnalysisBlock activityId={run.id} enabled={open} />
               <CoachRecapBlock activityId={run.id} enabled={open} />
             </div>
@@ -301,59 +298,60 @@ export function RunHistoryPage() {
   const bestPace = runs.length > 0 ? Math.min(...runs.map((r: any) => r.average_pace_per_km || 999)) : 0;
 
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+    <SSScreen active="home" bodyLabel="Run history">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }}>
         {/* Header */}
         <motion.div variants={fadeUp}>
-          <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-600">Activity</p>
-          <h1 className="font-heading text-xl font-bold mt-0.5">Run History</h1>
+          <p className="tlbl">Activity</p>
+          <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', marginTop: 2 }}>Run history</h1>
         </motion.div>
 
         {/* Summary stats */}
         {totalRuns > 0 && (
-          <motion.div variants={fadeUp} className="grid grid-cols-3 gap-3">
-            <div className="card p-3 text-center">
-              <p className="font-mono font-bold text-lg text-white">{totalRuns}</p>
-              <p className="text-[10px] text-zinc-500">runs</p>
+          <motion.div variants={fadeUp} className="sstats">
+            <div className="sstat">
+              <div className="v">{totalRuns}</div>
+              <div className="k">Runs</div>
             </div>
-            <div className="card p-3 text-center">
-              <p className="font-mono font-bold text-lg text-white">{(totalDistance / 1000).toFixed(1)}</p>
-              <p className="text-[10px] text-zinc-500">km total</p>
+            <div className="sstat">
+              <div className="v">{(totalDistance / 1000).toFixed(1)}<small>km</small></div>
+              <div className="k">Total</div>
             </div>
-            <div className="card p-3 text-center">
-              <p className="font-mono font-bold text-lg text-accent">{formatPace(bestPace)}</p>
-              <p className="text-[10px] text-zinc-500">best pace</p>
+            <div className="sstat">
+              <div className="v" style={{ color: 'var(--accent-2)' }}>{formatPace(bestPace)}<small>/km</small></div>
+              <div className="k">Best pace</div>
             </div>
           </motion.div>
         )}
 
         {/* Loading skeleton */}
         {isLoading && (
-          <div className="space-y-3 animate-pulse">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-[72px] rounded-xl bg-bg-tertiary/50" />
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[0, 1, 2, 3].map(i => <SSSkeleton key={i} height={92} style={{ borderRadius: 18 }} />)}
           </div>
         )}
 
         {/* Empty state */}
         {!isLoading && runs.length === 0 && (
-          <motion.div variants={fadeUp} className="text-center py-16">
-            <p className="text-3xl mb-3">🏃</p>
-            <p className="text-zinc-500 text-sm">No runs yet</p>
-            <p className="text-zinc-600 text-xs mt-1">Use the GPS tracker to log your first run</p>
+          <motion.div variants={fadeUp}>
+            <SSEmpty
+              icon={<RunGlyph width={22} height={22} />}
+              title="No runs yet"
+              body="Use the GPS tracker to log your first run — it'll land here with HR analysis and a coach recap."
+              testid="runs-empty"
+            />
           </motion.div>
         )}
 
         {/* Run list — each row taps to expand into HR analysis + Coach recap */}
         {runs.length > 0 && (
-          <motion.div variants={fadeUp} className="space-y-2">
+          <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {runs.map((run: any) => (
               <RunRow key={run.id} run={run} />
             ))}
           </motion.div>
         )}
       </motion.div>
-    </AppShell>
+    </SSScreen>
   );
 }

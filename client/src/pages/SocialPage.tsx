@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'framer-motion';
 import api from '../lib/api';
 import { ApiError } from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
 import { FeedPage } from './FeedPage';
 import { SSSeg, SegItem } from '../components/ss/SSSeg';
 import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
@@ -188,7 +188,7 @@ function UserRow({ userId, name, avatarUrl, meta, index, rankNode, rightNode }: 
 
 function ListSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {Array.from({ length: count }).map((_, i) => (
         <SSSkeleton key={i} height={62} style={{ borderRadius: 16 }} />
       ))}
@@ -429,37 +429,24 @@ export function SocialPage() {
 
   const onChange = useCallback((k: SocialTab) => setTab(k), []);
 
-  // Feed reuses <FeedPage/> wholesale (it ships its own AppShell + nav). We render the
-  // segmented control as a sticky bar above it so the lane switcher stays reachable, and
-  // never duplicate the feed's kudos/comment logic.
-  if (tab === 'feed') {
-    return (
-      <div data-testid="social-tab-feed">
-        <div
-          style={{
-            position: 'sticky', top: 'calc(env(safe-area-inset-top, 8px) + 56px)', zIndex: 30,
-            maxWidth: 512, margin: '0 auto', padding: '0 16px',
-            background: 'linear-gradient(180deg, var(--bg) 70%, transparent)',
-            paddingTop: 4, paddingBottom: 6,
-          }}
-        >
-          <SSSeg<SocialTab> items={TABS} value={tab} onChange={onChange} ariaLabel="Social sections" testid="social-tab" />
-        </div>
-        <FeedPage />
-      </div>
-    );
-  }
-
+  // One SSScreen shell for every lane; the segmented control stays sticky under the
+  // topbar (same pattern as CoachPage). Feed reuses <FeedPage/> content-only so the
+  // kudos/comment behaviour is never reimplemented.
   return (
-    <AppShell>
-      <div style={{ marginBottom: 14 }}>
-        <SSSeg<SocialTab> items={TABS} value={tab} onChange={onChange} ariaLabel="Social sections" testid="social-tab" />
+    <SSScreen active="community" bodyLabel="Community">
+      <div
+        style={{ position: 'sticky', top: 50, zIndex: 15, padding: '6px 16px 10px', background: 'linear-gradient(180deg,var(--bg) 58%,transparent)' }}
+      >
+        <SSSeg<SocialTab> items={TABS} value={tab} onChange={onChange} layoutId="social-subtab" ariaLabel="Social sections" testid="social-tab" />
       </div>
 
-      {tab === 'discover' && <DiscoverTab />}
-      {tab === 'following' && <ConnectionsTab kind="following" />}
-      {tab === 'followers' && <ConnectionsTab kind="followers" />}
-      {tab === 'leaderboard' && <LeaderboardTab />}
-    </AppShell>
+      <div className="ss-pad">
+        {tab === 'feed' && <div data-testid="social-tab-feed"><FeedPage /></div>}
+        {tab === 'discover' && <DiscoverTab />}
+        {tab === 'following' && <ConnectionsTab kind="following" />}
+        {tab === 'followers' && <ConnectionsTab kind="followers" />}
+        {tab === 'leaderboard' && <LeaderboardTab />}
+      </div>
+    </SSScreen>
   );
 }

@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+{# Most-recent run drives the card (seed: "Easy shakeout" 6.2 km · 7:38/km · 47m · PR). #}
+{% set run = S.RECENT_RUNS[0] %}
+{% set runner = user.name if user else 'Ishan Vashistha' %}
+
+{% block page_style %}
+  /* LAYOUT ONLY — look comes from ss-base tokens + surfaces. */
+  .shr-card{position:relative;aspect-ratio:9/16;max-width:288px;margin:0 auto;
+    border-radius:26px;padding:20px;display:flex;flex-direction:column;overflow:hidden}
+  .shr-brand{display:flex;align-items:center;gap:8px}
+  .shr-brand .bm{font:700 13px var(--head);letter-spacing:-.01em;color:var(--fg)}
+  .shr-brand .bm b{background:linear-gradient(90deg,var(--accent),var(--violet-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  /* editorial route watermark bleeds behind the numbers */
+  .shr-route{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+  .shr-route svg{position:absolute;right:-30px;top:34px;width:250px;height:250px;opacity:.16;color:var(--accent-2)}
+  .shr-body{position:relative;z-index:1;margin-top:auto;display:flex;flex-direction:column;gap:16px}
+  .shr-big{font:700 58px var(--mono);font-variant-numeric:tabular-nums;line-height:.92;color:var(--fg);letter-spacing:-.02em}
+  .shr-big small{font:600 15px var(--mono);color:var(--muted);margin-left:4px}
+  .shr-eyebrow{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .shr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px}
+  .shr-grid .c{padding:8px 4px}
+  .shr-grid .cv{font:700 15px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);line-height:1}
+  .shr-grid .cv small{font:500 9px var(--mono);color:var(--muted)}
+  .shr-grid .ck{font:600 8px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:5px}
+  .shr-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding-top:12px;border-top:1px solid var(--hair)}
+  .shr-foot .who{display:flex;align-items:center;gap:8px;min-width:0}
+  .shr-foot .who .nm{font:600 11.5px var(--head);color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shr-av{width:26px;height:26px;border-radius:50%;flex:none;background:linear-gradient(135deg,var(--accent),var(--violet));display:grid;place-items:center;font:700 10px var(--head);color:#fff}
+  .shr-when{font:500 10px var(--mono);color:var(--muted-2);white-space:nowrap;flex:none}
+  /* actions */
+  .shr-actions{display:flex;gap:11px;margin-top:15px}
+  /* skin swatches — neutral glass, no tint; active carries the segpill */
+  .shr-skins{display:flex;gap:9px;margin-top:14px;justify-content:center}
+  .shr-skin{position:relative;width:44px;height:44px;border-radius:13px;cursor:pointer;flex:none;
+    border:1px solid var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .shr-skin .sw{position:absolute;inset:6px;border-radius:8px;z-index:1}
+  .shr-skin .ss-segpill{border-radius:13px}
+  .shr-skin.on{color:var(--fg)}
+  .shr-sk-dark .sw{background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.02))}
+  .shr-sk-mist .sw{background:linear-gradient(160deg,rgba(255,255,255,.20),rgba(255,255,255,.06))}
+  .shr-sk-slate .sw{background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(0,0,0,.28))}
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<div class="pad">
+  <p style="font:600 11px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)">Social</p>
+  <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin:2px 0">Share your run</h1>
+  <p style="font:500 11.5px var(--body);color:var(--muted);margin-bottom:14px">A story-ready card from your latest run</p>
+</div>
+
+<!-- SHAREABLE RUN CARD (Instagram-story hero) -->
+<div class="pad">
+  <div class="ss-surface ss-hero shr-card" role="img"
+       aria-label="Shareable run card: {{ '%.1f'|format(run.distance_km) }} kilometres at {{ run.pace }} per kilometre">
+    <!-- route line watermark -->
+    <div class="shr-route" aria-hidden="true">
+      <svg viewBox="0 0 240 240" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M28 196 C 52 150 34 118 74 108 C 120 96 96 54 140 48 C 184 42 172 92 206 80 C 226 72 220 40 208 26"/>
+        <circle cx="28" cy="196" r="5" fill="currentColor" stroke="none"/>
+        <circle cx="208" cy="26" r="5" fill="var(--accent)" stroke="none"/>
+      </svg>
+    </div>
+
+    <!-- brand + tier badge -->
+    <div class="shr-brand">
+      <span class="bm"><b>Sprint</b> Society</span>
+      <span class="ss-tag now" style="margin-left:auto">{{ S.TIER.tier }}</span>
+    </div>
+
+    <!-- headline metric + splits -->
+    <div class="shr-body">
+      <div>
+        <span class="shr-eyebrow">Distance</span>
+        <div class="shr-big">{{ '%.1f'|format(run.distance_km) }}<small>km</small></div>
+      </div>
+
+      <div class="shr-grid">
+        <div class="c"><div class="cv">{{ run.pace }}<small>/km</small></div><div class="ck">Pace</div></div>
+        <div class="c"><div class="cv">{{ run.duration }}</div><div class="ck">Time</div></div>
+        <div class="c"><div class="cv">{{ '01 Jul' }}</div><div class="ck">Date</div></div>
+      </div>
+
+      <div class="shr-foot">
+        <div class="who">
+          <span class="shr-av">{{ user.initials if user else 'IV' }}</span>
+          <span class="nm">{{ runner }}</span>
+        </div>
+        {% if run.pr %}<span class="ss-prtag">NEW PR</span>{% endif %}
+        <span class="shr-when">{{ run.title }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SKIN PICKER (3 neutral swatch chips; active carries the glide-pill) -->
+  <div class="shr-skins" role="group" aria-label="Card style">
+    <button type="button" class="shr-skin shr-sk-dark on" aria-pressed="true" aria-label="Dark style">
+      <span class="ss-segpill" aria-hidden="true"></span><span class="sw" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="shr-skin shr-sk-mist" aria-pressed="false" aria-label="Mist style">
+      <span class="sw" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="shr-skin shr-sk-slate" aria-pressed="false" aria-label="Slate style">
+      <span class="sw" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="shr-actions">
+    <a class="ss-btn ss-btn-primary" href="{{ url_for('share') }}">{{ icon('share', 16, '#fff', 2) }} Share</a>
+    <a class="ss-btn ss-btn-soft" href="{{ url_for('share') }}">{{ icon('download', 16, 'var(--fg)', 2) }} Download</a>
+  </div>
+</div>
+
+<!-- PICK A DIFFERENT RUN -->
+<div class="pad" style="margin-top:6px">
+  {{ sechead('Pick a run', 'All runs', url_for('runs')) }}
+  <div class="tile recess">
+    {% for r in S.RECENT_RUNS[:4] %}
+    <a class="run" href="{{ url_for('share') }}" style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--hair);{{ 'border-bottom:none' if loop.last }}">
+      <span class="runico" style="width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--hair)">{{ icon('run', 15, 'var(--muted)', 2) }}</span>
+      <div class="ri" style="flex:1;min-width:0">
+        <div class="t" style="font:600 13px var(--body);color:var(--fg)">
+          <b style="font:600 13px var(--mono);font-variant-numeric:tabular-nums">{{ '%.1f'|format(r.distance_km) }} km</b>
+          · <b style="font:600 13px var(--mono);font-variant-numeric:tabular-nums">{{ r.pace }}/km</b>
+          {% if r.pr %}<span class="ss-prtag" style="margin-left:5px">PR</span>{% endif %}
+        </div>
+        <div class="s" style="font:500 10.5px var(--body);color:var(--muted-2);margin-top:2px">{{ r.when }} · {{ r.title }}</div>
+      </div>
+      {% if loop.first %}<span class="ss-dchip good">{{ icon('check', 11, 'currentColor', 2.4) }} On card</span>
+      {% else %}{{ icon('chevron', 15, 'var(--muted-2)', 2) }}{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

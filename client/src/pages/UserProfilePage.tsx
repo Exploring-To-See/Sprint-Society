@@ -1,15 +1,19 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Runner profile (/user/:id) — rebuilt on ss-base. Hooks preserved: GET /profile/:id,
+// POST/DELETE /social/follow/:id, GET /kendu/balance, POST /kendu/spend/gift.
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import { ArrowLeft, Flame, Trophy, Check, CommunityOutline } from '../components/ss/icons';
 import { useAuth } from '../context/AuthContext';
 
-const TIER_STYLES: Record<string, { bg: string; text: string }> = {
-  advanced: { bg: 'bg-accent-gold/10 border-accent-gold/20', text: 'text-accent-gold' },
-  intermediate: { bg: 'bg-accent/10 border-accent/20', text: 'text-accent' },
-  beginner: { bg: 'bg-accent-green/10 border-accent-green/20', text: 'text-accent-green' },
+const TIER_TAG: Record<string, string> = {
+  advanced: 'maybe',
+  intermediate: 'now',
+  beginner: 'go',
 };
 
 export function UserProfilePage() {
@@ -33,93 +37,98 @@ export function UserProfilePage() {
 
   if (isLoading) {
     return (
-      <AppShell>
-        <div className="space-y-4 animate-pulse pt-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-bg-tertiary" />
-            <div className="space-y-2 flex-1">
-              <div className="h-5 w-32 bg-bg-tertiary rounded" />
-              <div className="h-3 w-24 bg-bg-tertiary rounded" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <div className="h-16 flex-1 bg-bg-tertiary rounded-xl" />
-            <div className="h-16 flex-1 bg-bg-tertiary rounded-xl" />
-            <div className="h-16 flex-1 bg-bg-tertiary rounded-xl" />
-          </div>
+      <SSScreen active="community" bodyLabel="Runner profile">
+        <div className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SSSkeleton height={72} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={48} style={{ borderRadius: 13 }} />
+          <SSSkeleton height={72} style={{ borderRadius: 18 }} />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   if (!profile) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center py-20 gap-3">
-          <span className="text-3xl">🤷</span>
-          <p className="text-zinc-500 text-[13px]">User not found</p>
-          <button onClick={() => navigate(-1)} className="text-accent text-[12px] font-semibold">Go back</button>
+      <SSScreen active="community" bodyLabel="Runner profile">
+        <div className="ss-pad">
+          <SSEmpty
+            icon={<CommunityOutline width={22} height={22} />}
+            title="Runner not found"
+            body="This profile may have been removed."
+            cta={
+              <button className="ss-btn ss-btn-soft" style={{ height: 42, padding: '0 22px', flex: 'none' }} onClick={() => navigate(-1)}>
+                Go back
+              </button>
+            }
+            testid="user-not-found"
+          />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   const isOwnProfile = (currentUser as any)?.id === profile.id;
-  const tierStyle = TIER_STYLES[profile.current_tier || 'beginner'] || TIER_STYLES.beginner;
+  const tierTag = TIER_TAG[profile.current_tier || 'beginner'] || 'go';
 
   return (
-    <AppShell>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 pb-6">
+    <SSScreen active="community" bodyLabel={`${profile.name}'s profile`}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ss-pad" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 24 }}>
         {/* Back */}
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 transition-colors">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M10 12L6 8l4-4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span className="text-[12px] font-medium">Back</span>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', font: '500 12px var(--body)', color: 'var(--muted)', minHeight: 34, padding: 0 }}
+        >
+          <ArrowLeft width={15} height={15} /> Back
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-bg-tertiary border-2 border-bg-tertiary overflow-hidden flex items-center justify-center">
+        <div className="ss-surface ss-hero" style={{ borderRadius: 22, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 60, height: 60, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center', overflow: 'hidden',
+              background: 'linear-gradient(135deg,var(--accent),var(--violet))', font: '700 20px var(--head)', color: '#fff',
+            }}
+          >
             {profile.profile_image_url ? (
-              <img src={profile.profile_image_url} alt="" className="w-full h-full object-cover" />
+              <img src={profile.profile_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <span className="text-xl font-bold text-zinc-500">{profile.name?.[0]?.toUpperCase()}</span>
+              profile.name?.[0]?.toUpperCase()
             )}
-          </div>
-          <div className="flex-1">
-            <h1 className="font-heading text-[20px] font-bold text-white">{profile.name}</h1>
-            <div className="flex items-center gap-2 mt-1">
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ font: '600 20px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)' }}>{profile.name}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
               {profile.current_tier && (
-                <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${tierStyle.bg} ${tierStyle.text}`}>
-                  {profile.current_tier}
-                </span>
+                <span className={`ss-tag ${tierTag}`}>{profile.current_tier}</span>
               )}
-              <span className="text-[10px] text-zinc-600 font-mono">L{profile.current_level}</span>
+              <span className="schip" style={{ height: 24, padding: '0 8px', fontSize: 10 }}>L{profile.current_level}</span>
               {profile.current_streak_days > 0 && (
-                <span className="text-[10px] text-zinc-600">🔥 {profile.current_streak_days}</span>
+                <span className="schip" style={{ height: 24, padding: '0 8px', fontSize: 10 }}>
+                  <Flame width={10} height={10} style={{ color: 'var(--amber)' }} /> {profile.current_streak_days}
+                </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Follow + Gift buttons */}
+        {/* Follow + Gift */}
         {!isOwnProfile && (
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: 9 }}>
             <button
               onClick={() => followMutation.mutate(profile.is_following)}
               disabled={followMutation.isPending}
-              className={`flex-1 py-2.5 rounded-xl font-semibold text-[13px] active:scale-[0.98] transition-all ${
-                profile.is_following
-                  ? 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
-                  : 'bg-accent text-white'
-              }`}
+              className={`ss-btn ${profile.is_following ? 'ss-btn-soft' : 'ss-btn-primary'}`}
+              style={{ height: 44 }}
+              data-testid="follow-btn"
             >
-              {profile.is_following ? 'Following' : 'Follow'}
+              {profile.is_following ? <><Check width={14} height={14} /> Following</> : 'Follow'}
             </button>
             <button
               onClick={() => setShowGift(true)}
-              className="px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 font-semibold text-[13px] active:scale-[0.98] transition-all"
+              className="ss-btn"
+              style={{ flex: 'none', height: 44, padding: '0 18px', background: 'rgba(249,115,22,.1)', border: '1px solid rgba(249,115,22,.24)', color: 'var(--accent-2)', fontSize: 13 }}
+              data-testid="gift-btn"
             >
               Gift Kendu
             </button>
@@ -127,35 +136,30 @@ export function UserProfilePage() {
         )}
 
         {/* Stats row */}
-        <div className="flex rounded-xl bg-bg-secondary border border-bg-tertiary divide-x divide-bg-tertiary overflow-hidden">
-          <div className="flex-1 p-3 text-center">
-            <p className="font-mono font-bold text-[16px] text-white">{profile.total_runs}</p>
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Runs</p>
-          </div>
-          <div className="flex-1 p-3 text-center">
-            <p className="font-mono font-bold text-[16px] text-white">{profile.total_distance_km}</p>
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">km</p>
-          </div>
-          <div className="flex-1 p-3 text-center">
-            <p className="font-mono font-bold text-[16px] text-white">{profile.followers_count}</p>
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Followers</p>
-          </div>
-          <div className="flex-1 p-3 text-center">
-            <p className="font-mono font-bold text-[16px] text-white">{profile.following_count}</p>
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Following</p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--gap)' }}>
+          {[
+            { v: profile.total_runs, k: 'Runs' },
+            { v: profile.total_distance_km, k: 'km' },
+            { v: profile.followers_count, k: 'Followers' },
+            { v: profile.following_count, k: 'Following' },
+          ].map((s) => (
+            <div key={s.k} className="tile recess" style={{ borderRadius: 16, padding: '11px 8px', alignItems: 'center' }}>
+              <span className="num" style={{ font: '700 16px var(--mono)', color: 'var(--fg)', lineHeight: 1 }}>{s.v}</span>
+              <span style={{ font: '600 8.5px var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 5 }}>{s.k}</span>
+            </div>
+          ))}
         </div>
 
         {/* Achievements */}
         {profile.recent_achievements?.length > 0 && (
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mb-2">Achievements</h3>
-            <div className="flex flex-wrap gap-2">
+            <p className="tlbl" style={{ marginBottom: 8 }}>Achievements</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
               {profile.recent_achievements.map((a: any, i: number) => (
-                <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-bg-secondary border border-bg-tertiary">
-                  <span className="text-sm">{a.icon}</span>
-                  <span className="text-[10px] text-zinc-400 font-medium">{a.name}</span>
-                </div>
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: 11, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.2)' }}>
+                  <Trophy width={12} height={12} style={{ color: 'var(--amber)', flex: 'none' }} />
+                  <span style={{ font: '500 10.5px var(--body)', color: 'var(--fg)' }}>{a.name}</span>
+                </span>
               ))}
             </div>
           </div>
@@ -164,15 +168,16 @@ export function UserProfilePage() {
         {/* Communities */}
         {profile.communities?.length > 0 && (
           <div>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mb-2">Communities</h3>
-            <div className="flex flex-wrap gap-2">
+            <p className="tlbl" style={{ marginBottom: 8 }}>Communities</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
               {profile.communities.map((c: any) => (
                 <button
                   key={c.id}
                   onClick={() => navigate(`/communities/${c.id}`)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-bg-secondary border border-bg-tertiary active:scale-95 transition-all"
+                  className="ss-tab on"
+                  style={{ minHeight: 32, fontSize: 11 }}
                 >
-                  <span className="text-[11px] text-zinc-400">{c.name}</span>
+                  {c.name}
                 </button>
               ))}
             </div>
@@ -180,7 +185,7 @@ export function UserProfilePage() {
         )}
 
         {/* Member since */}
-        <p className="text-[10px] text-zinc-700 text-center pt-2">
+        <p style={{ font: '500 10px var(--body)', color: 'var(--muted-2)', textAlign: 'center', paddingTop: 6 }}>
           Member since {new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </p>
       </motion.div>
@@ -193,7 +198,7 @@ export function UserProfilePage() {
           toUserName={profile.name}
         />
       )}
-    </AppShell>
+    </SSScreen>
   );
 }
 
@@ -224,6 +229,8 @@ function GiftKenduModal({ isOpen, onClose, toUserId, toUserName }: { isOpen: boo
   const totalCost = amount + fee;
   const canAfford = (balance?.spendable_balance ?? 0) >= totalCost;
 
+  const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', font: '500 11px var(--body)' };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -231,85 +238,91 @@ function GiftKenduModal({ isOpen, onClose, toUserId, toUserName }: { isOpen: boo
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(3,3,8,.7)', backdropFilter: 'blur(6px)', padding: 16 }}
           onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Gift Kendu to ${toUserName}`}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-bg-secondary border border-orange-500/20 rounded-2xl p-5 w-full max-w-sm space-y-4"
+            exit={{ scale: 0.96, opacity: 0 }}
+            className="ss-surface"
+            style={{ borderRadius: 22, padding: 18, width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 14, background: 'rgba(11,10,22,.92)' }}
             onClick={e => e.stopPropagation()}
           >
             {success ? (
-              <div className="text-center py-6 space-y-2">
-                <p className="text-3xl">🎁</p>
-                <p className="text-[14px] font-bold text-green-400">Sent {amount} Kendu to {toUserName}!</p>
+              <div style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <span className="ss-dchip good" style={{ minHeight: 30 }}><Check width={13} height={13} /> Sent</span>
+                <p style={{ font: '600 14px var(--body)', color: 'var(--green)' }}>Sent {amount} Kendu to {toUserName}</p>
               </div>
             ) : (
               <>
-                <div className="text-center space-y-1">
-                  <p className="text-[15px] font-bold text-zinc-100">Gift Kendu</p>
-                  <p className="text-[12px] text-zinc-400">Send Kendu to {toUserName}</p>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ font: '600 15px var(--head)', color: 'var(--fg)' }}>Gift Kendu</p>
+                  <p style={{ font: '400 12px var(--body)', color: 'var(--muted)', marginTop: 2 }}>Send Kendu to {toUserName}</p>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1">Amount (min 3)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ font: '500 11px var(--body)', color: 'var(--muted)' }}>
+                    Amount (min 3)
                     <input
                       type="number"
                       min={3}
                       max={balance?.spendable_balance ?? 100}
                       value={amount}
                       onChange={e => { setAmount(Math.max(3, parseInt(e.target.value) || 3)); setError(''); }}
-                      className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[14px] text-zinc-200 font-mono"
+                      className="ss-input num"
+                      style={{ width: '100%', height: 42, marginTop: 5, font: '600 14px var(--mono)' }}
                     />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1">Message (optional)</label>
+                  </label>
+                  <label style={{ font: '500 11px var(--body)', color: 'var(--muted)' }}>
+                    Message (optional)
                     <input
                       type="text"
                       value={message}
                       onChange={e => setMessage(e.target.value)}
                       placeholder="Keep running!"
                       maxLength={100}
-                      className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[13px] text-zinc-200 placeholder:text-zinc-600"
+                      className="ss-input"
+                      style={{ width: '100%', height: 42, marginTop: 5 }}
                     />
+                  </label>
+                </div>
+
+                <div className="glass recess" style={{ borderRadius: 14, padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={rowStyle}>
+                    <span style={{ color: 'var(--muted)' }}>Gift amount</span>
+                    <span className="num" style={{ color: 'var(--fg)' }}>{amount} Kendu</span>
+                  </div>
+                  <div style={rowStyle}>
+                    <span style={{ color: 'var(--muted)' }}>Platform fee (15%)</span>
+                    <span className="num" style={{ color: 'var(--amber)' }}>+{fee} burned</span>
+                  </div>
+                  <div style={{ ...rowStyle, borderTop: '1px solid var(--hair)', paddingTop: 6, font: '600 12px var(--body)' }}>
+                    <span style={{ color: 'var(--muted)' }}>You pay</span>
+                    <span className="num" style={{ color: 'var(--accent-2)', fontWeight: 700 }}>{totalCost} Kendu</span>
+                  </div>
+                  <div style={{ ...rowStyle, fontSize: 10 }}>
+                    <span style={{ color: 'var(--muted-2)' }}>Your balance</span>
+                    <span className="num" style={{ color: canAfford ? 'var(--muted)' : 'var(--amber)' }}>{balance?.spendable_balance ?? 0}</span>
                   </div>
                 </div>
 
-                <div className="bg-bg-tertiary/50 rounded-xl p-3 space-y-1.5">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-zinc-400">Gift amount</span>
-                    <span className="text-zinc-200">{amount} Kendu</span>
-                  </div>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-zinc-400">Platform fee (15%)</span>
-                    <span className="text-red-400">+{fee} burned</span>
-                  </div>
-                  <div className="border-t border-zinc-700/50 pt-1.5 flex justify-between text-[12px]">
-                    <span className="text-zinc-400 font-semibold">You pay</span>
-                    <span className="text-orange-400 font-bold">{totalCost} Kendu</span>
-                  </div>
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-zinc-500">Your balance</span>
-                    <span className={canAfford ? 'text-zinc-400' : 'text-red-400'}>{balance?.spendable_balance ?? 0}</span>
-                  </div>
-                </div>
+                {error && <p style={{ font: '500 11px var(--body)', color: 'var(--amber)', textAlign: 'center' }} role="alert">{error}</p>}
 
-                {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
-
-                <div className="flex gap-3">
-                  <button onClick={onClose} className="flex-1 py-2.5 rounded-lg bg-bg-tertiary text-zinc-400 text-[13px] font-medium">
+                <div style={{ display: 'flex', gap: 9 }}>
+                  <button onClick={onClose} className="ss-btn ss-btn-soft" style={{ height: 44 }}>
                     Cancel
                   </button>
                   <button
                     onClick={() => giftMutation.mutate()}
                     disabled={!canAfford || giftMutation.isPending}
-                    className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white text-[13px] font-semibold disabled:opacity-40"
+                    className="ss-btn ss-btn-primary"
+                    style={{ height: 44 }}
                   >
-                    {giftMutation.isPending ? 'Sending...' : `Send ${amount}`}
+                    {giftMutation.isPending ? 'Sending…' : `Send ${amount}`}
                   </button>
                 </div>
               </>

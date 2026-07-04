@@ -1,11 +1,20 @@
-﻿import { useState } from 'react';
+// Weekly challenges — rows in a recess well, crafted SVG category icons (no emoji).
+// Data: GET /coaching/challenges + POST /coaching/challenges/:id/complete (unchanged).
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/api';
+import { SSSkeleton } from '../ss/SSStates';
+import { Check, ChevronDown, Target, Drop, Dumbbell, Leaf, Wind, Shoe, RunGlyph } from '../ss/icons';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  bodyweight: '💪', nutrition: '🥗', hydration: '💧',
-  technique: '🎯', gear: '👟', breathing: '🌬️', running: '🏃',
+const CATEGORY_ICONS: Record<string, (p: React.SVGProps<SVGSVGElement>) => JSX.Element> = {
+  bodyweight: Dumbbell,
+  nutrition: Leaf,
+  hydration: Drop,
+  technique: Target,
+  gear: Shoe,
+  breathing: Wind,
+  running: RunGlyph,
 };
 
 const AUTO_DETECT_CATEGORIES = ['running', 'technique'];
@@ -38,109 +47,86 @@ export function ChallengeList() {
   });
 
   if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-[60px] rounded-xl bg-bg-secondary border border-bg-tertiary animate-pulse" />
-        ))}
-      </div>
-    );
+    return <SSSkeleton height={168} style={{ borderRadius: 18 }} />;
   }
 
   if (!challenges || !Array.isArray(challenges) || challenges.length === 0) {
     return (
-      <div className="flex flex-col items-center py-8 gap-2">
-        <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center">
-          <span className="text-base">🎯</span>
-        </div>
-        <p className="text-[11px] text-zinc-600 text-center">No challenges yet. Check back soon!</p>
+      <div className="tile recess" style={{ borderRadius: 18, padding: 20, alignItems: 'center', textAlign: 'center' }}>
+        <span className="ticon" style={{ marginBottom: 8 }}><Target width={14} height={14} style={{ color: 'var(--muted)' }} /></span>
+        <p style={{ font: '500 12px var(--body)', color: 'var(--muted)' }}>No challenges yet. Check back soon.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {challenges.map((challenge: any, index: number) => {
+    <div className="tile recess" style={{ borderRadius: 18, padding: '2px 13px' }} data-testid="challenge-list">
+      {challenges.map((challenge: any, i: number) => {
         const isAutoDetect = AUTO_DETECT_CATEGORIES.includes(challenge.category);
         const canManualComplete = !isAutoDetect && !challenge.completed;
         const isExpanded = expanded === challenge.id;
+        const Icon = CATEGORY_ICONS[challenge.category] || Target;
+        const isLast = i === challenges.length - 1;
 
         return (
-          <motion.div
-            key={challenge.id}
-            layout
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 30 }}
-            className={`rounded-xl border transition-colors duration-200 ${
-              challenge.completed
-                ? 'bg-bg-secondary/50 border-accent-green/10'
-                : isExpanded
-                  ? 'bg-bg-secondary border-zinc-700'
-                  : 'bg-bg-secondary border-bg-tertiary'
-            }`}
-          >
-            <button
-              onClick={() => !challenge.completed && setExpanded(isExpanded ? null : challenge.id)}
-              className="w-full flex items-center gap-3 p-3.5 text-left"
-            >
-              {/* Icon */}
-              <span className={`text-base shrink-0 ${challenge.completed ? 'grayscale opacity-50' : ''}`}>
-                {CATEGORY_ICONS[challenge.category] || '⭐'}
-              </span>
+          <div key={challenge.id} style={{ borderBottom: isLast ? 'none' : '1px solid var(--hair)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, minHeight: 56 }}>
+              <button
+                onClick={() => !challenge.completed && setExpanded(isExpanded ? null : challenge.id)}
+                aria-expanded={!challenge.completed ? isExpanded : undefined}
+                style={{ display: 'flex', alignItems: 'center', gap: 11, flex: 1, minWidth: 0, padding: '11px 0', textAlign: 'left', cursor: challenge.completed ? 'default' : 'pointer' }}
+              >
+                <span className="runico" style={{ opacity: challenge.completed ? .45 : 1 }}>
+                  <Icon width={15} height={15} style={{ color: challenge.completed ? 'var(--muted-2)' : 'var(--muted)' }} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{
+                    display: 'block', font: '600 13px var(--body)',
+                    color: challenge.completed ? 'var(--muted-2)' : 'var(--fg)',
+                    textDecoration: challenge.completed ? 'line-through' : 'none',
+                  }}>
+                    {challenge.title}
+                  </span>
+                  <span className="num" style={{ display: 'flex', alignItems: 'center', gap: 6, font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2, textTransform: 'capitalize' }}>
+                    {challenge.category} · +{challenge.xp_reward} XP
+                    {isAutoDetect && !challenge.completed && (
+                      <span className="ss-tag now" style={{ fontSize: 7.5, padding: '1px 5px' }}>Auto</span>
+                    )}
+                  </span>
+                </span>
+              </button>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <p className={`text-[13px] font-medium leading-tight ${
-                  challenge.completed ? 'text-zinc-600 line-through' : 'text-white'
-                }`}>
-                  {challenge.title}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-zinc-600 capitalize">{challenge.category}</span>
-                  <span className="text-[10px] text-zinc-700">·</span>
-                  <span className="text-[10px] font-mono text-zinc-600">+{challenge.xp_reward}</span>
-                  {isAutoDetect && !challenge.completed && (
-                    <span className="text-[11px] px-1.5 py-[1px] rounded bg-accent/8 text-accent/70 font-semibold uppercase tracking-wider">
-                      Auto
-                    </span>
-                  )}
-                </div>
-              </div>
+              {challenge.completed ? (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  className="ss-dchip good"
+                  aria-label="Completed"
+                >
+                  <Check width={11} height={11} />
+                </motion.span>
+              ) : canManualComplete ? (
+                <button
+                  onClick={() => completeMutation.mutate(challenge.id)}
+                  disabled={completeMutation.isPending}
+                  aria-label={`Mark ${challenge.title} complete`}
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center',
+                    border: '1px solid var(--hair)', background: 'rgba(255,255,255,.04)', color: 'var(--muted)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Check width={11} height={11} />
+                </button>
+              ) : (
+                <ChevronDown
+                  width={14} height={14} aria-hidden="true"
+                  style={{ color: 'var(--muted-2)', flex: 'none', transition: 'transform .2s var(--ease)', transform: isExpanded ? 'rotate(180deg)' : 'none' }}
+                />
+              )}
+            </div>
 
-              {/* Status indicator */}
-              <div className="shrink-0">
-                {challenge.completed ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                    className="w-6 h-6 rounded-full bg-accent-green/15 flex items-center justify-center"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-accent-green">
-                      <path d="M2 6.5L4.5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </motion.div>
-                ) : canManualComplete ? (
-                  <div
-                    onClick={(e) => { e.stopPropagation(); completeMutation.mutate(challenge.id); }}
-                    className="w-6 h-6 rounded-full border border-zinc-700 hover:border-accent-green hover:bg-accent-green/10 flex items-center justify-center transition-all duration-150 active:scale-90"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="text-zinc-600">
-                      <path d="M2 6.5L4.5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                ) : (
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <svg width="10" height="10" viewBox="0 0 12 12" className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                      <path d="M3 5L6 8L9 5" stroke="#52525B" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-                    </svg>
-                  </div>
-                )}
-              </div>
-            </button>
-
-            {/* Expandable detail */}
             <AnimatePresence>
               {isExpanded && !challenge.completed && (
                 <motion.div
@@ -148,20 +134,20 @@ export function ChallengeList() {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  className="overflow-hidden"
+                  style={{ overflow: 'hidden' }}
                 >
-                  <div className="px-3.5 pb-3.5 pt-0">
-                    <div className="rounded-lg bg-bg-primary/80 p-3 border border-bg-tertiary/50">
-                      <p className="text-[12px] text-zinc-400 leading-relaxed">{challenge.description}</p>
+                  <div style={{ padding: '0 0 12px' }}>
+                    <div className="glass recess" style={{ borderRadius: 12, padding: 12 }}>
+                      <p style={{ font: '400 12px/1.55 var(--body)', color: 'var(--muted)' }}>{challenge.description}</p>
                       {challenge.target_value && (
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600">Target</span>
-                          <span className="font-mono text-[12px] font-semibold text-accent">
+                        <p style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className="tlbl">Target</span>
+                          <span className="num" style={{ font: '600 12px var(--mono)', color: 'var(--accent-2)' }}>
                             {challenge.target_value} {challenge.target_unit || ''}
                           </span>
-                        </div>
+                        </p>
                       )}
-                      <p className="text-[10px] text-zinc-600 mt-2 italic">
+                      <p style={{ font: '400 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 8 }}>
                         {CATEGORY_TIPS[challenge.category] || 'Take it one step at a time.'}
                       </p>
                     </div>
@@ -169,7 +155,7 @@ export function ChallengeList() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         );
       })}
     </div>

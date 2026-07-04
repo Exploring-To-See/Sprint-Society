@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSeg } from '../components/ss/SSSeg';
+import { Flag, Bolt, Bars, Target, ChevronRight } from '../components/ss/icons';
 
 type GoalType = 'race' | 'pace' | 'volume';
 
@@ -18,11 +20,26 @@ const DISTANCES = [
 ];
 
 const TIMELINE_PRESETS = [
-  { weeks: 4, label: '4 weeks' },
-  { weeks: 8, label: '8 weeks' },
-  { weeks: 12, label: '12 weeks' },
-  { weeks: 16, label: '16 weeks' },
+  { weeks: 4, label: '4 wk' },
+  { weeks: 8, label: '8 wk' },
+  { weeks: 12, label: '12 wk' },
+  { weeks: 16, label: '16 wk' },
 ];
+
+const GOAL_TYPES: { key: GoalType; Icon: typeof Flag; title: string; sub: string }[] = [
+  { key: 'race', Icon: Flag, title: 'Race Goal', sub: 'Target a distance + time by a date' },
+  { key: 'pace', Icon: Bolt, title: 'Pace Goal', sub: 'Hit a target pace for a specific distance' },
+  { key: 'volume', Icon: Bars, title: 'Volume Goal', sub: 'Run X km per week or month' },
+];
+
+const h1Style: React.CSSProperties = { font: '600 22px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: '0 0 6px' };
+const subStyle: React.CSSProperties = { font: '400 12px var(--body)', color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.5 };
+const ghostBtn: React.CSSProperties = { font: '600 12px var(--body)', color: 'var(--muted-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 0', textAlign: 'center' };
+const monoInput: React.CSSProperties = {
+  flex: 1, minWidth: 0, padding: '13px 12px', borderRadius: 13, textAlign: 'center',
+  background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)',
+  font: '700 18px var(--mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--fg)', outline: 'none',
+};
 
 export function SetGoalPage() {
   const navigate = useNavigate();
@@ -76,55 +93,51 @@ export function SetGoalPage() {
   };
 
   return (
-    <AppShell hideNav>
-      <div className="min-h-[80vh] flex flex-col">
+    <SSScreen hideNav bodyLabel="Set your goal">
+      <div className="pad" style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', paddingBottom: 24 }}>
         {/* Progress dots */}
-        <div className="flex justify-center gap-2 py-4">
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 7, padding: '14px 0 18px' }}>
           {[0, 1, 2, 3].map(i => (
-            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i <= step ? 'bg-accent w-4' : 'bg-bg-tertiary'}`} />
+            <span
+              key={i}
+              style={{
+                height: 6, borderRadius: 3, transition: 'all .25s var(--ease)',
+                width: i <= step ? 18 : 6,
+                background: i <= step ? 'linear-gradient(90deg,var(--accent),var(--accent-2))' : 'rgba(255,255,255,.14)',
+              }}
+            />
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* Step 0: Choose type */}
+        {/* Steps — conditional keyed mounts (an AnimatePresence mode="wait" nested
+            under the route-level one stalls: the entering step stays at opacity 0) */}
+        {/* Step 0: Choose type */}
           {step === 0 && (
-            <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 flex flex-col px-1">
-              <h1 className="text-[22px] font-bold text-white mb-2">What's your goal?</h1>
-              <p className="text-[12px] text-zinc-500 mb-6">Your AI coach builds a personalized plan around this.</p>
+            <motion.div key="type" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <h1 style={h1Style}>What's your goal?</h1>
+              <p style={subStyle}>Your AI coach builds a personalized plan around this.</p>
 
-              <div className="space-y-3 flex-1">
-                <button onClick={() => { setGoalType('race'); setStep(1); }} className="w-full p-4 rounded-xl bg-bg-secondary border border-bg-tertiary text-left active:scale-[0.98] transition-transform hover:border-accent/30">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">🏁</span>
-                    <div>
-                      <p className="text-[13px] font-bold text-white">Race Goal</p>
-                      <p className="text-[11px] text-zinc-500">Target a distance + time by a date</p>
-                    </div>
-                  </div>
-                </button>
-
-                <button onClick={() => { setGoalType('pace'); setStep(1); }} className="w-full p-4 rounded-xl bg-bg-secondary border border-bg-tertiary text-left active:scale-[0.98] transition-transform hover:border-accent/30">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">⚡</span>
-                    <div>
-                      <p className="text-[13px] font-bold text-white">Pace Goal</p>
-                      <p className="text-[11px] text-zinc-500">Hit a target pace for a specific distance</p>
-                    </div>
-                  </div>
-                </button>
-
-                <button onClick={() => { setGoalType('volume'); setStep(1); }} className="w-full p-4 rounded-xl bg-bg-secondary border border-bg-tertiary text-left active:scale-[0.98] transition-transform hover:border-accent/30">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">📊</span>
-                    <div>
-                      <p className="text-[13px] font-bold text-white">Volume Goal</p>
-                      <p className="text-[11px] text-zinc-500">Run X km per week or month</p>
-                    </div>
-                  </div>
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                {GOAL_TYPES.map(({ key, Icon, title, sub }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setGoalType(key); setStep(1); }}
+                    className="tile w-full"
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: '15px 14px', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    <span style={{ width: 38, height: 38, borderRadius: 11, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,.14)', border: '1px solid rgba(249,115,22,.28)' }}>
+                      <Icon width={17} height={17} style={{ color: 'var(--accent-2)' }} />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', font: '600 13.5px var(--body)', color: 'var(--fg)' }}>{title}</span>
+                      <span style={{ display: 'block', font: '400 11px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>{sub}</span>
+                    </span>
+                    <ChevronRight width={15} height={15} style={{ color: 'var(--muted-2)', flex: 'none' }} />
+                  </button>
+                ))}
               </div>
 
-              <button onClick={() => navigate('/dashboard')} className="mt-4 py-3 text-[12px] text-zinc-600 text-center">
+              <button onClick={() => navigate('/dashboard')} style={{ ...ghostBtn, marginTop: 14 }}>
                 Skip for now
               </button>
             </motion.div>
@@ -132,146 +145,159 @@ export function SetGoalPage() {
 
           {/* Step 1: Configure goal */}
           {step === 1 && (
-            <motion.div key="config" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 flex flex-col px-1">
+            <motion.div key="config" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {(goalType === 'race' || goalType === 'pace') && (
                 <>
-                  <h1 className="text-[22px] font-bold text-white mb-2">Pick your distance</h1>
-                  <p className="text-[12px] text-zinc-500 mb-6">{goalType === 'race' ? 'What race distance are you targeting?' : 'What distance do you want to get faster at?'}</p>
+                  <h1 style={h1Style}>Pick your distance</h1>
+                  <p style={subStyle}>{goalType === 'race' ? 'What race distance are you targeting?' : 'What distance do you want to get faster at?'}</p>
 
-                  <div className="grid grid-cols-3 gap-2 mb-6">
-                    {DISTANCES.map(d => (
-                      <button
-                        key={d.value}
-                        onClick={() => setDistance(d.value)}
-                        className={`py-3 px-2 rounded-xl text-center transition-all ${
-                          distance === d.value
-                            ? 'bg-accent text-white border border-accent'
-                            : 'bg-bg-secondary border border-bg-tertiary text-zinc-400 hover:border-accent/30'
-                        }`}
-                      >
-                        <span className="text-[12px] font-bold">{d.label}</span>
-                      </button>
-                    ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8, marginBottom: 20 }}>
+                    {DISTANCES.map(d => {
+                      const on = distance === d.value;
+                      return (
+                        <button
+                          key={d.value}
+                          onClick={() => setDistance(d.value)}
+                          className={`tile ${on ? '' : 'recess'}`}
+                          style={{ alignItems: 'center', padding: '13px 4px', cursor: 'pointer', borderColor: on ? 'rgba(249,115,22,.4)' : undefined }}
+                          aria-pressed={on}
+                        >
+                          <span className="num" style={{ font: '700 12.5px var(--mono)', color: on ? 'var(--accent-2)' : 'var(--muted)', whiteSpace: 'nowrap' }}>
+                            {d.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}
 
               {goalType === 'volume' && (
                 <>
-                  <h1 className="text-[22px] font-bold text-white mb-2">How much do you want to run?</h1>
-                  <p className="text-[12px] text-zinc-500 mb-6">Set a volume target for consistency.</p>
+                  <h1 style={h1Style}>How much do you want to run?</h1>
+                  <p style={subStyle}>Set a volume target for consistency.</p>
 
-                  <div className="flex gap-3 mb-4">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                     <input
                       type="number"
                       value={volumeKm}
                       onChange={e => setVolumeKm(e.target.value)}
                       placeholder="km"
-                      className="flex-1 px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-white text-[14px] outline-none focus:border-accent/40"
+                      style={monoInput}
                     />
-                    <div className="flex rounded-xl overflow-hidden border border-bg-tertiary">
-                      <button onClick={() => setVolumePeriod('week')} className={`px-4 py-3 text-[11px] font-bold ${volumePeriod === 'week' ? 'bg-accent text-white' : 'bg-bg-secondary text-zinc-500'}`}>Week</button>
-                      <button onClick={() => setVolumePeriod('month')} className={`px-4 py-3 text-[11px] font-bold ${volumePeriod === 'month' ? 'bg-accent text-white' : 'bg-bg-secondary text-zinc-500'}`}>Month</button>
-                    </div>
+                    <SSSeg<'week' | 'month'>
+                      items={[{ key: 'week', label: 'Per week' }, { key: 'month', label: 'Per month' }]}
+                      value={volumePeriod}
+                      onChange={setVolumePeriod}
+                      ariaLabel="Volume period"
+                      testid="goal-period"
+                    />
                   </div>
                 </>
               )}
 
               <button
+                className="ss-btn ss-btn-primary"
+                style={{ height: 50, fontSize: 14.5, width: '100%', marginTop: 'auto', flex: 'none' }}
                 onClick={() => setStep(2)}
                 disabled={(goalType !== 'volume' && !distance) || (goalType === 'volume' && !volumeKm)}
-                className="mt-auto w-full py-4 rounded-xl bg-accent text-white font-bold text-[14px] disabled:opacity-30 active:scale-[0.98] transition-all"
               >
                 Continue
               </button>
-              <button onClick={() => setStep(0)} className="mt-2 py-2 text-[12px] text-zinc-600 text-center">Back</button>
+              <button onClick={() => setStep(0)} style={{ ...ghostBtn, marginTop: 8 }}>Back</button>
             </motion.div>
           )}
 
           {/* Step 2: Time target + timeline */}
           {step === 2 && (
-            <motion.div key="time" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 flex flex-col px-1">
+            <motion.div key="time" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {goalType !== 'volume' && (
                 <>
-                  <h1 className="text-[22px] font-bold text-white mb-2">Target time?</h1>
-                  <p className="text-[12px] text-zinc-500 mb-6">Optional — the AI will estimate if you skip this.</p>
+                  <h1 style={h1Style}>Target time?</h1>
+                  <p style={subStyle}>Optional — the AI will estimate if you skip this.</p>
 
-                  <div className="flex items-center gap-2 mb-6">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                     <input
                       type="number"
                       value={targetMinutes}
                       onChange={e => setTargetMinutes(e.target.value)}
                       placeholder="min"
-                      className="flex-1 px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-white text-center text-[18px] font-mono outline-none focus:border-accent/40"
+                      style={monoInput}
                     />
-                    <span className="text-zinc-500 text-[18px]">:</span>
+                    <span className="num" style={{ font: '700 18px var(--mono)', color: 'var(--muted-2)' }}>:</span>
                     <input
                       type="number"
                       value={targetSeconds}
                       onChange={e => setTargetSeconds(e.target.value)}
                       placeholder="sec"
-                      className="flex-1 px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary text-white text-center text-[18px] font-mono outline-none focus:border-accent/40"
+                      style={monoInput}
                     />
                   </div>
                 </>
               )}
 
-              <h2 className="text-[14px] font-bold text-white mb-3">Timeline</h2>
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {TIMELINE_PRESETS.map(t => (
-                  <button
-                    key={t.weeks}
-                    onClick={() => setTargetWeeks(t.weeks)}
-                    className={`py-3 rounded-xl text-center transition-all ${
-                      targetWeeks === t.weeks
-                        ? 'bg-accent text-white border border-accent'
-                        : 'bg-bg-secondary border border-bg-tertiary text-zinc-400'
-                    }`}
-                  >
-                    <span className="text-[11px] font-bold">{t.label}</span>
-                  </button>
-                ))}
+              <h2 style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted)', margin: '0 0 10px' }}>
+                Timeline
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 8, marginBottom: 20 }}>
+                {TIMELINE_PRESETS.map(t => {
+                  const on = targetWeeks === t.weeks;
+                  return (
+                    <button
+                      key={t.weeks}
+                      onClick={() => setTargetWeeks(t.weeks)}
+                      className={`tile ${on ? '' : 'recess'}`}
+                      style={{ alignItems: 'center', padding: '12px 4px', cursor: 'pointer', borderColor: on ? 'rgba(249,115,22,.4)' : undefined }}
+                      aria-pressed={on}
+                    >
+                      <span className="num" style={{ font: '700 12px var(--mono)', color: on ? 'var(--accent-2)' : 'var(--muted)', whiteSpace: 'nowrap' }}>
+                        {t.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <button
+                className="ss-btn ss-btn-primary"
+                style={{ height: 50, fontSize: 14.5, width: '100%', marginTop: 'auto', flex: 'none' }}
                 onClick={handleGenerate}
                 disabled={generating}
-                className="mt-auto w-full py-4 rounded-xl bg-accent text-white font-bold text-[14px] disabled:opacity-50 active:scale-[0.98] transition-all"
               >
-                {generating ? 'Generating your plan...' : 'Generate My Plan'}
+                {generating ? 'Generating your plan…' : 'Generate My Plan'}
               </button>
-              <button onClick={() => setStep(1)} className="mt-2 py-2 text-[12px] text-zinc-600 text-center">Back</button>
+              <button onClick={() => setStep(1)} style={{ ...ghostBtn, marginTop: 8 }}>Back</button>
             </motion.div>
           )}
 
           {/* Step 3: Success */}
           {step === 3 && (
-            <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              <motion.div
+            <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+              <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-                className="text-[48px] mb-4"
+                style={{ width: 62, height: 62, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,.14)', border: '1px solid rgba(249,115,22,.3)', marginBottom: 16 }}
               >
-                🎯
-              </motion.div>
-              <h1 className="text-[22px] font-bold text-white mb-2">Plan Generated!</h1>
-              <p className="text-[12px] text-zinc-500 mb-8 max-w-[260px]">
+                <Target width={26} height={26} style={{ color: 'var(--accent-2)' }} />
+              </motion.span>
+              <h1 style={{ ...h1Style, marginBottom: 8 }}>Plan Generated!</h1>
+              <p style={{ font: '400 12px var(--body)', color: 'var(--muted)', maxWidth: 260, lineHeight: 1.5, margin: '0 0 26px' }}>
                 Your AI coach built a {targetWeeks}-week plan. Check the Coach tab to see your daily sessions.
               </p>
               <button
+                className="ss-btn ss-btn-primary"
+                style={{ height: 50, fontSize: 14.5, width: '100%', flex: 'none' }}
                 onClick={() => navigate('/coach', { state: { tab: 'plan' } })}
-                className="w-full py-4 rounded-xl bg-accent text-white font-bold text-[14px] active:scale-[0.98] transition-all"
               >
                 View My Plan
               </button>
-              <button onClick={() => navigate('/dashboard')} className="mt-3 py-2 text-[12px] text-zinc-600">
+              <button onClick={() => navigate('/dashboard')} style={{ ...ghostBtn, marginTop: 10 }}>
                 Go to Dashboard
               </button>
             </motion.div>
           )}
-        </AnimatePresence>
       </div>
-    </AppShell>
+    </SSScreen>
   );
 }

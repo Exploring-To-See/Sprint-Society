@@ -9,6 +9,7 @@ import { SSNav, SSTab } from './SSNav';
 import { Bell } from './icons';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useNotificationSocket } from '../../hooks/useNotificationSocket';
 
 interface SSScreenProps {
   children: ReactNode;
@@ -22,12 +23,16 @@ export function SSScreen({ children, active, hideNav, bodyLabel, flush }: SSScre
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  // Live notification freshness (WS push or polling fallback) — carried over from the
+  // old AppShell so badge counts stay current everywhere on the redesigned shell.
+  const wsConnected = useNotificationSocket(!!user && !isAdmin);
 
   const { data: unread } = useQuery({
     queryKey: ['notifications-unread'],
     queryFn: () => api.get('/notifications/unread-count').then((r) => r.data),
     enabled: !!user && !isAdmin,
-    staleTime: 60_000,
+    staleTime: wsConnected ? 5 * 60_000 : 60_000,
+    refetchInterval: wsConnected ? false : 5 * 60_000,
   });
   const unreadCount: number = unread?.count || 0;
 

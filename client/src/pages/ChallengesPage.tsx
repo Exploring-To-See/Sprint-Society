@@ -2,7 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import { Medal, Plus, Bolt } from '../components/ss/icons';
 
 type ChallengeStatus = 'pending' | 'accepted' | 'active' | 'completed' | 'expired' | 'declined';
 
@@ -21,6 +23,30 @@ interface Challenge {
   winner_id: number | null;
   created_at: string;
 }
+
+// status → semantic ss-tag recipe (amber = needs action / lapsed, violet = queued,
+// green = live, muted = settled)
+const STATUS_TAG: Record<ChallengeStatus, string> = {
+  pending: 'maybe',
+  accepted: 'soon',
+  active: 'go',
+  completed: 'full',
+  expired: 'maybe',
+  declined: 'full',
+};
+
+const METRIC_LABELS: Record<string, string> = {
+  distance: 'Total Distance',
+  pace: 'Best Pace',
+  streak: 'Streak Length',
+  runs_count: 'Number of Runs',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '11px 12px', borderRadius: 11,
+  background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)',
+  font: '500 13px var(--body)', color: 'var(--fg)', outline: 'none',
+};
 
 export default function ChallengesPage() {
   const queryClient = useQueryClient();
@@ -46,121 +72,139 @@ export default function ChallengesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['kendu-challenges'] }),
   });
 
-  const statusColors: Record<ChallengeStatus, string> = {
-    pending: 'text-yellow-400 bg-yellow-500/10',
-    accepted: 'text-blue-400 bg-blue-500/10',
-    active: 'text-green-400 bg-green-500/10',
-    completed: 'text-zinc-400 bg-zinc-500/10',
-    expired: 'text-red-400 bg-red-500/10',
-    declined: 'text-zinc-500 bg-zinc-500/10',
-  };
-
-  const metricLabels: Record<string, string> = {
-    distance: 'Total Distance',
-    pace: 'Best Pace',
-    streak: 'Streak Length',
-    runs_count: 'Number of Runs',
-  };
-
   return (
-    <AppShell>
-    <div className="py-6 space-y-6 pb-24">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100">1v1 Challenges</h1>
-          <p className="text-[12px] text-zinc-500">Stake Kendu, compete, win big</p>
+    <SSScreen bodyLabel="1v1 Challenges">
+      <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 6, paddingBottom: 24 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div>
+            <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: 0 }}>
+              1v1 Challenges
+            </h1>
+            <p style={{ font: '500 11.5px var(--body)', color: 'var(--muted)', marginTop: 2 }}>
+              Stake Kendu, compete, win big
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="ss-qchip accent"
+            style={{ height: 38 }}
+            data-testid="challenges-create"
+          >
+            <span className="qi"><Plus width={13} height={13} style={{ color: 'var(--accent-2)' }} /></span>
+            Challenge
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-400 text-[12px] font-semibold hover:bg-orange-500/30 transition-colors"
-        >
-          + Challenge
-        </button>
+
+        {/* Balance strip */}
+        {balance && (
+          <div className="tile recess" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
+            <span style={{ width: 28, height: 28, borderRadius: 9, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,.14)', border: '1px solid rgba(249,115,22,.28)' }}>
+              <Bolt width={13} height={13} style={{ color: 'var(--accent-2)' }} />
+            </span>
+            <span className="num" style={{ font: '700 15px var(--mono)', color: 'var(--fg)' }}>
+              {balance.spendable_balance}
+            </span>
+            <span style={{ font: '500 11px var(--body)', color: 'var(--muted)' }}>Kendu available</span>
+            <span className="num" style={{ marginLeft: 'auto', font: '500 10px var(--mono)', color: 'var(--muted-2)' }}>
+              Stake 5–50
+            </span>
+          </div>
+        )}
+
+        {/* List */}
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[0, 1, 2].map(i => <SSSkeleton key={i} height={104} style={{ borderRadius: 18 }} />)}
+          </div>
+        ) : challenges.length === 0 ? (
+          <SSEmpty
+            icon={<Medal width={22} height={22} />}
+            title="No challenges yet"
+            body="Challenge a friend and put your Kendu on the line."
+            testid="challenges-empty"
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {challenges.map((c: Challenge) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="tile"
+                style={{ gap: 10, padding: 14 }}
+              >
+                {/* Versus row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ font: '600 12.5px var(--body)', color: 'var(--fg)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {c.challenger_name}
+                  </span>
+                  <span style={{ font: '600 9px var(--body)', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted-2)', flex: 'none' }}>
+                    vs
+                  </span>
+                  <span style={{ font: '600 12.5px var(--body)', color: 'var(--fg)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {c.opponent_name}
+                  </span>
+                  <span className={`ss-tag ${STATUS_TAG[c.status]}`} style={{ marginLeft: 'auto', textTransform: 'capitalize' }}>
+                    {c.status}
+                  </span>
+                </div>
+
+                {/* Metric + stake */}
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ font: '500 11px var(--body)', color: 'var(--muted)' }}>
+                    {METRIC_LABELS[c.metric] || c.metric}
+                  </span>
+                  <span className="num" style={{ font: '700 12px var(--mono)', color: 'var(--accent-2)' }}>
+                    {c.stake_amount} Kendu each
+                  </span>
+                </div>
+
+                {/* Deadline + pot */}
+                <div className="num" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, font: '500 10px var(--mono)', color: 'var(--muted-2)' }}>
+                  <span>Deadline {new Date(c.deadline).toLocaleDateString()}</span>
+                  <span>Pot {c.stake_amount * 2} · winner gets {Math.floor(c.stake_amount * 2 * 0.8)}</span>
+                </div>
+
+                {/* Pending actions */}
+                {c.status === 'pending' && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                    <button
+                      className="ss-btn ss-btn-primary"
+                      style={{ height: 40, fontSize: 13 }}
+                      onClick={() => acceptMutation.mutate(c.id)}
+                      disabled={acceptMutation.isPending}
+                    >
+                      Accept ({c.stake_amount} Kendu)
+                    </button>
+                    <button
+                      className="ss-btn ss-btn-soft"
+                      style={{ height: 40, fontSize: 13 }}
+                      onClick={() => declineMutation.mutate(c.id)}
+                      disabled={declineMutation.isPending}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
+
+                {/* Winner banner */}
+                {c.status === 'completed' && c.winner_id && (
+                  <div style={{ textAlign: 'center', padding: '7px 0', borderRadius: 10, background: 'rgba(52,211,153,.12)', border: '1px solid rgba(52,211,153,.22)' }}>
+                    <span style={{ font: '600 11px var(--body)', color: 'var(--green)' }}>
+                      Winner: {c.winner_id === c.challenger_id ? c.challenger_name : c.opponent_name}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {showCreate && <CreateChallengeModal onClose={() => setShowCreate(false)} />}
       </div>
-
-      {balance && (
-        <div className="flex items-center gap-2 text-[12px] text-zinc-400">
-          <span className="text-orange-400 font-bold">{balance.spendable_balance}</span>
-          <span>Kendu available</span>
-          <span className="text-zinc-600">•</span>
-          <span>Stake: 5-50 per challenge</span>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-24 rounded-xl bg-bg-tertiary/50 animate-pulse" />
-          ))}
-        </div>
-      ) : challenges.length === 0 ? (
-        <div className="text-center py-12 space-y-2">
-          <p className="text-3xl">⚔️</p>
-          <p className="text-zinc-400 text-[13px]">No challenges yet</p>
-          <p className="text-zinc-500 text-[11px]">Challenge a friend and put your Kendu on the line</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {challenges.map((c: Challenge) => (
-            <motion.div
-              key={c.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-bg-secondary border border-bg-tertiary rounded-xl p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-zinc-200">{c.challenger_name}</span>
-                  <span className="text-zinc-500 text-[11px]">vs</span>
-                  <span className="text-[12px] font-semibold text-zinc-200">{c.opponent_name}</span>
-                </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[c.status]}`}>
-                  {c.status}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                <span>{metricLabels[c.metric] || c.metric}</span>
-                <span className="text-orange-400 font-bold">{c.stake_amount} Kendu each</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-zinc-500">
-                <span>Deadline: {new Date(c.deadline).toLocaleDateString()}</span>
-                <span>Pot: {c.stake_amount * 2} (winner gets {Math.floor(c.stake_amount * 2 * 0.8)})</span>
-              </div>
-
-              {c.status === 'pending' && (
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => acceptMutation.mutate(c.id)}
-                    disabled={acceptMutation.isPending}
-                    className="flex-1 py-2 rounded-lg bg-green-500/20 text-green-400 text-[11px] font-semibold hover:bg-green-500/30 transition-colors"
-                  >
-                    Accept ({c.stake_amount} Kendu)
-                  </button>
-                  <button
-                    onClick={() => declineMutation.mutate(c.id)}
-                    disabled={declineMutation.isPending}
-                    className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-400 text-[11px] font-medium hover:bg-red-500/20 transition-colors"
-                  >
-                    Decline
-                  </button>
-                </div>
-              )}
-
-              {c.status === 'completed' && c.winner_id && (
-                <div className="text-center text-[11px] text-green-400 font-semibold bg-green-500/10 rounded-lg py-1.5">
-                  Winner: {c.winner_id === c.challenger_id ? c.challenger_name : c.opponent_name}
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {showCreate && <CreateChallengeModal onClose={() => setShowCreate(false)} />}
-    </div>
-    </AppShell>
+    </SSScreen>
   );
 }
 
@@ -191,36 +235,50 @@ function CreateChallengeModal({ onClose }: { onClose: () => void }) {
     createMutation.mutate({ opponentId: parseInt(opponentId), stakeAmount, metric, deadline });
   };
 
+  const labelStyle: React.CSSProperties = {
+    display: 'block', font: '600 var(--lbl) var(--body)', textTransform: 'uppercase',
+    letterSpacing: 'var(--trk-sm)', color: 'var(--muted)', marginBottom: 6,
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(5,5,11,.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: 16 }}
       onClick={onClose}
     >
       <motion.form
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.94, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-bg-secondary border border-bg-tertiary rounded-2xl p-5 w-full max-w-sm space-y-4"
+        className="ss-surface"
+        style={{ borderRadius: 22, padding: 18, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}
         onClick={e => e.stopPropagation()}
         onSubmit={handleSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create challenge"
       >
-        <h3 className="text-[15px] font-bold text-zinc-100 text-center">Create Challenge</h3>
+        <h3 style={{ font: '600 15px var(--head)', letterSpacing: '-.01em', color: 'var(--fg)', textAlign: 'center', margin: 0 }}>
+          Create Challenge
+        </h3>
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-[11px] text-zinc-400 block mb-1">Opponent User ID</label>
-            <input
-              type="number"
-              value={opponentId}
-              onChange={e => setOpponentId(e.target.value)}
-              className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[13px] text-zinc-200"
-              placeholder="Enter their user ID"
-            />
-          </div>
+        <div>
+          <label style={labelStyle}>Opponent User ID</label>
+          <input
+            type="number"
+            value={opponentId}
+            onChange={e => setOpponentId(e.target.value)}
+            style={inputStyle}
+            placeholder="Enter their user ID"
+          />
+        </div>
 
-          <div>
-            <label className="text-[11px] text-zinc-400 block mb-1">Stake (5-50 Kendu)</label>
+        <div>
+          <label style={labelStyle}>Stake (5–50 Kendu)</label>
+          {/* Global CSS strips the native range track — draw our own rail + fill */}
+          <div style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.1)' }} />
+            <div style={{ position: 'absolute', left: 0, width: `${((stakeAmount - 5) / 45) * 100}%`, height: 4, borderRadius: 2, background: 'linear-gradient(90deg,var(--accent),var(--accent-2))' }} />
             <input
               type="range"
               min={5}
@@ -228,52 +286,48 @@ function CreateChallengeModal({ onClose }: { onClose: () => void }) {
               step={5}
               value={stakeAmount}
               onChange={e => setStakeAmount(parseInt(e.target.value))}
-              className="w-full accent-orange-500"
-            />
-            <p className="text-center text-orange-400 font-bold text-[13px]">{stakeAmount} Kendu</p>
-          </div>
-
-          <div>
-            <label className="text-[11px] text-zinc-400 block mb-1">Metric</label>
-            <select
-              value={metric}
-              onChange={e => setMetric(e.target.value)}
-              className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[13px] text-zinc-200"
-            >
-              <option value="distance">Total Distance</option>
-              <option value="pace">Best Pace</option>
-              <option value="runs_count">Number of Runs</option>
-              <option value="streak">Streak Length</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[11px] text-zinc-400 block mb-1">Deadline</label>
-            <input
-              type="date"
-              value={deadline}
-              onChange={e => setDeadline(e.target.value)}
-              className="w-full bg-bg-tertiary border border-zinc-700 rounded-lg px-3 py-2 text-[13px] text-zinc-200"
+              style={{ position: 'relative', width: '100%', margin: 0 }}
             />
           </div>
+          <p className="num" style={{ textAlign: 'center', font: '700 13px var(--mono)', color: 'var(--accent-2)', marginTop: 4 }}>
+            {stakeAmount} Kendu
+          </p>
         </div>
 
-        {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-lg bg-bg-tertiary text-zinc-400 text-[13px] font-medium"
+        <div>
+          <label style={labelStyle}>Metric</label>
+          <select
+            value={metric}
+            onChange={e => setMetric(e.target.value)}
+            style={{ ...inputStyle, appearance: 'none' as const }}
           >
+            <option value="distance">Total Distance</option>
+            <option value="pace">Best Pace</option>
+            <option value="runs_count">Number of Runs</option>
+            <option value="streak">Streak Length</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={labelStyle}>Deadline</label>
+          <input
+            type="date"
+            value={deadline}
+            onChange={e => setDeadline(e.target.value)}
+            style={{ ...inputStyle, colorScheme: 'dark' }}
+          />
+        </div>
+
+        {error && (
+          <p style={{ font: '500 11px var(--body)', color: 'var(--amber)', textAlign: 'center', margin: 0 }}>{error}</p>
+        )}
+
+        <div style={{ display: 'flex', gap: 9 }}>
+          <button type="button" className="ss-btn ss-btn-soft" style={{ height: 44, fontSize: 13.5 }} onClick={onClose}>
             Cancel
           </button>
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white text-[13px] font-semibold disabled:opacity-50"
-          >
-            {createMutation.isPending ? 'Creating...' : `Stake ${stakeAmount} Kendu`}
+          <button type="submit" className="ss-btn ss-btn-primary" style={{ height: 44, fontSize: 13.5 }} disabled={createMutation.isPending}>
+            {createMutation.isPending ? 'Creating…' : `Stake ${stakeAmount} Kendu`}
           </button>
         </div>
       </motion.form>

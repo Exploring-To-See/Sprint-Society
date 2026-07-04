@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -106,6 +106,12 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const location = useLocation();
+
+  // Reset scroll on route change — pages otherwise inherit the previous
+  // page's scroll position (no ScrollRestoration in this router setup).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Admin-only deployment (separate Vercel project, VITE_ADMIN_ONLY=true): expose
   // only the admin login + panel. Shares the same backend/DB as the main app.

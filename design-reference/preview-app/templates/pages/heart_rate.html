@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon %}
+{% set S = seed %}
+{% set coach_active = 'zones' %}
+
+{% block page_style %}
+  .hz{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--hair)}
+  .hz:last-child{border-bottom:none}
+  .hz-z{width:26px;flex:none;font:700 12px var(--mono);color:var(--fg)}
+  .hz-body{flex:1;min-width:0}
+  .hz-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .hz-lbl{font:600 12px var(--body);color:var(--fg)}
+  .hz-bpm{font:600 10.5px var(--mono);color:var(--muted)}
+  .hz-track{height:8px;border-radius:5px;background:rgba(255,255,255,.05);border:1px solid var(--hair);overflow:hidden;margin-top:6px}
+  .hz-fill{height:100%;border-radius:5px}
+{% endblock %}
+
+{% block content %}
+{% include 'partials/coach_tabs.html' %}
+
+<div class="pad">
+  <div class="ss-ai tile" style="display:flex;align-items:center;gap:11px;margin-bottom:12px;flex-direction:row">
+    <span class="ticon" style="background:linear-gradient(135deg,var(--violet),var(--accent));border:none">{{ icon('heart', 15, '#fff', 2) }}</span>
+    <div style="flex:1;min-width:0">
+      <p style="font:600 12.5px var(--head);color:#fff">HR Zones · already live on main</p>
+      <p style="font:400 10.5px var(--body);color:#D7D7E4;margin-top:2px">Shown for a complete click-through — already redesigned.</p>
+    </div>
+  </div>
+
+  <!-- max HR summary -->
+  <div class="statsrow" style="display:flex;gap:var(--gap);margin-bottom:12px">
+    <div class="tile recess" style="flex:1;padding:13px"><div style="font:700 var(--m-lg) var(--mono)">188</div><div style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px">Max HR</div></div>
+    <div class="tile recess" style="flex:1;padding:13px"><div style="font:700 var(--m-lg) var(--mono)">52</div><div style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px">Resting</div></div>
+    <div class="tile recess" style="flex:1;padding:13px"><div style="font:700 var(--m-lg) var(--mono)">62</div><div style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px">HRV</div></div>
+  </div>
+
+  <!-- zones -->
+  <p class="tlbl" style="margin:6px 2px 6px">Training zones</p>
+  <div class="tile recess">
+    {% for z in S.HR_ZONES %}
+    {% set col = 'var(--green)' if z.color=='green' else 'var(--amber)' if z.color=='amber' else 'var(--accent)' %}
+    <div class="hz">
+      <div class="hz-z">{{ z.zone }}</div>
+      <div class="hz-body">
+        <div class="hz-top"><span class="hz-lbl">{{ z.label }}</span><span class="hz-bpm">{{ z.min }}–{{ z.max }} bpm</span></div>
+        <div class="hz-track"><div class="hz-fill" style="width:{{ z.pct }}%;background:{{ col }}"></div></div>
+      </div>
+      <span style="font:600 10px var(--mono);color:var(--muted-2);width:30px;text-align:right">{{ z.pct }}%</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="font:500 10.5px var(--body);color:var(--muted-2);margin:10px 2px 0">Distribution across your last 12 runs · most time in Z2 (Easy) — good aerobic base.</p>
+</div>
+{% endblock %}

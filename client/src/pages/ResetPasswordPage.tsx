@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button } from '../components/ui/Button';
 import api from '../lib/api';
+import { SSAura } from '../components/ss/SSAura';
+import { Check } from '../components/ss/icons';
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '13px 14px', borderRadius: 13,
+  background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)',
+  font: '500 13.5px var(--body)', color: 'var(--fg)', outline: 'none',
+};
 
 export default function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
@@ -31,33 +38,40 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary flex items-center justify-center px-4">
+    <div className="ss-screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', padding: '0 16px' }} aria-label="Set new password">
+      <SSAura />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm"
+        style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 380 }}
       >
         {success ? (
-          <div className="text-center space-y-4">
-            <div className="text-4xl mb-2">✓</div>
-            <h1 className="font-heading text-2xl font-bold">Password updated</h1>
-            <p className="text-white/50 text-sm">You can now log in with your new password.</p>
-            <Link to="/">
-              <Button fullWidth className="mt-4">Go to login</Button>
+          <div className="tile" style={{ alignItems: 'center', gap: 12, padding: '26px 20px', textAlign: 'center' }}>
+            <span style={{ width: 48, height: 48, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(52,211,153,.14)', border: '1px solid rgba(52,211,153,.3)' }}>
+              <Check width={20} height={20} style={{ color: 'var(--green)' }} />
+            </span>
+            <h1 style={{ font: '600 22px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: 0 }}>Password updated</h1>
+            <p style={{ font: '400 13px var(--body)', color: 'var(--muted)', margin: 0 }}>
+              You can now log in with your new password.
+            </p>
+            <Link to="/" style={{ width: '100%', marginTop: 8, textDecoration: 'none' }}>
+              <span className="ss-btn ss-btn-primary" style={{ height: 48, fontSize: 14.5, width: '100%' }}>Go to login</span>
             </Link>
           </div>
         ) : (
-          <>
-            <h1 className="font-heading text-2xl font-bold mb-2">Set new password</h1>
-            <p className="text-white/50 text-sm mb-6">Choose a strong password (6+ characters).</p>
+          <div className="tile" style={{ gap: 0, padding: '22px 20px' }}>
+            <h1 style={{ font: '600 22px var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: '0 0 6px' }}>Set new password</h1>
+            <p style={{ font: '400 12.5px var(--body)', color: 'var(--muted)', margin: '0 0 18px' }}>
+              Choose a strong password (6+ characters).
+            </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
               <input
                 type="password"
                 placeholder="New password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none transition-colors"
+                style={inputStyle}
                 autoFocus
                 required
                 minLength={6}
@@ -67,18 +81,18 @@ export default function ResetPasswordPage() {
                 placeholder="Confirm password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl bg-bg-secondary border border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none transition-colors"
+                style={inputStyle}
                 required
                 minLength={6}
               />
 
-              {error && <p className="text-red-400 text-sm">{error}</p>}
+              {error && <p style={{ font: '500 12px var(--body)', color: 'var(--amber)', margin: 0 }}>{error}</p>}
 
-              <Button type="submit" fullWidth disabled={!password || !confirm || loading}>
-                {loading ? 'Updating...' : 'Update password'}
-              </Button>
+              <button type="submit" className="ss-btn ss-btn-primary" style={{ height: 48, fontSize: 14.5 }} disabled={!password || !confirm || loading}>
+                {loading ? 'Updating…' : 'Update password'}
+              </button>
             </form>
-          </>
+          </div>
         )}
       </motion.div>
     </div>

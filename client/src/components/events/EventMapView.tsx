@@ -49,7 +49,7 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
 
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#FF6B35,#FF2E63);display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid rgba(255,255,255,0.2);box-shadow:0 2px 8px rgba(255,107,53,0.4);">📍</div>`,
+        html: `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F97316,#FB923C);display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.2);box-shadow:0 2px 8px rgba(249,115,22,0.45);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5s-7-6.6-7-11.5a7 7 0 0 1 14 0c0 4.9-7 11.5-7 11.5Z"/><circle cx="12" cy="9.8" r="2.6"/></svg></div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 32],
       });
@@ -57,10 +57,10 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
       const marker = L.marker([lat, lng], { icon }).addTo(mapInstance);
 
       const popup = L.popup({ className: 'event-popup', closeButton: false }).setContent(`
-        <div style="background:#18181b;border:1px solid #27272a;border-radius:12px;padding:10px 12px;min-width:160px;cursor:pointer;">
-          <p style="font-size:12px;font-weight:600;color:white;margin:0;">${event.title}</p>
-          <p style="font-size:10px;color:#71717a;margin:2px 0 0;">${event.location_name || ''}</p>
-          <p style="font-size:10px;color:#c8ff00;margin:4px 0 0;">${event.attendee_count || 0} going</p>
+        <div style="background:#0B0A16;border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px 12px;min-width:160px;cursor:pointer;">
+          <p style="font:600 12px 'Space Grotesk',sans-serif;color:#F4F4F8;margin:0;">${event.title}</p>
+          <p style="font:500 10px Inter,sans-serif;color:#9A9CB0;margin:2px 0 0;">${event.location_name || ''}</p>
+          <p style="font:600 10px 'JetBrains Mono',monospace;color:#34D399;margin:4px 0 0;">${event.attendee_count || 0} going</p>
         </div>
       `);
 
@@ -77,17 +77,19 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
 
   if (eventsWithLocation.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-center p-6">
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
         <div>
-          <span className="text-2xl">📍</span>
-          <p className="text-[12px] text-zinc-500 mt-2">No events with locations yet</p>
-          <p className="text-[10px] text-zinc-700 mt-1">Events with GPS coordinates will appear on the map</p>
+          <span className="ticon" style={{ margin: '0 auto', width: 36, height: 36, borderRadius: 11, display: 'grid', placeItems: 'center' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21.5s-7-6.6-7-11.5a7 7 0 0 1 14 0c0 4.9-7 11.5-7 11.5Z" /><circle cx="12" cy="9.8" r="2.6" /></svg>
+          </span>
+          <p style={{ font: '500 12px var(--body)', color: 'var(--muted)', marginTop: 8 }}>No events with locations yet</p>
+          <p style={{ font: '400 10px var(--body)', color: 'var(--muted-2)', marginTop: 4 }}>Events with GPS coordinates will appear on the map</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div ref={mapRef} className="h-full w-full" style={{ background: '#1a1a2e' }} />
+    <div ref={mapRef} style={{ height: '100%', width: '100%', background: 'var(--bg2)' }} />
   );
 }

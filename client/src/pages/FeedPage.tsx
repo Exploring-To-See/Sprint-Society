@@ -1,16 +1,28 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Club feed — content-only lane rendered inside SocialPage's SSScreen shell.
+// Hooks preserved: GET /social/feed, POST/DELETE /social/kudos/:activityId
+// {reaction_type}, POST /social/comments/:activityId. The reaction picker still
+// sends the same reaction_type strings; the UI renders crafted SVG (zero emoji).
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useCallback } from 'react';
 import api from '../lib/api';
-import { AppShell } from '../components/layout/AppShell';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import { Hand, Flame, Dumbbell, Medal, Bolt, Chat as ChatIcon, CommunityOutline } from '../components/ss/icons';
 
-const REACTIONS = [
-  { type: 'high_five', emoji: '🙌', label: 'High Five' },
-  { type: 'fire', emoji: '🔥', label: 'Fire' },
-  { type: 'impressive', emoji: '💪', label: 'Impressive' },
-  { type: 'respect', emoji: '🫡', label: 'Respect' },
-  { type: 'lets_go', emoji: '⚡', label: "Let's Go" },
-] as const;
+type ReactionIcon = (p: React.SVGProps<SVGSVGElement>) => JSX.Element;
+
+const REACTIONS: { type: string; emoji: string; label: string; Icon: ReactionIcon }[] = [
+  { type: 'high_five', emoji: '\u{1F64C}', label: 'High five', Icon: Hand },
+  { type: 'fire', emoji: '\u{1F525}', label: 'Fire', Icon: Flame },
+  { type: 'impressive', emoji: '\u{1F4AA}', label: 'Impressive', Icon: Dumbbell },
+  { type: 'respect', emoji: '\u{1FAE1}', label: 'Respect', Icon: Medal },
+  { type: 'lets_go', emoji: '\u{26A1}', label: "Let's go", Icon: Bolt },
+];
+
+// server stores the emoji the user reacted with — map it back to the crafted icon
+const EMOJI_TO_ICON: Record<string, ReactionIcon> = Object.fromEntries(
+  REACTIONS.map((r) => [r.emoji, r.Icon]),
+);
 
 const stagger = {
   hidden: {},
@@ -48,7 +60,7 @@ export function FeedPage() {
     queryFn: () => api.get('/social/feed').then(r => r.data),
   });
 
-  const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; x: number }[]>([]);
+  const [floatingReactions, setFloatingReactions] = useState<{ id: number; Icon: ReactionIcon; x: number }[]>([]);
   const [showReactionPicker, setShowReactionPicker] = useState<number | null>(null);
 
   const kudosMutation = useMutation({
@@ -59,12 +71,12 @@ export function FeedPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['feed'] }),
   });
 
-  const handleReaction = useCallback((activityId: number, emoji: string, reactionType: string) => {
+  const handleReaction = useCallback((activityId: number, Icon: ReactionIcon, reactionType: string) => {
     kudosMutation.mutate({ activityId, remove: false, reactionType });
     setShowReactionPicker(null);
     const id = Date.now() + Math.random();
     const x = 20 + Math.random() * 60;
-    setFloatingReactions(prev => [...prev, { id, emoji, x }]);
+    setFloatingReactions(prev => [...prev, { id, Icon, x }]);
     setTimeout(() => setFloatingReactions(prev => prev.filter(r => r.id !== id)), 1200);
   }, [kudosMutation]);
 
@@ -79,108 +91,93 @@ export function FeedPage() {
   });
 
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4 pb-6">
-        {/* Header */}
-        <motion.div variants={fadeUp}>
-          <h1 className="font-heading text-[22px] font-bold">Club Feed</h1>
-          <p className="text-[11px] text-zinc-600 mt-0.5">Your crew's latest runs</p>
-        </motion.div>
+    <motion.div variants={stagger} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: 13, paddingBottom: 24 }}>
+      {/* Header */}
+      <motion.div variants={fadeUp}>
+        <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em' }}>Club feed</h1>
+        <p style={{ font: '500 11.5px var(--body)', color: 'var(--muted)', marginTop: 2 }}>Your crew's latest runs</p>
+      </motion.div>
 
-        {/* Loading skeleton */}
-        {isLoading && (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="card p-4 space-y-3 animate-pulse">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-bg-tertiary" />
-                  <div className="space-y-1.5 flex-1">
-                    <div className="h-3 w-24 bg-bg-tertiary rounded" />
-                    <div className="h-2 w-16 bg-bg-tertiary rounded" />
-                  </div>
-                </div>
-                <div className="h-16 bg-bg-tertiary rounded-lg" />
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[0, 1, 2].map(i => <SSSkeleton key={i} height={148} style={{ borderRadius: 18 }} />)}
+        </div>
+      )}
 
-        {/* Empty state */}
-        {!isLoading && (!data?.feed || data.feed.length === 0) && (
-          <motion.div variants={fadeUp} className="flex flex-col items-center py-16 gap-3">
-            <div className="w-12 h-12 rounded-xl bg-bg-secondary border border-bg-tertiary flex items-center justify-center">
-              <span className="text-2xl">👥</span>
-            </div>
-            <p className="text-[13px] text-zinc-500 text-center max-w-[260px]">
-              Follow club members to see their runs here. Check the Discover tab to find runners.
-            </p>
-          </motion.div>
-        )}
+      {/* Empty state */}
+      {!isLoading && (!data?.feed || data.feed.length === 0) && (
+        <SSEmpty
+          icon={<CommunityOutline width={22} height={22} />}
+          title="Your feed is quiet"
+          body="Follow club members to see their runs here. Check the Discover tab to find runners."
+          testid="feed-empty"
+        />
+      )}
 
-        {/* Feed items */}
-        {data?.feed?.length > 0 && data.feed.map((activity: any) => (
-          <motion.div
+      {/* Feed items */}
+      {data?.feed?.length > 0 && data.feed.map((activity: any) => {
+        const ReactedIcon = (activity.user_reaction_emoji && EMOJI_TO_ICON[activity.user_reaction_emoji]) || Hand;
+        return (
+          <motion.article
             key={activity.id}
             variants={fadeUp}
-            className="card overflow-hidden"
+            className="tile recess"
+            style={{ borderRadius: 18, padding: 13, gap: 11, overflow: 'visible' }}
           >
             {/* User header */}
-            <div className="flex items-center gap-3 p-4 pb-0">
-              <div className="w-8 h-8 rounded-full bg-bg-tertiary border border-bg-tertiary overflow-hidden flex items-center justify-center shrink-0">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="ss-puck" style={{ width: 32, height: 32, fontSize: 11, overflow: 'hidden' }} aria-hidden="true">
                 {activity.profile_image_url ? (
-                  <img src={activity.profile_image_url} alt="" className="w-full h-full object-cover" />
+                  <img src={activity.profile_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                 ) : (
-                  <span className="text-[10px] font-bold text-zinc-500">
-                    {activity.user_name?.[0]?.toUpperCase()}
-                  </span>
+                  activity.user_name?.[0]?.toUpperCase()
                 )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-white">{activity.user_name}</p>
-                <p className="text-[10px] text-zinc-600">{formatTimeAgo(activity.start_date)}</p>
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ font: '600 13px var(--body)', color: 'var(--fg)' }}>{activity.user_name}</p>
+                <p style={{ font: '500 10px var(--body)', color: 'var(--muted-2)' }}>{formatTimeAgo(activity.start_date)}</p>
               </div>
             </div>
 
-            {/* Run stats */}
-            <div className="p-4">
-              <div className="flex gap-4 py-3 px-4 rounded-lg bg-bg-primary/60 border border-bg-tertiary/50">
-                <div>
-                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Distance</p>
-                  <p className="font-mono text-[15px] font-bold text-white">{activity.distance_km}<span className="text-[10px] text-zinc-600 ml-0.5">km</span></p>
+            {/* Run stats — mono instrument strip */}
+            <div className="glass recess" style={{ display: 'flex', gap: 18, padding: '11px 14px', borderRadius: 13 }}>
+              {[
+                { k: 'Distance', v: activity.distance_km, unit: 'km', hue: 'var(--fg)' },
+                { k: 'Duration', v: formatDuration(activity.moving_time_seconds), unit: '', hue: 'var(--fg)' },
+                { k: 'Pace', v: activity.pace_formatted, unit: '/km', hue: 'var(--accent-2)' },
+                ...(activity.elevation_gain > 0 ? [{ k: 'Elev', v: String(Math.round(activity.elevation_gain)), unit: 'm', hue: 'var(--fg)' }] : []),
+              ].map((s) => (
+                <div key={s.k}>
+                  <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)' }}>{s.k}</p>
+                  <p className="num" style={{ font: '700 15px var(--mono)', color: s.hue, marginTop: 3, display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                    {s.v}
+                    {s.unit && <small style={{ font: '500 10px var(--mono)', color: 'var(--muted)' }}>{s.unit}</small>}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Duration</p>
-                  <p className="font-mono text-[15px] font-bold text-white">{formatDuration(activity.moving_time_seconds)}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Pace</p>
-                  <p className="font-mono text-[15px] font-bold text-accent">{activity.pace_formatted}<span className="text-[10px] text-zinc-600">/km</span></p>
-                </div>
-                {activity.elevation_gain > 0 && (
-                  <div>
-                    <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Elev</p>
-                    <p className="font-mono text-[15px] font-bold text-white">{Math.round(activity.elevation_gain)}<span className="text-[10px] text-zinc-600">m</span></p>
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
 
             {/* Actions — Reactions + Comment */}
-            <div className="relative flex items-center gap-1 px-4 pb-3 border-t border-bg-tertiary/50 pt-3">
-              {/* Quick reaction button */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, borderTop: '1px solid var(--hair)', paddingTop: 10 }}>
               <button
                 onClick={() => activity.user_gave_kudos
                   ? kudosMutation.mutate({ activityId: activity.id, remove: true })
                   : setShowReactionPicker(showReactionPicker === activity.id ? null : activity.id)
                 }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-150 active:scale-95 ${
-                  activity.user_gave_kudos
-                    ? 'bg-accent/10 text-accent'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-bg-tertiary/50'
-                }`}
+                aria-label={activity.user_gave_kudos ? 'Remove kudos' : 'Give kudos'}
+                aria-pressed={!!activity.user_gave_kudos}
+                className="num"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, padding: '0 12px', borderRadius: 16,
+                  cursor: 'pointer', font: '600 11px var(--mono)',
+                  background: activity.user_gave_kudos ? 'rgba(249,115,22,.14)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${activity.user_gave_kudos ? 'rgba(249,115,22,.3)' : 'var(--hair)'}`,
+                  color: activity.user_gave_kudos ? 'var(--accent-2)' : 'var(--muted)',
+                }}
               >
-                <span className="text-[13px]">{activity.user_reaction_emoji || '🙌'}</span>
-                <span className="text-[11px] font-semibold">{activity.kudos_count || ''}</span>
+                <ReactedIcon width={13} height={13} />
+                {activity.kudos_count > 0 && activity.kudos_count}
               </button>
 
               {/* Reaction picker */}
@@ -191,16 +188,23 @@ export function FeedPage() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 8 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    className="absolute bottom-full left-2 mb-1 flex gap-1 px-2 py-1.5 rounded-xl bg-bg-secondary border border-bg-tertiary shadow-lg z-10"
+                    className="ss-surface"
+                    style={{
+                      position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 10,
+                      display: 'flex', gap: 4, padding: '6px 8px', borderRadius: 14, background: 'rgba(11,10,22,.9)',
+                    }}
+                    role="menu"
+                    aria-label="Pick a reaction"
                   >
                     {REACTIONS.map(r => (
                       <button
                         key={r.type}
-                        onClick={() => handleReaction(activity.id, r.emoji, r.type)}
-                        className="w-8 h-8 rounded-lg hover:bg-bg-tertiary flex items-center justify-center transition-all active:scale-125"
+                        onClick={() => handleReaction(activity.id, r.Icon, r.type)}
+                        aria-label={r.label}
                         title={r.label}
+                        style={{ width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', cursor: 'pointer', background: 'none', border: 'none', color: 'var(--muted)' }}
                       >
-                        <span className="text-[16px]">{r.emoji}</span>
+                        <r.Icon width={16} height={16} />
                       </button>
                     ))}
                   </motion.div>
@@ -209,12 +213,16 @@ export function FeedPage() {
 
               <button
                 onClick={() => setCommentingOn(commentingOn === activity.id ? null : activity.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-bg-tertiary/50 transition-all duration-150 active:scale-95"
+                aria-label="Comment"
+                className="num"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, padding: '0 12px', borderRadius: 16,
+                  cursor: 'pointer', font: '600 11px var(--mono)',
+                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)', color: 'var(--muted)',
+                }}
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v5a2 2 0 01-2 2H6l-3 2.5V11H4a2 2 0 01-2-2V4z"/>
-                </svg>
-                <span className="text-[11px] font-semibold">{activity.comments_count || ''}</span>
+                <ChatIcon width={13} height={13} />
+                {activity.comments_count > 0 && activity.comments_count}
               </button>
 
               {/* Floating reactions */}
@@ -226,9 +234,10 @@ export function FeedPage() {
                     animate={{ opacity: 0, y: -60 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 1, ease: 'easeOut' }}
-                    className="absolute bottom-full text-[20px] pointer-events-none"
+                    style={{ position: 'absolute', bottom: '100%', pointerEvents: 'none', color: 'var(--accent-2)' }}
+                    aria-hidden="true"
                   >
-                    {fr.emoji}
+                    <fr.Icon width={20} height={20} />
                   </motion.span>
                 ))}
               </AnimatePresence>
@@ -242,16 +251,18 @@ export function FeedPage() {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  className="overflow-hidden"
+                  style={{ overflow: 'hidden' }}
                 >
-                  <div className="px-4 pb-3 flex gap-2">
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       type="text"
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Nice run!"
                       maxLength={500}
-                      className="flex-1 px-3 py-2 rounded-lg bg-bg-primary border border-bg-tertiary text-[12px] text-white placeholder:text-zinc-700 focus:border-zinc-600 focus:outline-none"
+                      className="ss-input"
+                      style={{ height: 40 }}
+                      aria-label="Write a comment"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && commentText.trim()) {
                           commentMutation.mutate({ activityId: activity.id, body: commentText });
@@ -261,7 +272,8 @@ export function FeedPage() {
                     <button
                       onClick={() => commentText.trim() && commentMutation.mutate({ activityId: activity.id, body: commentText })}
                       disabled={!commentText.trim() || commentMutation.isPending}
-                      className="px-3 py-2 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-30 active:scale-95 transition-all"
+                      className="ss-btn ss-btn-primary"
+                      style={{ height: 40, padding: '0 16px', flex: 'none', fontSize: 12, borderRadius: 11 }}
                     >
                       Post
                     </button>
@@ -269,17 +281,17 @@ export function FeedPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
-        ))}
+          </motion.article>
+        );
+      })}
 
-        {/* End of feed indicator */}
-        {!isLoading && data?.feed && data.feed.length > 0 && (
-          <motion.div variants={fadeUp} className="flex flex-col items-center py-6 gap-2">
-            <div className="w-8 h-[2px] rounded-full bg-bg-tertiary" />
-            <p className="text-[11px] text-zinc-600">You're all caught up</p>
-          </motion.div>
-        )}
-      </motion.div>
-    </AppShell>
+      {/* End of feed indicator */}
+      {!isLoading && data?.feed && data.feed.length > 0 && (
+        <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '18px 0' }}>
+          <span style={{ width: 32, height: 2, borderRadius: 1, background: 'var(--hair)' }} aria-hidden="true" />
+          <p style={{ font: '500 11px var(--body)', color: 'var(--muted-2)' }}>You're all caught up</p>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

@@ -1,5 +1,6 @@
-﻿import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { Bolt, Check } from '../ss/icons';
 
 interface Props {
   isOpen: boolean;
@@ -50,45 +51,48 @@ export function RedeemModal({ isOpen, onClose, offer, onConfirm }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(5,5,11,.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: 16 }}
           onClick={handleClose}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.94, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-bg-secondary border border-bg-tertiary rounded-2xl p-6 w-full max-w-sm space-y-4"
+            exit={{ scale: 0.94, opacity: 0 }}
+            className="ss-surface"
+            style={{ borderRadius: 22, padding: 20, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}
             onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={step === 'confirm' ? 'Confirm redemption' : 'Redemption successful'}
           >
             {step === 'confirm' && (
               <>
-                <div className="text-center space-y-2">
-                  <p className="text-[14px] font-semibold text-zinc-200">Redeem this offer?</p>
-                  <p className="text-[12px] text-zinc-400">
-                    <span className="font-semibold text-zinc-300">{offer.offer_title}</span> from {offer.brand_name}
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <p style={{ font: '600 15px var(--head)', letterSpacing: '-.01em', color: 'var(--fg)', margin: 0 }}>
+                    Redeem this offer?
                   </p>
-                  <div className="flex items-center justify-center gap-1.5 mt-2">
-                    <span>🔥</span>
-                    <span className="text-lg font-bold text-orange-400">-{offer.kendu_cost.toLocaleString()}</span>
-                    <span className="text-[11px] text-zinc-500">Kendu</span>
+                  <p style={{ font: '400 12px var(--body)', color: 'var(--muted)', margin: 0 }}>
+                    <span style={{ font: '600 12px var(--body)', color: 'var(--fg)' }}>{offer.offer_title}</span> from {offer.brand_name}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+                    <Bolt width={15} height={15} style={{ color: 'var(--accent-2)', alignSelf: 'center' }} />
+                    <span className="num" style={{ font: '700 20px var(--mono)', color: 'var(--accent-2)' }}>
+                      -{offer.kendu_cost.toLocaleString()}
+                    </span>
+                    <span style={{ font: '500 11px var(--body)', color: 'var(--muted-2)' }}>Kendu</span>
                   </div>
                 </div>
 
-                {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
+                {error && (
+                  <p style={{ font: '500 11px var(--body)', color: 'var(--amber)', textAlign: 'center', margin: 0 }}>{error}</p>
+                )}
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleClose}
-                    className="flex-1 py-2.5 rounded-lg bg-bg-tertiary text-zinc-400 text-[12px] font-semibold hover:bg-bg-tertiary/80 transition-colors"
-                  >
+                <div style={{ display: 'flex', gap: 9 }}>
+                  <button className="ss-btn ss-btn-soft" style={{ height: 44, fontSize: 13.5 }} onClick={handleClose}>
                     Cancel
                   </button>
-                  <button
-                    onClick={handleConfirm}
-                    disabled={loading}
-                    className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white text-[12px] font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? 'Redeeming...' : 'Confirm'}
+                  <button className="ss-btn ss-btn-primary" style={{ height: 44, fontSize: 13.5 }} onClick={handleConfirm} disabled={loading}>
+                    {loading ? 'Redeeming…' : 'Confirm'}
                   </button>
                 </div>
               </>
@@ -96,33 +100,35 @@ export function RedeemModal({ isOpen, onClose, offer, onConfirm }: Props) {
 
             {step === 'success' && (
               <>
-                <div className="text-center space-y-3">
-                  <motion.div
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+                  <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 300 }}
-                    className="text-4xl"
+                    style={{ width: 46, height: 46, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(52,211,153,.14)', border: '1px solid rgba(52,211,153,.3)' }}
                   >
-                    🎉
-                  </motion.div>
-                  <p className="text-[14px] font-semibold text-emerald-400">Redeemed!</p>
-                  <p className="text-[11px] text-zinc-400">Here's your coupon code:</p>
+                    <Check width={20} height={20} style={{ color: 'var(--green)' }} />
+                  </motion.span>
+                  <p style={{ font: '600 15px var(--head)', color: 'var(--green)', margin: 0 }}>Redeemed!</p>
+                  <p style={{ font: '400 11px var(--body)', color: 'var(--muted)', margin: 0 }}>Here's your coupon code:</p>
 
                   <button
                     onClick={copyCode}
-                    className="w-full py-3 rounded-lg bg-bg-tertiary border border-bg-tertiary hover:border-orange-500/30 transition-colors"
+                    className="tile recess w-full"
+                    style={{ alignItems: 'center', padding: '13px 12px', cursor: 'pointer' }}
                   >
-                    <p className="text-lg font-mono font-bold text-zinc-100 tracking-wider">{couponCode}</p>
-                    <p className="text-[11px] text-zinc-500 mt-1">Tap to copy</p>
+                    <span className="num" style={{ font: '700 18px var(--mono)', letterSpacing: '.08em', color: 'var(--fg)' }}>
+                      {couponCode}
+                    </span>
+                    <span style={{ font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 4 }}>Tap to copy</span>
                   </button>
 
-                  <p className="text-[10px] text-zinc-500">New balance: {newBalance.toLocaleString()} Kendu</p>
+                  <p className="num" style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)', margin: 0 }}>
+                    New balance: {newBalance.toLocaleString()} Kendu
+                  </p>
                 </div>
 
-                <button
-                  onClick={handleClose}
-                  className="w-full py-2.5 rounded-lg bg-orange-500/20 text-orange-400 text-[12px] font-semibold hover:bg-orange-500/30 transition-colors"
-                >
+                <button className="ss-btn ss-btn-soft" style={{ height: 44, fontSize: 13.5 }} onClick={handleClose}>
                   Done
                 </button>
               </>

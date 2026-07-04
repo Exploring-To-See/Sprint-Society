@@ -1,17 +1,22 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { ComponentType, SVGProps } from 'react';
 import api from '../../lib/api';
+import { SSSkeleton, SSEmpty } from '../ss/SSStates';
+import { Shoe, Trophy, Check, Target, Flame, Dumbbell, Calendar, Crown, Spark, Bolt, Pin } from '../ss/icons';
 
-const SOURCE_LABELS: Record<string, { label: string; icon: string }> = {
-  run_distance: { label: 'Run', icon: '🏃' },
-  personal_best: { label: 'Personal Best', icon: '🏆' },
-  coach_workout: { label: 'Workout Complete', icon: '📋' },
-  training_plan: { label: 'Plan Complete', icon: '🎯' },
-  streak_bonus: { label: 'Streak Milestone', icon: '🔥' },
-  consistent_week: { label: '4+ Runs Week', icon: '💪' },
-  community_event: { label: 'Event', icon: '🎉' },
-  redemption: { label: 'Redeemed', icon: '🎁' },
-  migration: { label: 'Welcome Bonus', icon: '✨' },
+type SsIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+const SOURCE_LABELS: Record<string, { label: string; Icon: SsIcon }> = {
+  run_distance: { label: 'Run', Icon: Shoe },
+  personal_best: { label: 'Personal Best', Icon: Trophy },
+  coach_workout: { label: 'Workout Complete', Icon: Check },
+  training_plan: { label: 'Plan Complete', Icon: Target },
+  streak_bonus: { label: 'Streak Milestone', Icon: Flame },
+  consistent_week: { label: '4+ Runs Week', Icon: Dumbbell },
+  community_event: { label: 'Event', Icon: Calendar },
+  redemption: { label: 'Redeemed', Icon: Crown },
+  migration: { label: 'Welcome Bonus', Icon: Spark },
 };
 
 export function KenduHistory() {
@@ -22,26 +27,28 @@ export function KenduHistory() {
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="h-[48px] rounded-lg bg-bg-tertiary/50 animate-pulse" />
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[0, 1, 2, 3, 4].map(i => <SSSkeleton key={i} height={48} style={{ borderRadius: 12 }} />)}
       </div>
     );
   }
 
   if (!data?.transactions?.length) {
     return (
-      <div className="text-center py-8">
-        <p className="text-[12px] text-zinc-500">No transactions yet. Go for a run!</p>
-      </div>
+      <SSEmpty
+        icon={<Bolt width={22} height={22} />}
+        title="No transactions yet"
+        body="Go for a run — every kilometre earns Kendu."
+        testid="kendu-history-empty"
+      />
     );
   }
 
   return (
-    <div className="space-y-1">
+    <div className="ss-surface ss-recess" style={{ borderRadius: 16, overflow: 'hidden' }}>
       {data.transactions.map((tx: any, i: number) => {
-        const source = SOURCE_LABELS[tx.source] || { label: tx.source, icon: '📍' };
+        const source = SOURCE_LABELS[tx.source] || { label: tx.source, Icon: Pin };
+        const { Icon } = source;
         const isPositive = tx.amount > 0;
         const date = new Date(tx.created_at);
         const timeStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
@@ -51,17 +58,24 @@ export function KenduHistory() {
             key={tx.id}
             initial={{ opacity: 0, x: -5 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.03 }}
-            className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-bg-tertiary/30 transition-colors"
+            transition={{ delay: Math.min(i * 0.03, 0.4) }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 13px', borderTop: i === 0 ? 'none' : '1px solid var(--hair)' }}
           >
-            <div className="flex items-center gap-2.5">
-              <span className="text-sm">{source.icon}</span>
-              <div>
-                <p className="text-[12px] text-zinc-300 font-medium">{source.label}</p>
-                <p className="text-[11px] text-zinc-600">{timeStr}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <span style={{ width: 28, height: 28, borderRadius: 9, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.05)', border: '1px solid var(--hair)' }}>
+                <Icon width={13} height={13} style={{ color: 'var(--muted)' }} />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ font: '600 12px var(--body)', color: 'var(--fg)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {source.label}
+                </p>
+                <p className="num" style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)', margin: '2px 0 0' }}>{timeStr}</p>
               </div>
             </div>
-            <span className={`text-[13px] font-bold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span
+              className="num flex-none"
+              style={{ font: '700 12.5px var(--mono)', color: isPositive ? 'var(--green)' : 'var(--amber)' }}
+            >
               {isPositive ? '+' : ''}{tx.amount}
             </span>
           </motion.div>
@@ -69,7 +83,7 @@ export function KenduHistory() {
       })}
 
       {data.totalPages > 1 && (
-        <p className="text-center text-[10px] text-zinc-600 pt-2">
+        <p className="num" style={{ textAlign: 'center', font: '500 10px var(--mono)', color: 'var(--muted-2)', padding: '9px 0', borderTop: '1px solid var(--hair)', margin: 0 }}>
           Page {data.page} of {data.totalPages}
         </p>
       )}

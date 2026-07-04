@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{#
+  Notifications — mirrors client/src/pages/NotificationsPage.tsx:
+  header "Notifications" + "N new" (accent) + "Mark all read" link; one row per
+  seed.NOTIFICATIONS item with a type glyph (kudos=heart, event=calendar,
+  coach=spark, level=trophy), text, mono relative time, and an accent unread dot
+  when read=false. Unread rows read subtly brighter than read ones.
+#}
+
+{% block page_style %}
+  /* row list (composed inside .tile.recess — dual-edge ring comes from the surface) */
+  .nt-row{display:flex;align-items:flex-start;gap:12px;padding:13px 2px;
+    border-bottom:1px solid var(--hair);transition:opacity .15s ease}
+  .nt-row:last-child{border-bottom:none}
+  /* read rows dim; unread rows sit at full strength (subtly brighter) */
+  .nt-row.read{opacity:.62}
+  .nt-ico{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:var(--glass);border:1px solid var(--hair)}
+  .nt-mid{flex:1;min-width:0}
+  .nt-txt{font:600 12.5px var(--body);color:var(--fg);line-height:1.35}
+  .nt-when{font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);
+    flex:none;margin-top:2px}
+  .nt-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;margin-top:5px}
+  .nt-empty{display:flex;flex-direction:column;align-items:center;gap:12px;padding:56px 16px 40px;text-align:center}
+{% endblock %}
+
+{% block content %}
+{% set notes = S.NOTIFICATIONS %}
+{% set unread = notes | selectattr('read', 'equalto', false) | list | length %}
+
+<!-- HEADER: title + N new (accent) + Mark all read -->
+<div class="pad">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+    <div>
+      <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:2px">Notifications</h1>
+      {% if unread %}
+        <p style="font:600 11px var(--body);color:var(--accent)">{{ unread }} new</p>
+      {% else %}
+        <p style="font:500 11px var(--body);color:var(--muted)">You're all caught up</p>
+      {% endif %}
+    </div>
+    {% if unread %}
+      <a class="more" href="{{ url_for('notifications') }}" style="flex:none;display:flex;align-items:center;gap:3px;font:600 11px var(--body);color:var(--violet-2)">Mark all read {{ icon('check', 12, 'currentColor', 2.2) }}</a>
+    {% endif %}
+  </div>
+
+  <!-- NOTIFICATION LIST -->
+  {% if notes %}
+  <div class="tile recess">
+    {% for n in notes %}
+      {% set glyph = 'heart' if n.type == 'kudos'
+          else 'calendar' if n.type == 'event'
+          else 'spark' if n.type == 'coach'
+          else 'trophy' if n.type == 'level'
+          else 'bell' %}
+      {% set gcolor = 'var(--accent)' if n.type == 'kudos'
+          else 'var(--violet-2)' if n.type == 'coach'
+          else 'var(--amber)' if n.type == 'level'
+          else 'var(--muted)' %}
+      <a class="nt-row {{ 'read' if n.read else 'unread' }}" href="{{ url_for('notifications') }}">
+        <span class="nt-ico">{{ icon(glyph, 16, gcolor, 2) }}</span>
+        <div class="nt-mid">
+          <p class="nt-txt">{{ n.text }}</p>
+        </div>
+        <span class="nt-when">{{ n.when }}</span>
+        {% if not n.read %}<span class="nt-dot" aria-label="Unread"></span>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- EMPTY STATE -->
+  <div class="tile recess nt-empty">
+    <span class="nt-ico" style="width:48px;height:48px;border-radius:14px">{{ icon('bell', 22, 'var(--muted)', 1.8) }}</span>
+    <p style="font:500 12.5px var(--body);color:var(--muted)">No notifications yet</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

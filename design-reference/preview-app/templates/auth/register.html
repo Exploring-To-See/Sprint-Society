@@ -1,0 +1,29 @@
+{% extends 'base_auth.html' %}
+{% block auth %}
+<div class="pad" style="max-width:360px;margin:0 auto;padding-top:7vh">
+  <div style="text-align:center;margin-bottom:24px">
+    <div class="brand" style="font-size:26px"><b>Sprint</b> Society</div>
+    <p style="color:var(--muted);font:500 12.5px var(--body);margin-top:6px">Create your account</p>
+  </div>
+
+  <form method="post" class="tile" style="gap:12px">
+    <div>
+      <label class="tlbl" style="display:block;margin-bottom:6px">Name</label>
+      <input class="ss-input" type="text" name="name" placeholder="Your name" autocomplete="name" required>
+    </div>
+    <div style="margin-top:12px">
+      <label class="tlbl" style="display:block;margin-bottom:6px">Email</label>
+      <input class="ss-input" type="email" name="email" placeholder="you@example.com" autocomplete="email" required>
+    </div>
+    <div style="margin-top:12px">
+      <label class="tlbl" style="display:block;margin-bottom:6px">Password</label>
+      <input class="ss-input" type="password" name="password" placeholder="Choose a password" autocomplete="new-password" required>
+    </div>
+    <button class="ss-btn ss-btn-primary" type="submit" style="width:100%;margin-top:16px">Create account</button>
+  </form>
+
+  <p style="text-align:center;color:var(--muted);font:500 12px var(--body);margin-top:18px">
+    Already have an account? <a href="{{ url_for('login') }}" style="color:var(--violet-2);font-weight:600">Sign in</a>
+  </p>
+</div>
+{% endblock %}

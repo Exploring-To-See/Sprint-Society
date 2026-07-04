@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon %}
+{% set S = seed %}
+{% set coach_active = 'records' %}
+
+{% block page_style %}
+  .rec{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--hair)}
+  .rec:last-child{border-bottom:none}
+  .rec-ico{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.26)}
+  .rec-body{flex:1;min-width:0}
+  .rec-d{font:600 13px var(--body);color:var(--fg)}
+  .rec-w{font:500 10.5px var(--body);color:var(--muted-2);margin-top:2px}
+  .rec-t{font:700 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;color:var(--fg)}
+{% endblock %}
+
+{% block content %}
+{% include 'partials/coach_tabs.html' %}
+
+<div class="pad">
+  <div class="ss-ai tile" style="display:flex;align-items:center;gap:11px;margin-bottom:12px;flex-direction:row">
+    <span class="ticon" style="background:linear-gradient(135deg,var(--violet),var(--accent));border:none">{{ icon('trophy', 15, '#fff', 2) }}</span>
+    <div style="flex:1;min-width:0">
+      <p style="font:600 12.5px var(--head);color:#fff">Records · already live on main</p>
+      <p style="font:400 10.5px var(--body);color:#D7D7E4;margin-top:2px">Shown for a complete click-through — already redesigned.</p>
+    </div>
+  </div>
+
+  <p class="tlbl" style="margin:6px 2px 6px">Personal records</p>
+  <div class="tile recess">
+    {% for r in S.RECORDS %}
+    <div class="rec">
+      <span class="rec-ico">{{ icon('medal', 18, 'var(--amber)', 2) }}</span>
+      <div class="rec-body"><div class="rec-d">{{ r.distance }}</div><div class="rec-w">{{ r.when }}</div></div>
+      {% if r.pr %}<span class="ss-prtag">PR</span>{% endif %}
+      <span class="rec-t">{{ r.time }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="tlbl" style="margin:16px 2px 6px">Recent milestones</p>
+  <div class="tile recess">
+    <div class="rec"><span class="rec-ico" style="background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.22)">{{ icon('trophy', 18, 'var(--green)', 2) }}</span>
+      <div class="rec-body"><div class="rec-d">First sub-27 5K</div><div class="rec-w">last month</div></div><span class="ss-dchip good">new</span></div>
+    <div class="rec"><span class="rec-ico" style="background:rgba(124,107,240,.14);border-color:rgba(124,107,240,.26)">{{ icon('bolt', 18, 'var(--violet-2)', 2) }}</span>
+      <div class="rec-body"><div class="rec-d">200 km milestone</div><div class="rec-w">this quarter</div></div></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,33 +1,42 @@
-﻿import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, ComponentType, SVGProps } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { OfferCard } from '../components/kendu/OfferCard';
 import { RedeemModal } from '../components/kendu/RedeemModal';
 import { KenduHistory } from '../components/kendu/KenduHistory';
-import { AppShell } from '../components/layout/AppShell';
+import { SSScreen } from '../components/ss/SSScreen';
+import { SSSeg } from '../components/ss/SSSeg';
+import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
+import {
+  ArrowLeft, Bolt, Flame, Crown, Spark, Send, Flag, Target, Trophy, Medal, Calendar, CommunityOutline,
+} from '../components/ss/icons';
 
 type Tab = 'marketplace' | 'actions' | 'history';
 
-const SPEND_ACTIONS = [
-  { key: 'community', icon: '🏘️', label: 'Create Community', cost: 200, description: 'Start your own run club', route: '/communities/create' },
-  { key: 'event', icon: '📅', label: 'Host Event', cost: 75, description: 'Create an event for runners', route: '/events' },
-  { key: 'challenge', icon: '⚔️', label: '1v1 Challenge', cost: '5-50', description: 'Stake Kendu, compete head-to-head', route: '/challenges' },
-  { key: 'card-skin', icon: '🎨', label: 'Premium Card Skin', cost: 40, description: 'Unlock exclusive share templates', route: null },
-  { key: 'ai-dive', icon: '🧠', label: 'AI Deep Dive', cost: 30, description: 'Extended AI coach session', route: null },
-  { key: 'boost', icon: '🚀', label: 'Boost Post', cost: 10, description: 'Pin your post to top for 24h', route: null },
-  { key: 'rsvp', icon: '🎟️', label: 'Priority RSVP', cost: 15, description: 'Guaranteed spot in limited events', route: '/events' },
-  { key: 'group-challenge', icon: '👥', label: 'Group Challenge', cost: 50, description: 'Challenge multiple runners at once', route: null },
-  { key: 'sponsor', icon: '🏆', label: 'Sponsor Leaderboard', cost: 500, description: 'Your name on community board 7 days', route: null },
-] as const;
+type SsIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+const SPEND_ACTIONS: readonly {
+  key: string; Icon: SsIcon; label: string; cost: number | string; description: string; route: string | null;
+}[] = [
+  { key: 'community', Icon: CommunityOutline, label: 'Create Community', cost: 200, description: 'Start your own run club', route: '/communities/create' },
+  { key: 'event', Icon: Calendar, label: 'Host Event', cost: 75, description: 'Create an event for runners', route: '/events' },
+  { key: 'challenge', Icon: Medal, label: '1v1 Challenge', cost: '5-50', description: 'Stake Kendu, compete head-to-head', route: '/challenges' },
+  { key: 'card-skin', Icon: Crown, label: 'Premium Card Skin', cost: 40, description: 'Unlock exclusive share templates', route: null },
+  { key: 'ai-dive', Icon: Spark, label: 'AI Deep Dive', cost: 30, description: 'Extended AI coach session', route: null },
+  { key: 'boost', Icon: Send, label: 'Boost Post', cost: 10, description: 'Pin your post to top for 24h', route: null },
+  { key: 'rsvp', Icon: Flag, label: 'Priority RSVP', cost: 15, description: 'Guaranteed spot in limited events', route: '/events' },
+  { key: 'group-challenge', Icon: Target, label: 'Group Challenge', cost: 50, description: 'Challenge multiple runners at once', route: null },
+  { key: 'sponsor', Icon: Trophy, label: 'Sponsor Leaderboard', cost: 500, description: 'Your name on community board 7 days', route: null },
+];
 
 export function RewardsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<Tab>('marketplace');
-  const [eventFilter, setEventFilter] = useState<string>('');
+  const [eventFilter] = useState<string>('');
 
   const { data: balance } = useQuery({
     queryKey: ['kendu-balance'],
@@ -52,93 +61,103 @@ export function RewardsPage() {
   };
 
   return (
-    <AppShell>
-    <div className="pb-24">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => navigate(-1)} className="text-zinc-400 text-lg">&larr;</button>
-        <h1 className="text-[16px] font-bold text-zinc-100">Kendu Store</h1>
-      </div>
+    <SSScreen bodyLabel="Kendu Store">
+      <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 6, paddingBottom: 24 }}>
 
-      {/* Balance Banner */}
-      {balance && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-4 mt-4 p-4 rounded-xl bg-gradient-to-r from-orange-500/15 to-amber-500/5 border border-orange-500/20"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Spendable Balance</p>
-              <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-2xl font-bold text-orange-400">{balance.spendable_balance.toLocaleString()}</span>
-                <span className="text-[11px] text-zinc-500">Kendu</span>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+            style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid var(--hair)', background: 'var(--glass)', display: 'grid', placeItems: 'center', cursor: 'pointer', color: 'var(--muted)', flex: 'none' }}
+          >
+            <ArrowLeft width={16} height={16} />
+          </button>
+          <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: 0 }}>
+            Kendu Store
+          </h1>
+        </div>
+
+        {/* Balance banner */}
+        {balance && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="tile"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '14px 15px' }}
+          >
+            <span style={{ width: 38, height: 38, borderRadius: 11, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,.14)', border: '1px solid rgba(249,115,22,.28)' }}>
+              <Bolt width={17} height={17} style={{ color: 'var(--accent-2)' }} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)' }}>
+                Spendable balance
+              </div>
+              <div className="num" style={{ font: '700 var(--m-lg) var(--mono)', lineHeight: 1, marginTop: 3, display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                {balance.spendable_balance.toLocaleString()}
+                <small style={{ font: '600 10px var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--accent-2)' }}>Kendu</small>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[12px] text-zinc-300 font-semibold">Level {balance.current_level}</p>
-              <p className="text-[10px] text-zinc-500">🔥 {balance.current_streak_days}d streak</p>
+            <div style={{ textAlign: 'right' }}>
+              <div className="num" style={{ font: '600 11px var(--mono)', color: 'var(--fg)' }}>Level {balance.current_level}</div>
+              <span className="ss-dchip warn" style={{ marginTop: 4 }}>
+                <Flame width={10} height={10} /> {balance.current_streak_days}d
+              </span>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 mx-4 mt-4 p-1 rounded-xl bg-bg-secondary border border-bg-tertiary">
-        {([['marketplace', 'Rewards'], ['actions', 'Spend'], ['history', 'History']] as const).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all ${
-              activeTab === key
-                ? 'bg-orange-500/20 text-orange-400'
-                : 'text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        {/* Sub-tabs — one segmented glide-pill */}
+        <SSSeg<Tab>
+          items={[
+            { key: 'marketplace', label: 'Rewards' },
+            { key: 'actions', label: 'Spend' },
+            { key: 'history', label: 'History' },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Kendu store sections"
+          testid="rewards-seg"
+        />
 
-      {/* Content */}
-      <div className="px-4 mt-4">
+        {/* Content */}
         {activeTab === 'history' && <KenduHistory />}
 
         {activeTab === 'marketplace' && (
-          <>
-            {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-[140px] rounded-xl bg-bg-tertiary/50 animate-pulse" />
-                ))}
-              </div>
-            ) : offers && offers.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {offers.map((offer: any) => (
-                  <OfferCard
-                    key={offer.id}
-                    offer={offer}
-                    userBalance={balance?.spendable_balance || 0}
-                    onRedeem={() => setSelectedOffer(offer)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-3xl mb-2">🏪</p>
-                <p className="text-[13px] text-zinc-400 font-medium">No brand offers yet</p>
-                <p className="text-[11px] text-zinc-500 mt-1">Rewards from Decathlon, Red Bull & more coming soon</p>
-              </div>
-            )}
-          </>
+          isLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[0, 1, 2].map(i => <SSSkeleton key={i} height={132} style={{ borderRadius: 18 }} />)}
+            </div>
+          ) : offers && offers.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {offers.map((offer: any) => (
+                <OfferCard
+                  key={offer.id}
+                  offer={offer}
+                  userBalance={balance?.spendable_balance || 0}
+                  onRedeem={() => setSelectedOffer(offer)}
+                />
+              ))}
+            </div>
+          ) : (
+            <SSEmpty
+              icon={<Trophy width={22} height={22} />}
+              title="No brand offers yet"
+              body="Rewards from Decathlon, Red Bull & more coming soon."
+              testid="rewards-empty"
+            />
+          )
         )}
 
         {activeTab === 'actions' && (
-          <div className="space-y-2">
-            <p className="text-[11px] text-zinc-500 mb-3">Spend your Kendu on in-app features</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <p style={{ font: '500 11px var(--body)', color: 'var(--muted)', margin: '0 0 2px' }}>
+              Spend your Kendu on in-app features
+            </p>
             {SPEND_ACTIONS.map(action => {
               const cost = typeof action.cost === 'number' ? action.cost : 0;
               const canAfford = typeof action.cost === 'number' ? (balance?.spendable_balance ?? 0) >= cost : true;
+              const { Icon } = action;
 
               return (
                 <motion.button
@@ -147,34 +166,40 @@ export function RewardsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => action.route && navigate(action.route)}
                   disabled={!action.route}
-                  className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-bg-secondary border border-bg-tertiary hover:border-zinc-600 transition-all text-left disabled:opacity-60"
+                  className="tile"
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '12px 14px', cursor: action.route ? 'pointer' : 'default', textAlign: 'left', opacity: action.route ? 1 : 0.55 }}
                 >
-                  <span className="text-xl w-8 text-center">{action.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-zinc-200">{action.label}</p>
-                    <p className="text-[10px] text-zinc-500 truncate">{action.description}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className={`text-[12px] font-bold ${canAfford ? 'text-orange-400' : 'text-zinc-600'}`}>
+                  <span style={{ width: 32, height: 32, borderRadius: 10, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.05)', border: '1px solid var(--hair)' }}>
+                    <Icon width={15} height={15} style={{ color: action.key === 'ai-dive' ? 'var(--violet-2)' : 'var(--muted)' }} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', font: '600 13px var(--body)', color: 'var(--fg)' }}>{action.label}</span>
+                    <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {action.description}
+                    </span>
+                  </span>
+                  <span style={{ textAlign: 'right', flex: 'none' }}>
+                    <span className="num" style={{ display: 'block', font: '700 12.5px var(--mono)', color: canAfford ? 'var(--accent-2)' : 'var(--muted-2)' }}>
                       {action.cost}
-                    </p>
-                    <p className="text-[11px] text-zinc-600">Kendu</p>
-                  </div>
+                    </span>
+                    <span style={{ display: 'block', font: '500 9px var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 1 }}>
+                      Kendu
+                    </span>
+                  </span>
                 </motion.button>
               );
             })}
           </div>
         )}
-      </div>
 
-      {/* Redeem Modal */}
-      <RedeemModal
-        isOpen={!!selectedOffer}
-        onClose={() => setSelectedOffer(null)}
-        offer={selectedOffer}
-        onConfirm={handleRedeem}
-      />
-    </div>
-    </AppShell>
+        {/* Redeem Modal */}
+        <RedeemModal
+          isOpen={!!selectedOffer}
+          onClose={() => setSelectedOffer(null)}
+          offer={selectedOffer}
+          onConfirm={handleRedeem}
+        />
+      </div>
+    </SSScreen>
   );
 }

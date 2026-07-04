@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  /* --- scrollable segmented rail (LAYOUT ONLY — surfaces/tokens untouched) --- */
+  .adm-segwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:16px}
+  .adm-segwrap::-webkit-scrollbar{display:none}
+  .adm-segwrap .ss-segbar{width:max-content;min-width:100%}
+  .adm-segwrap .ss-segtab{flex:none;padding:0 16px}
+
+  /* --- overview stat grid --- */
+  .adm-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);margin-bottom:16px}
+  .adm-stats .tile{padding:14px 15px}
+  .adm-stats .adm-top{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .adm-stats .adm-ic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:none;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .adm-stats .v{font:700 26px var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+  .adm-stats .k{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:6px}
+
+  /* --- recent signups mini list --- */
+  .sg-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--hair)}
+  .sg-row:last-child{border-bottom:none}
+  .sg-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;
+    font:700 12px var(--head);color:#fff}
+  .sg-av.o{background:linear-gradient(135deg,var(--accent),var(--amber))}
+  .sg-av.v{background:linear-gradient(135deg,var(--violet),var(--accent))}
+  .sg-name{font:600 13px var(--body);color:var(--fg)}
+  .sg-meta{font:500 10.5px var(--body);color:var(--muted-2);margin-top:1px}
+  .sg-when{margin-left:auto;font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);flex:none}
+
+  /* --- quick-action chip row --- */
+  .adm-qrow{display:flex;gap:9px;flex-wrap:wrap}
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<div class="pad">
+  <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+    <span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.05);border:1px solid var(--hair)">{{ icon('shield', 16, 'var(--muted)', 2) }}</span>
+    <div style="flex:1;min-width:0">
+      <h1 style="font:600 var(--m-lg) var(--head);letter-spacing:-.02em;margin-bottom:1px">Admin</h1>
+      <p style="font:500 11.5px var(--body);color:var(--muted)">Club control · {{ user.city if user else 'Ahmedabad' }}</p>
+    </div>
+    <span class="ss-tag full">Admin</span>
+  </div>
+</div>
+
+<!-- SCROLLABLE SEGMENTED TAB RAIL (Overview active) -->
+<div class="pad">
+  <div class="adm-segwrap">
+    <div class="ss-segbar">
+      <button class="ss-segtab on" type="button" aria-current="page"><span class="ss-segpill" aria-hidden="true"></span>{{ icon('chart', 14, 'currentColor', 2) }}Overview</button>
+      <a class="ss-segtab" href="{{ url_for('admin') }}">{{ icon('users', 14, 'currentColor', 2) }}Runners</a>
+      <a class="ss-segtab" href="{{ url_for('admin') }}">{{ icon('calendar', 14, 'currentColor', 2) }}Events</a>
+      <a class="ss-segtab" href="{{ url_for('admin') }}">{{ icon('run', 14, 'currentColor', 2) }}Communities</a>
+      <a class="ss-segtab" href="{{ url_for('admin') }}">{{ icon('flag', 14, 'currentColor', 2) }}Sessions</a>
+      <a class="ss-segtab" href="{{ url_for('admin') }}">{{ icon('bell', 14, 'currentColor', 2) }}Announcements</a>
+    </div>
+  </div>
+</div>
+
+<!-- OVERVIEW: STAT TILES -->
+<div class="pad">
+  <div class="adm-stats">
+    <div class="tile recess">
+      <div class="adm-top"><span class="adm-ic">{{ icon('users', 15, 'var(--muted)', 2) }}</span><span style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)">Runners</span></div>
+      <div class="v">{{ '{:,}'.format(S.ADMIN_STATS.runners) }}</div>
+      <div class="k">Total members</div>
+    </div>
+    <div class="tile recess">
+      <div class="adm-top"><span class="adm-ic">{{ icon('run', 15, 'var(--muted)', 2) }}</span><span style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)">Runs</span></div>
+      <div class="v">{{ S.ADMIN_STATS.runs_today }}</div>
+      <div class="k">Logged today</div>
+    </div>
+    <div class="tile recess">
+      <div class="adm-top"><span class="adm-ic">{{ icon('calendar', 15, 'var(--muted)', 2) }}</span><span style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)">Events</span></div>
+      <div class="v">{{ S.ADMIN_STATS.events_live }}</div>
+      <div class="k">Live now</div>
+    </div>
+    <div class="tile recess">
+      <div class="adm-top"><span class="adm-ic">{{ icon('run', 15, 'var(--muted)', 2) }}</span><span style="font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)">Clubs</span></div>
+      <div class="v">{{ S.ADMIN_STATS.communities }}</div>
+      <div class="k">Communities</div>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT SIGNUPS -->
+<div class="pad" style="margin-top:2px">
+  {{ sechead('Recent signups', 'All runners', url_for('admin')) }}
+  <div class="tile recess">
+    <div class="sg-row">
+      <span class="sg-av o">MK</span>
+      <div style="min-width:0">
+        <div class="sg-name">Meera Kulkarni</div>
+        <div class="sg-meta">Ahmedabad · Free plan</div>
+      </div>
+      <span class="sg-when">12m</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-av v">RD</span>
+      <div style="min-width:0">
+        <div class="sg-name">Rohan Desai</div>
+        <div class="sg-meta">Ahmedabad · Lite plan</div>
+      </div>
+      <span class="sg-when">1h</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-av o">AK</span>
+      <div style="min-width:0">
+        <div class="sg-name">Ananya Kapoor</div>
+        <div class="sg-meta">Gandhinagar · Free plan</div>
+      </div>
+      <span class="sg-when">3h</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-av v">ST</span>
+      <div style="min-width:0">
+        <div class="sg-name">Sameer Thakkar</div>
+        <div class="sg-meta">Ahmedabad · Pro plan</div>
+      </div>
+      <span class="sg-when">5h</span>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="pad" style="margin-top:16px">
+  {{ sechead('Quick actions') }}
+  <div class="adm-qrow">
+    <a class="ss-qchip accent" href="{{ url_for('admin') }}"><span class="qi">{{ icon('bell', 15, 'var(--accent-2)', 2) }}</span>New announcement</a>
+    <a class="ss-qchip" href="{{ url_for('admin') }}"><span class="qi">{{ icon('calendar', 15, 'var(--muted)', 2) }}</span>Create event</a>
+    <a class="ss-qchip" href="{{ url_for('admin') }}"><span class="qi">{{ icon('play', 14, 'var(--green)', 0) }}</span>Go live</a>
+  </div>
+</div>
+{% endblock %}

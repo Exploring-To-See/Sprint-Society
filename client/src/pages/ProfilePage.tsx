@@ -1,13 +1,14 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { AppShell } from '../components/layout/AppShell';
-import { Button } from '../components/ui/Button';
+import { SSScreen } from '../components/ss/SSScreen';
 import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
-import { Spark } from '../components/ss/icons';
+import {
+  Spark, Bell, Lock, Crown, Camera, Pin, Calendar, ChevronRight, Check, Bolt,
+} from '../components/ss/icons';
 import type { Achievement, PersonalRecord, UserXP } from '../../../shared/types';
 
 // --- Animations ---
@@ -21,29 +22,11 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 26 } },
 };
 
-// --- Tier Styling ---
-const TIER_CONFIG: Record<string, { bg: string; border: string; text: string; gradient: string; label: string }> = {
-  advanced: {
-    bg: 'bg-accent-gold/10',
-    border: 'border-accent-gold/30',
-    text: 'text-accent-gold',
-    gradient: 'from-amber-500/20 via-yellow-500/10 to-orange-500/20',
-    label: 'Advanced',
-  },
-  intermediate: {
-    bg: 'bg-accent/10',
-    border: 'border-accent/30',
-    text: 'text-accent',
-    gradient: 'from-blue-500/20 via-cyan-500/10 to-indigo-500/20',
-    label: 'Intermediate',
-  },
-  beginner: {
-    bg: 'bg-accent-green/10',
-    border: 'border-accent-green/30',
-    text: 'text-accent-green',
-    gradient: 'from-emerald-500/20 via-green-500/10 to-teal-500/20',
-    label: 'Beginner',
-  },
+// Tier → semantic ss-tag recipe (green / orange / amber — same mapping the old page used)
+const TIER_TAG: Record<string, string> = {
+  beginner: 'go',
+  intermediate: 'now',
+  advanced: 'maybe',
 };
 
 // --- Count-up Hook ---
@@ -84,24 +67,39 @@ function formatPace(seconds: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
+// Section head — matches the reference sechead (caps label + optional action link)
+function SecHead({ label, action, onAction }: { label: string; action?: string; onAction?: () => void }) {
+  return (
+    <div className="flex items-baseline justify-between" style={{ margin: '0 0 9px' }}>
+      <span style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted)' }}>
+        {label}
+      </span>
+      {action && (
+        <button
+          onClick={onAction}
+          style={{ font: '600 11px var(--body)', color: 'var(--violet-2)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+        >
+          {action}
+          <ChevronRight width={12} height={12} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 // --- Components ---
-
-function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-bg-tertiary/50 ${className}`} />;
-}
 
 function CountUpStat({ label, value, unit, accent }: { label: string; value: number; unit?: string; accent?: boolean }) {
   const animated = useCountUp(value);
   return (
-    <div className="flex-1 text-center p-3">
-      <div className="flex items-baseline justify-center gap-0.5">
-        <span className={`font-mono font-bold text-[20px] tabular-nums tracking-tight ${accent ? 'text-accent' : 'text-white'}`}>
+    <div className="flex-1 text-center" style={{ padding: '12px 4px' }}>
+      <div className="flex items-baseline justify-center" style={{ gap: 2 }}>
+        <span className="num" style={{ font: '700 20px var(--mono)', color: accent ? 'var(--accent-2)' : 'var(--fg)' }}>
           {animated}
         </span>
-        {unit && <span className="text-[11px] text-zinc-600 font-medium">{unit}</span>}
+        {unit && <span style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)' }}>{unit}</span>}
       </div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mt-1">{label}</p>
+      <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 5 }}>{label}</p>
     </div>
   );
 }
@@ -117,108 +115,93 @@ function KenduBalanceCard() {
 
   return (
     <motion.div variants={fadeUp}>
-      <div className="rounded-xl bg-gradient-to-r from-accent/[0.06] to-amber-500/[0.03] border border-accent/20 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold text-accent uppercase tracking-[0.15em]">Kendu</span>
-          <button onClick={() => navigate('/rewards')} className="text-[11px] text-zinc-500">History →</button>
+      <button
+        onClick={() => navigate('/rewards')}
+        className="tile recess w-full"
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '14px 15px', cursor: 'pointer', textAlign: 'left' }}
+        data-testid="profile-kendu"
+      >
+        <span style={{ width: 38, height: 38, borderRadius: 11, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,.14)', border: '1px solid rgba(249,115,22,.28)' }}>
+          <Bolt width={17} height={17} style={{ color: 'var(--accent-2)' }} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="num" style={{ font: '700 var(--m-lg) var(--mono)', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            {kendu.spendable_balance || 0}
+            <small style={{ font: '600 10px var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--accent-2)' }}>Kendu</small>
+          </div>
+          <div className="num" style={{ font: '500 10.5px var(--mono)', color: 'var(--muted-2)', marginTop: 3 }}>
+            Earned {kendu.lifetime_earned || 0} · Spent {(kendu.lifetime_earned || 0) - (kendu.spendable_balance || 0)}
+          </div>
         </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-[24px] font-bold text-white">{kendu.spendable_balance || 0}</span>
-          <span className="text-[11px] text-accent font-semibold">Kendu</span>
-        </div>
-        <p className="text-[11px] text-zinc-600 mt-1">
-          Earned: {kendu.lifetime_earned || 0} · Spent: {(kendu.lifetime_earned || 0) - (kendu.spendable_balance || 0)}
-        </p>
-      </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, font: '600 10.5px var(--body)', color: 'var(--violet-2)' }}>
+          History <ChevronRight width={12} height={12} />
+        </span>
+      </button>
     </motion.div>
   );
 }
 
 function RunningDNACard({ dna, tier }: { dna: any; tier: string }) {
-  const config = TIER_CONFIG[tier] || TIER_CONFIG.beginner;
+  const tagCls = TIER_TAG[tier] || 'go';
 
   return (
-    <motion.div
-      variants={fadeUp}
-      className={`relative rounded-2xl overflow-hidden border ${config.border}`}
-    >
-      {/* Gradient background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-60`} />
-      {/* Subtle grid pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-        backgroundSize: '20px 20px',
-      }} />
-
-      <div className="relative p-5 space-y-4">
-        {/* Card Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Running DNA</p>
-            <h3 className="font-heading text-[16px] font-bold text-white mt-0.5">Athlete Card</h3>
-          </div>
-          <div className={`px-2.5 py-1 rounded-lg ${config.bg} border ${config.border}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${config.text}`}>
-              {config.label}
-            </span>
-          </div>
-        </div>
-
-        {/* VO2max */}
-        {dna?.estimated_vo2max && (
-          <div className="flex items-center gap-4">
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-zinc-500">VO2max</p>
-              <p className="font-mono text-[28px] font-bold text-white leading-none mt-0.5">
-                {dna.estimated_vo2max}
-              </p>
-            </div>
-            {/* Pace zones mini */}
-            {dna.pace_zones && (
-              <div className="flex-1 grid grid-cols-2 gap-1.5">
-                {[
-                  { label: 'Easy', value: dna.pace_zones.easy, color: 'text-emerald-400' },
-                  { label: 'Tempo', value: dna.pace_zones.tempo, color: 'text-amber-400' },
-                  { label: 'Interval', value: dna.pace_zones.interval, color: 'text-red-400' },
-                  { label: 'Race', value: dna.pace_zones.race, color: 'text-accent' },
-                ].map(z => (
-                  <div key={z.label} className="flex items-baseline justify-between px-2 py-1.5 rounded-md bg-black/20">
-                    <span className="text-[11px] text-zinc-500">{z.label}</span>
-                    <span className={`font-mono text-[11px] font-bold ${z.color}`}>{z.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Personality tags */}
-        {dna?.personality_tags && dna.personality_tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {dna.personality_tags.slice(0, 5).map((tag: string) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-semibold text-zinc-300"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Coach badge */}
-        {dna?.ai_coach_name && (
-          <div className="flex items-center gap-2 pt-1 border-t border-white/5">
-            <span className="text-[10px] text-zinc-600">Coach:</span>
-            <span className="text-[11px] font-semibold text-accent">{dna.ai_coach_name}</span>
-          </div>
-        )}
+    <motion.div variants={fadeUp} className="tile" style={{ padding: '16px 14px' }}>
+      <div className="thead" style={{ marginBottom: 12 }}>
+        <span className="ticon">
+          <Spark width={13} height={13} style={{ color: 'var(--violet-2)' }} />
+        </span>
+        <span className="tlbl">Running DNA</span>
+        <span className={`ss-tag ${tagCls}`} style={{ marginLeft: 'auto', textTransform: 'capitalize' }}>{tier}</span>
       </div>
+
+      {dna?.estimated_vo2max && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <div style={{ flex: 'none' }}>
+            <p className="num" style={{ font: '700 42px var(--mono)', lineHeight: 1, color: 'var(--fg)', margin: 0 }}>
+              {dna.estimated_vo2max}
+            </p>
+            <div style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 5 }}>
+              VO₂ Max
+            </div>
+          </div>
+          {dna.pace_zones && (
+            <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {[
+                { label: 'Easy', value: dna.pace_zones.easy, color: 'var(--green)' },
+                { label: 'Tempo', value: dna.pace_zones.tempo, color: 'var(--amber)' },
+                { label: 'Interval', value: dna.pace_zones.interval, color: 'var(--accent-2)' },
+                { label: 'Race', value: dna.pace_zones.race, color: 'var(--fg)' },
+              ].map(z => (
+                <div key={z.label} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '7px 9px', borderRadius: 9, background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)' }}>
+                  <span style={{ font: '500 10px var(--body)', color: 'var(--muted-2)' }}>{z.label}</span>
+                  <span className="num" style={{ font: '700 11px var(--mono)', color: z.color }}>{z.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {dna?.personality_tags && dna.personality_tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+          {dna.personality_tags.slice(0, 5).map((tag: string) => (
+            <span key={tag} className="ss-dchip neutral">{tag}</span>
+          ))}
+        </div>
+      )}
+
+      {dna?.ai_coach_name && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--hair)' }}>
+          <span style={{ font: '500 10px var(--body)', color: 'var(--muted-2)' }}>Coach</span>
+          <span style={{ font: '600 11.5px var(--body)', color: 'var(--accent-2)' }}>{dna.ai_coach_name}</span>
+        </div>
+      )}
     </motion.div>
   );
 }
 
 function PRBoard({ records }: { records: any }) {
+  const navigate = useNavigate();
   const racePRs: PersonalRecord[] = records?.race_prs || [];
 
   const prMap: Record<string, PersonalRecord | undefined> = {
@@ -229,32 +212,22 @@ function PRBoard({ records }: { records: any }) {
   };
 
   return (
-    <motion.div variants={fadeUp} className="space-y-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Personal Records</h3>
-      <div className="grid grid-cols-2 gap-2">
+    <motion.div variants={fadeUp}>
+      <SecHead label="Personal records" action="See all" onAction={() => navigate('/records')} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gap)' }}>
         {Object.entries(prMap).map(([label, pr]) => (
-          <div
-            key={label}
-            className="flex items-center justify-between px-3.5 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary"
-          >
-            <div>
-              <p className="text-[10px] text-zinc-500 font-medium">{label}</p>
-              <p className="font-mono font-bold text-[14px] text-white mt-0.5">
+          <div key={label} className="tile recess" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 13px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ font: '500 10px var(--body)', color: 'var(--muted-2)' }}>{label}</div>
+              <div className="num" style={{ font: '700 15px var(--mono)', color: 'var(--fg)', marginTop: 3 }}>
                 {pr ? pr.formatted : '--:--'}
-              </p>
-            </div>
-            {pr?.improvement && (
-              <div className="flex items-center gap-0.5">
-                <svg width="10" height="10" viewBox="0 0 10 10" className="text-accent-green">
-                  <path d="M5 2L8 6H2L5 2Z" fill="currentColor" />
-                </svg>
-                <span className="text-[11px] font-mono text-accent-green">
-                  {pr.improvement.percent > 0 ? `${pr.improvement.percent.toFixed(1)}%` : ''}
-                </span>
               </div>
+            </div>
+            {pr?.improvement && pr.improvement.percent > 0 && (
+              <span className="ss-dchip good">{pr.improvement.percent.toFixed(1)}%</span>
             )}
             {!pr && (
-              <span className="text-[11px] text-zinc-700">No data</span>
+              <span style={{ font: '500 9px var(--mono)', color: 'var(--muted-2)', whiteSpace: 'nowrap' }}>No data</span>
             )}
           </div>
         ))}
@@ -279,24 +252,27 @@ function AchievementShowcase({ achievements }: { achievements: Achievement[] }) 
   const summary = badgeCollection?.summary;
 
   return (
-    <motion.div variants={fadeUp} className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Badge Collection</h3>
+    <motion.div variants={fadeUp}>
+      <div className="flex items-baseline justify-between" style={{ margin: '0 0 9px' }}>
+        <span style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted)' }}>
+          Badge collection
+        </span>
         {summary && (
-          <span className="text-[10px] font-mono text-zinc-600">{summary.earned}/{summary.total} ({summary.completion_percent}%)</span>
+          <span className="num" style={{ font: '600 10px var(--mono)', color: 'var(--muted-2)' }}>
+            {summary.earned}/{summary.total} ({summary.completion_percent}%)
+          </span>
         )}
       </div>
 
       {/* Category tabs */}
       {categoryNames.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="flex overflow-x-auto" style={{ gap: 6, paddingBottom: 8, scrollbarWidth: 'none' }}>
           {categoryNames.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold capitalize whitespace-nowrap transition-colors ${
-                displayCategory === cat ? 'bg-accent/10 text-accent' : 'text-zinc-600 hover:text-zinc-400'
-              }`}
+              className={`ss-tab ${displayCategory === cat ? 'on' : ''}`}
+              style={{ textTransform: 'capitalize' }}
             >
               {cat.replace('_', ' ')}
             </button>
@@ -304,24 +280,23 @@ function AchievementShowcase({ achievements }: { achievements: Achievement[] }) 
         </div>
       )}
 
-      {/* Badge grid */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* Badge grid — badge.icon is server data (the badge artwork), not decorative UI */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 8 }}>
         {badges.map((badge: any) => (
           <div
             key={badge.id}
-            className={`relative flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all ${
-              badge.earned
-                ? 'bg-bg-secondary border-accent/20'
-                : 'bg-bg-secondary/50 border-bg-tertiary opacity-40'
-            }`}
+            className="tile recess"
+            style={{ alignItems: 'center', gap: 4, padding: '10px 6px', opacity: badge.earned ? 1 : 0.4 }}
           >
-            <span className={`text-[20px] ${badge.earned ? '' : 'grayscale'}`}>{badge.icon}</span>
-            <span className="text-[7px] text-zinc-500 font-medium text-center line-clamp-1">{badge.name}</span>
+            <span style={{ fontSize: 20, filter: badge.earned ? 'none' : 'grayscale(1)' }}>{badge.icon}</span>
+            <span style={{ font: '500 7.5px var(--body)', color: 'var(--muted-2)', textAlign: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+              {badge.name}
+            </span>
             {badge.is_rare && badge.earned && (
-              <span className="absolute -top-1 -right-1 text-[7px] px-1 py-0.5 rounded bg-accent-gold/20 text-accent-gold font-bold">RARE</span>
+              <span className="ss-prtag" style={{ position: 'absolute', top: 4, right: 4, fontSize: 7 }}>Rare</span>
             )}
             {badge.earned && (
-              <span className="text-[6px] text-zinc-700">{badge.rarity_percent}% have this</span>
+              <span className="num" style={{ font: '500 7px var(--mono)', color: 'var(--muted-2)' }}>{badge.rarity_percent}% have this</span>
             )}
           </div>
         ))}
@@ -335,23 +310,61 @@ function CommunitiesList({ communities }: { communities: { id: number; name: str
   if (!communities || communities.length === 0) return null;
 
   return (
-    <motion.div variants={fadeUp} className="space-y-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Communities</h3>
-      <div className="flex flex-wrap gap-2">
+    <motion.div variants={fadeUp}>
+      <SecHead label="Communities" />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {communities.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => navigate(`/communities/${c.id}`)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.97] transition-all hover:border-zinc-600"
-          >
-            <span className="text-[11px] text-zinc-300 font-medium">{c.name}</span>
-            <span className="text-[11px] text-zinc-600 capitalize">{c.category.replace('_', ' ')}</span>
+          <button key={c.id} onClick={() => navigate(`/communities/${c.id}`)} className="ss-qchip">
+            <span>{c.name}</span>
+            <span style={{ font: '500 10.5px var(--body)', color: 'var(--muted-2)', textTransform: 'capitalize' }}>
+              {c.category.replace('_', ' ')}
+            </span>
           </button>
         ))}
       </div>
     </motion.div>
   );
 }
+
+// Settings row — the reference .set-row recipe as a React atom
+function SetRow({ icon, title, sub, onClick, trailing }: {
+  icon: React.ReactNode; title: string; sub?: string; onClick?: () => void; trailing?: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '13px 4px', width: '100%',
+        textAlign: 'left', background: 'none', border: 'none', borderBottom: '1px solid var(--hair)',
+        color: 'inherit', fontFamily: 'inherit', cursor: 'pointer',
+      }}
+    >
+      <span style={{ width: 30, height: 30, borderRadius: 9, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.05)', border: '1px solid var(--hair)' }}>
+        {icon}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', font: '600 13px var(--body)', color: 'var(--fg)' }}>{title}</span>
+        {sub && <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>{sub}</span>}
+      </span>
+      {trailing}
+      <ChevronRight width={15} height={15} style={{ color: 'var(--muted-2)', flex: 'none' }} />
+    </button>
+  );
+}
+
+const COACHES = [
+  { name: 'The Scientist', vibe: 'Data-driven. Logical.' },
+  { name: 'The Energizer', vibe: 'Fun. Lively. Action.' },
+  { name: 'The Warrior', vibe: 'No excuses. Grind.' },
+  { name: 'The Sage', vibe: 'Patient. Wise. Recovery.' },
+];
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '11px 12px', borderRadius: 11,
+  background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)',
+  font: '500 13px var(--body)', color: 'var(--fg)', outline: 'none',
+};
 
 function SettingsSection() {
   const navigate = useNavigate();
@@ -396,153 +409,122 @@ function SettingsSection() {
   };
 
   return (
-    <motion.div variants={fadeUp} className="space-y-3">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Settings</h3>
+    <motion.div variants={fadeUp}>
+      <SecHead label="Settings" />
+      <div className="tile recess" style={{ padding: '2px 13px' }}>
 
-      {/* AI Coach Selection */}
-      {!showCoachPicker ? (
-        <button
-          onClick={() => setShowCoachPicker(true)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.99] transition-all"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
-              <span className="text-[12px]">🧠</span>
+        {/* AI Coach picker */}
+        {!showCoachPicker ? (
+          <SetRow
+            icon={<Spark width={15} height={15} style={{ color: 'var(--violet-2)' }} />}
+            title="AI Coach"
+            sub={dnaProfile?.ai_coach_name || 'Not assigned'}
+            onClick={() => setShowCoachPicker(true)}
+          />
+        ) : (
+          <div style={{ padding: '13px 4px', borderBottom: '1px solid var(--hair)' }}>
+            <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted)', marginBottom: 9 }}>
+              Choose your coach
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {COACHES.map(c => {
+                const selected = dnaProfile?.ai_coach_name === c.name;
+                return (
+                  <button
+                    key={c.name}
+                    onClick={() => coachMutation.mutate(c.name)}
+                    disabled={coachMutation.isPending}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 11px', borderRadius: 11,
+                      background: selected ? 'rgba(249,115,22,.1)' : 'rgba(255,255,255,.03)',
+                      border: `1px solid ${selected ? 'rgba(249,115,22,.3)' : 'var(--hair)'}`,
+                      cursor: 'pointer', textAlign: 'left', color: 'inherit', fontFamily: 'inherit',
+                      opacity: coachMutation.isPending ? 0.6 : 1,
+                    }}
+                  >
+                    <Spark width={14} height={14} style={{ color: selected ? 'var(--accent-2)' : 'var(--violet-2)', flex: 'none' }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', font: '600 12.5px var(--body)', color: 'var(--fg)' }}>{c.name}</span>
+                      <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 1 }}>{c.vibe}</span>
+                    </span>
+                    {selected && <Check width={13} height={13} style={{ color: 'var(--accent-2)', flex: 'none' }} />}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <p className="text-[12px] font-medium text-white">AI Coach</p>
-              <p className="text-[11px] text-zinc-600">{dnaProfile?.ai_coach_name || 'Not assigned'}</p>
-            </div>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
-            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      ) : (
-        <div className="px-4 py-4 rounded-xl bg-bg-secondary border border-bg-tertiary space-y-2">
-          <p className="text-[11px] font-semibold text-zinc-400 mb-2">Choose your Coach</p>
-          {[
-            { name: 'The Scientist', title: 'The Scientist', vibe: 'Data-driven. Logical.', color: 'text-blue-400' },
-            { name: 'The Energizer', title: 'The Energizer', vibe: 'Fun. Lively. Action.', color: 'text-pink-400' },
-            { name: 'The Warrior', title: 'The Warrior', vibe: 'No excuses. Grind.', color: 'text-red-400' },
-            { name: 'The Sage', title: 'The Sage', vibe: 'Patient. Wise. Recovery.', color: 'text-emerald-400' },
-          ].map(c => (
             <button
-              key={c.name}
-              onClick={() => coachMutation.mutate(c.name)}
-              disabled={coachMutation.isPending}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] ${
-                dnaProfile?.ai_coach_name === c.name
-                  ? 'bg-accent/10 border-accent/30'
-                  : 'border-bg-tertiary hover:border-zinc-600'
-              }`}
+              onClick={() => setShowCoachPicker(false)}
+              style={{ font: '600 11px var(--body)', color: 'var(--muted-2)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 9 }}
             >
-              <span className="text-[14px]">🧠</span>
-              <div className="flex-1 text-left">
-                <p className={`text-[12px] font-semibold ${c.color}`}>{c.name}</p>
-                <p className="text-[11px] text-zinc-600">{c.title} — {c.vibe}</p>
-              </div>
-              {dnaProfile?.ai_coach_name === c.name && <span className="text-accent text-[11px]">✓</span>}
+              Cancel
             </button>
-          ))}
-          <button onClick={() => setShowCoachPicker(false)} className="text-[11px] text-zinc-600 hover:text-zinc-400 mt-1">Cancel</button>
-        </div>
-      )}
-
-      {/* Notifications */}
-      <button
-        onClick={() => navigate('/notifications')}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.99] transition-all"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-accent">
-              <path d="M8 1.5a4 4 0 014 4v2.5l1.5 2.5H2.5L4 8V5.5a4 4 0 014-4zM6 12.5a2 2 0 004 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
           </div>
-          <p className="text-[12px] font-medium text-white">Notifications</p>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
-          <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+        )}
 
-      {/* Subscription */}
-      <button
-        onClick={() => navigate('/subscription')}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.99] transition-all"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-accent-gold/10 flex items-center justify-center">
-            <span className="text-[12px]">👑</span>
-          </div>
-          <p className="text-[12px] font-medium text-white">Subscription</p>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
-          <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+        <SetRow
+          icon={<Bell width={15} height={15} style={{ color: 'var(--muted)' }} />}
+          title="Notifications"
+          onClick={() => navigate('/notifications')}
+        />
 
-      {/* Change Password */}
-      {!showPassword ? (
-        <button
-          onClick={() => setShowPassword(true)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-bg-tertiary active:scale-[0.99] transition-all"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-zinc-500/10 flex items-center justify-center">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-zinc-400">
-                <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
-                <path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
+        <SetRow
+          icon={<Crown width={15} height={15} style={{ color: 'var(--amber)' }} />}
+          title="Subscription"
+          onClick={() => navigate('/subscription')}
+        />
+
+        {/* Change password */}
+        {!showPassword ? (
+          <SetRow
+            icon={<Lock width={15} height={15} style={{ color: 'var(--muted)' }} />}
+            title="Change Password"
+            onClick={() => setShowPassword(true)}
+          />
+        ) : (
+          <div style={{ padding: '13px 4px', borderBottom: '1px solid var(--hair)', display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <input
+              type="password"
+              placeholder="Current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              type="password"
+              placeholder="New password (6+ chars)"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              style={inputStyle}
+            />
+            {passwordErr && <p style={{ font: '500 11px var(--body)', color: 'var(--amber)' }}>{passwordErr}</p>}
+            {passwordMsg && <p style={{ font: '500 11px var(--body)', color: 'var(--green)' }}>{passwordMsg}</p>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="ss-btn ss-btn-primary"
+                style={{ height: 40, fontSize: 13, flex: 1 }}
+                onClick={handleChangePassword}
+                disabled={!currentPassword || newPassword.length < 6 || loading}
+              >
+                {loading ? 'Saving…' : 'Update'}
+              </button>
+              <button
+                className="ss-btn ss-btn-soft"
+                style={{ height: 40, fontSize: 13, flex: 1 }}
+                onClick={() => setShowPassword(false)}
+              >
+                Cancel
+              </button>
             </div>
-            <p className="text-[12px] font-medium text-white">Change Password</p>
           </div>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
-            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      ) : (
-        <div className="px-4 py-4 rounded-xl bg-bg-secondary border border-bg-tertiary space-y-3">
-          <input
-            type="password"
-            placeholder="Current password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg bg-bg-primary border border-white/10 text-[13px] text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
-          />
-          <input
-            type="password"
-            placeholder="New password (6+ chars)"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg bg-bg-primary border border-white/10 text-[13px] text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none"
-          />
-          {passwordErr && <p className="text-red-400 text-[11px]">{passwordErr}</p>}
-          {passwordMsg && <p className="text-accent-green text-[11px]">{passwordMsg}</p>}
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleChangePassword} disabled={!currentPassword || newPassword.length < 6 || loading}>
-              {loading ? 'Saving...' : 'Update'}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowPassword(false)}>Cancel</Button>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Logout */}
-      <button
-        onClick={logout}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-red-500/10 active:scale-[0.99] transition-all"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-red-400">
-              <path d="M6 2H4a2 2 0 00-2 2v8a2 2 0 002 2h2M10 11l3-3-3-3M13 8H6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <p className="text-[12px] font-medium text-red-400">Log Out</p>
-        </div>
-      </button>
+        {/* Logout */}
+        <SetRow
+          icon={<Lock width={15} height={15} style={{ color: 'var(--amber)' }} />}
+          title="Log Out"
+          onClick={logout}
+        />
+      </div>
     </motion.div>
   );
 }
@@ -580,7 +562,7 @@ function XpHistorySection() {
 
   return (
     <motion.div variants={fadeUp} className="space-y-2" data-testid="profile-xp-history">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">XP History</h3>
+      <SecHead label="XP History" />
 
       {isLoading && (
         <div className="space-y-2">
@@ -689,25 +671,25 @@ export function ProfilePage() {
 
   if (profileLoading) {
     return (
-      <AppShell>
-        <div className="space-y-4 pt-4">
-          <div className="flex items-center gap-4">
-            <Skeleton className="w-20 h-20 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-5 w-36" />
-              <Skeleton className="h-3 w-24" />
+      <SSScreen bodyLabel="Profile">
+        <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <SSSkeleton height={64} style={{ width: 64, borderRadius: '50%' }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <SSSkeleton height={18} style={{ width: 140 }} />
+              <SSSkeleton height={12} style={{ width: 90 }} />
             </div>
           </div>
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-32 w-full" />
+          <SSSkeleton height={160} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={72} style={{ borderRadius: 18 }} />
+          <SSSkeleton height={120} style={{ borderRadius: 18 }} />
         </div>
-      </AppShell>
+      </SSScreen>
     );
   }
 
   const currentTier: string = profile?.current_tier || dna?.tier || 'beginner';
-  const tierConfig = TIER_CONFIG[currentTier] || TIER_CONFIG.beginner;
+  const tierTag = TIER_TAG[currentTier] || 'go';
   const totalKm = stats?.total_distance ? Math.round(stats.total_distance / 1000) : (profile?.total_distance_km || 0);
   const avgPace = stats?.avg_pace || 0;
   const consistencyPercent = stats?.consistency_percent || 0;
@@ -716,13 +698,20 @@ export function ProfilePage() {
   const memberSince = profile?.created_at || profile?.joined_at || (user as any)?.created_at;
 
   return (
-    <AppShell>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5 pb-8">
+    <SSScreen bodyLabel="Profile">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 6, paddingBottom: 24 }}>
 
         {/* === HEADER === */}
-        <motion.div variants={fadeUp} className="flex items-center gap-4 pt-2">
+        <motion.div variants={fadeUp} className="tile" style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: '16px 14px' }}>
           {/* Avatar — tappable to upload photo */}
-          <label className={`relative w-20 h-20 rounded-full border-2 ${tierConfig.border} overflow-hidden flex items-center justify-center bg-bg-tertiary flex-shrink-0 cursor-pointer active:scale-95 transition-transform`}>
+          <label
+            style={{
+              position: 'relative', width: 64, height: 64, borderRadius: '50%', flex: 'none', overflow: 'hidden',
+              display: 'grid', placeItems: 'center', cursor: 'pointer',
+              background: 'linear-gradient(135deg,var(--accent),var(--violet))',
+              border: '1px solid var(--hair)',
+            }}
+          >
             <input
               type="file"
               accept="image/*"
@@ -735,7 +724,7 @@ export function ProfilePage() {
                 reader.onload = async () => {
                   try {
                     await api.patch('/profile/photo', { photo: reader.result });
-                    queryClient.invalidateQueries({ queryKey: ['profile'] });
+                    queryClient.invalidateQueries({ queryKey: ['my-profile'] });
                   } catch { alert('Upload failed'); }
                 };
                 reader.readAsDataURL(file);
@@ -745,41 +734,40 @@ export function ProfilePage() {
               <img
                 src={profile?.profile_image_url || (user as any)?.profile_image_url}
                 alt=""
-                className="w-full h-full object-cover"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
-              <span className="text-2xl font-bold text-zinc-500">
+              <span style={{ font: '700 22px var(--head)', color: '#fff' }}>
                 {(profile?.name || user?.name)?.[0]?.toUpperCase() || '?'}
               </span>
             )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 active:opacity-100 transition-opacity">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 2h6l1 3h-8l1-3z"/></svg>
+            <div
+              className="opacity-0 hover:opacity-100 active:opacity-100 transition-opacity"
+              style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)' }}
+            >
+              <Camera width={18} height={18} style={{ color: '#fff' }} />
             </div>
           </label>
 
           {/* Name + meta */}
-          <div className="flex-1 min-w-0">
-            <h1 className="font-heading text-[22px] font-bold text-white truncate">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ font: '600 var(--m-lg) var(--head)', letterSpacing: '-.02em', color: 'var(--fg)', margin: '0 0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {profile?.name || user?.name}
             </h1>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className={`text-[11px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-md border ${tierConfig.bg} ${tierConfig.border} ${tierConfig.text}`}>
-                {tierConfig.label}
-              </span>
-              <span className="text-[10px] font-mono text-zinc-500">L{currentLevel}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+              <span className={`ss-tag ${tierTag}`} style={{ textTransform: 'capitalize' }}>{currentTier}</span>
+              <span className="num" style={{ font: '600 10px var(--mono)', color: 'var(--muted-2)' }}>L{currentLevel}</span>
             </div>
-            <div className="flex items-center gap-3 mt-1.5">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 7 }}>
               {profile?.city && (
-                <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-                  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" className="text-zinc-600">
-                    <path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.5 4.5 8.5 4.5 8.5s4.5-5 4.5-8.5c0-2.5-2-4.5-4.5-4.5z" stroke="currentColor" strokeWidth="1.2"/>
-                    <circle cx="8" cy="6" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                  </svg>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, font: '500 10.5px var(--body)', color: 'var(--muted-2)', whiteSpace: 'nowrap' }}>
+                  <Pin width={11} height={11} />
                   {profile.city}
                 </span>
               )}
               {memberSince && (
-                <span className="text-[10px] text-zinc-600">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, font: '500 10.5px var(--body)', color: 'var(--muted-2)', whiteSpace: 'nowrap' }}>
+                  <Calendar width={11} height={11} />
                   Since {new Date(memberSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </span>
               )}
@@ -796,23 +784,25 @@ export function ProfilePage() {
         <KenduBalanceCard />
 
         {/* === STATS SECTION (count-up) === */}
-        <motion.div variants={fadeUp}>
-          <div className="rounded-xl bg-bg-secondary border border-bg-tertiary overflow-hidden">
-            <div className="grid grid-cols-3 divide-x divide-bg-tertiary">
-              <CountUpStat label="Total KM" value={totalKm} unit="km" />
+        <motion.div variants={fadeUp} className="tile recess" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <CountUpStat label="Total KM" value={totalKm} unit="km" />
+            <div style={{ borderLeft: '1px solid var(--hair)', borderRight: '1px solid var(--hair)' }}>
               <CountUpStat label="Level" value={currentLevel} accent />
-              <CountUpStat label="Streak" value={xp?.current_streak_days || 0} unit="days" />
             </div>
-            <div className="grid grid-cols-3 divide-x divide-bg-tertiary border-t border-bg-tertiary">
-              <div className="flex-1 text-center p-3">
-                <span className="font-mono font-bold text-[20px] tabular-nums tracking-tight text-white">
-                  {avgPace ? formatPace(avgPace) : '--:--'}
-                </span>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500 mt-1">Avg Pace</p>
-              </div>
+            <CountUpStat label="Streak" value={xp?.current_streak_days || 0} unit="d" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: '1px solid var(--hair)' }}>
+            <div className="text-center" style={{ padding: '12px 4px' }}>
+              <span className="num" style={{ font: '700 20px var(--mono)', color: 'var(--fg)' }}>
+                {avgPace ? formatPace(avgPace) : '--:--'}
+              </span>
+              <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', marginTop: 5 }}>Avg Pace</p>
+            </div>
+            <div style={{ borderLeft: '1px solid var(--hair)', borderRight: '1px solid var(--hair)' }}>
               <CountUpStat label="Consistency" value={consistencyPercent} unit="%" />
-              <CountUpStat label="Best Streak" value={longestStreak} unit="days" />
             </div>
+            <CountUpStat label="Best Streak" value={longestStreak} unit="d" />
           </div>
         </motion.div>
 
@@ -823,23 +813,18 @@ export function ProfilePage() {
         <motion.div variants={fadeUp}>
           <button
             onClick={() => navigate('/profiling')}
-            className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-gradient-to-r from-accent/10 to-accent-gold/5 border border-accent/20 active:scale-[0.98] transition-all group"
+            className="tile w-full"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '13px 14px', cursor: 'pointer', textAlign: 'left' }}
+            data-testid="profile-update-ai"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-accent">
-                  <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M12.5 3.5L11 5M5 11l-1.5 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                  <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
-                </svg>
-              </div>
-              <div className="text-left">
-                <p className="text-[13px] font-semibold text-white">Update AI Profile</p>
-                <p className="text-[10px] text-zinc-500">Re-analyze your running DNA</p>
-              </div>
-            </div>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-accent group-hover:translate-x-0.5 transition-transform">
-              <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span style={{ width: 32, height: 32, borderRadius: 10, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(124,107,240,.16)', border: '1px solid rgba(124,107,240,.28)' }}>
+              <Spark width={15} height={15} style={{ color: 'var(--violet-2)' }} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', font: '600 13px var(--body)', color: 'var(--fg)' }}>Update AI Profile</span>
+              <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>Re-analyze your running DNA</span>
+            </span>
+            <ChevronRight width={15} height={15} style={{ color: 'var(--violet-2)', flex: 'none' }} />
           </button>
         </motion.div>
 
@@ -858,10 +843,10 @@ export function ProfilePage() {
         <SettingsSection />
 
         {/* Footer */}
-        <p className="text-center text-white/10 text-[10px] pt-4">
+        <p style={{ textAlign: 'center', font: '500 10px var(--body)', color: 'var(--muted-2)', opacity: 0.6, margin: '10px 0 4px' }}>
           Sprint Society v1.0 — Kendu Entertainment
         </p>
       </motion.div>
-    </AppShell>
+    </SSScreen>
   );
 }

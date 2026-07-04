@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, gauge, stat, sechead %}
+{% set C = community %}
+{# joined communities (COMMUNITIES_JOINED) carry a new_count key; discover ones don't. #}
+{% set is_member = 'new_count' in C %}
+
+{# ---- Invented, self-consistent content (mono km / tabular figures) ---- #}
+{% set LEADERS = [
+  {'rank':1,'name':'Priya Sharma','initials':'PS','km':'82.4','runs':11,'streak':12,'hue':'gold'},
+  {'rank':2,'name':'Arjun Mehta','initials':'AM','km':'76.1','runs':9,'streak':5,'hue':'silver'},
+  {'rank':3,'name':'Neha Kulkarni','initials':'NK','km':'68.9','runs':10,'streak':7,'hue':'bronze'},
+  {'rank':4,'name':'Rahul Desai','initials':'RD','km':'61.2','runs':8,'streak':0,'hue':'flat'},
+  {'rank':5,'name':'Ishan Vashistha','initials':'IV','km':'54.6','runs':7,'streak':3,'hue':'me'},
+] %}
+{% set POSTS = [
+  {'name':'Priya Sharma','initials':'PS','ago':'2h ago','pinned':True,
+   'body':'Sunrise long run this Sunday moved to 5:45 AM — meet at the Riverfront steps. Bring hydration, monsoon humidity is real.',
+   'kudos':31,'comments':6},
+  {'name':'Arjun Mehta','initials':'AM','ago':'5h ago','pinned':False,
+   'body':'Negative-split my tempo along the Sabarmati — back 3 km felt effortless. Whoever paced the front group, thank you.',
+   'kudos':24,'comments':4},
+  {'name':'Neha Kulkarni','initials':'NK','ago':'yesterday','pinned':False,
+   'body':'New to the club — did my first 5 K without walking today. This group makes the 5 AM alarm worth it.',
+   'kudos':47,'comments':11},
+] %}
+{% set POLL = {
+  'question':"Which day works best for the weekly long run?",
+  'total':142,
+  'options':[
+    {'label':'Saturday 6:00 AM','pct':38},
+    {'label':'Sunday 5:45 AM','pct':47},
+    {'label':'Sunday 6:30 AM','pct':15},
+  ],
+  'my_vote':1,
+} %}
+
+{% block page_style %}
+  .cd-head{padding:14px;border-radius:20px;margin-bottom:12px}
+  .cd-htop{display:flex;align-items:center;gap:12px}
+  .cd-ico{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;
+    background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.28)}
+  .cd-name{font:600 17px var(--head);letter-spacing:-.02em;color:var(--fg);line-height:1.15}
+  .cd-meta{font:600 10.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-top:3px;
+    display:flex;align-items:center;gap:6px}
+  .cd-join{flex:none}
+  .cd-back{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--body);color:var(--muted-2);margin-bottom:10px}
+
+  /* leaderboard row */
+  .lb-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--hair)}
+  .lb-row:last-child{border-bottom:none}
+  .lb-rank{width:22px;flex:none;text-align:center;font:700 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2)}
+  .lb-rank.gold{color:var(--amber)}
+  .lb-rank.silver{color:var(--muted)}
+  .lb-rank.bronze{color:var(--accent-2)}
+  .lb-av{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font:700 11px var(--head);color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  .lb-av.me{background:linear-gradient(135deg,var(--violet),var(--accent))}
+  .lb-nm{font:600 13px var(--body);color:var(--fg);line-height:1.2}
+  .lb-sub{font:500 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:1px}
+  .lb-km{margin-left:auto;text-align:right;flex:none}
+  .lb-kmv{font:700 14px var(--mono);font-variant-numeric:tabular-nums;color:var(--accent-2);line-height:1}
+  .lb-kmk{font:600 8px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:3px}
+
+  /* posts */
+  .pt{padding:12px 0;border-bottom:1px solid var(--hair)}
+  .pt:last-child{border-bottom:none;padding-bottom:2px}
+  .pt:first-child{padding-top:2px}
+  .pt-top{display:flex;align-items:center;gap:9px}
+  .pt-av{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font:700 10px var(--head);color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  .pt-nm{font:600 12.5px var(--body);color:var(--fg)}
+  .pt-ago{font:500 10px var(--mono);color:var(--muted-2);margin-top:1px}
+  .pt-body{font:500 13px var(--body);color:var(--fg);line-height:1.5;margin:8px 0 0;padding-left:39px}
+  .pt-react{display:flex;align-items:center;gap:14px;margin-top:9px;padding-left:39px}
+  .pt-react .rx{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .pin-hdr{display:flex;align-items:center;gap:6px;margin-bottom:7px;
+    font:700 8.5px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--amber)}
+
+  /* poll */
+  .pl-q{font:600 13.5px var(--body);color:var(--fg);line-height:1.35}
+  .pl-total{font:500 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:3px}
+  .pl-opt{position:relative;overflow:hidden;display:flex;align-items:center;gap:8px;
+    padding:10px 12px;border-radius:11px;border:1px solid var(--hair);background:rgba(255,255,255,.03);margin-top:8px}
+  .pl-opt.on{border-color:rgba(249,115,22,.3)}
+  .pl-bar{position:absolute;inset:0 auto 0 0;z-index:0;border-radius:11px;background:rgba(255,255,255,.05)}
+  .pl-opt.on .pl-bar{background:rgba(249,115,22,.12)}
+  .pl-lab{position:relative;z-index:1;font:500 12.5px var(--body);color:var(--fg)}
+  .pl-pct{position:relative;z-index:1;margin-left:auto;font:700 11px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+  .pl-opt.on .pl-pct{color:var(--accent-2)}
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<div class="pad">
+  <a class="cd-back" href="{{ url_for('communities') }}">{{ icon('arrow-left', 14, 'currentColor', 2) }} Communities</a>
+  <div class="ss-surface cd-head">
+    <div class="cd-htop">
+      <span class="cd-ico">{{ icon(C.icon or 'users', 22, 'var(--accent-2)', 2) }}</span>
+      <div style="flex:1;min-width:0">
+        <div class="cd-name">{{ C.name }}</div>
+        <div class="cd-meta">{{ icon('users', 12, 'var(--muted-2)', 2) }} {{ '{:,}'.format(C.member_count) }} members</div>
+      </div>
+      {% if is_member %}
+        <button class="ss-btn ss-btn-soft cd-join" type="button" style="height:36px;padding:0 16px;font-size:12.5px;border-radius:11px;flex:none">
+          {{ icon('check', 15, 'var(--green)', 2.4) }} Joined
+        </button>
+      {% else %}
+        <button class="ss-btn ss-btn-primary cd-join" type="button" style="height:36px;padding:0 18px;font-size:12.5px;border-radius:11px;flex:none">Join</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- SUB-TABS (Feed active) -->
+<div class="pad"><div class="ss-segbar" style="margin-bottom:14px">
+  <button class="ss-segtab on" type="button"><span class="ss-segpill" aria-hidden="true"></span>{{ icon('comment', 14, 'currentColor', 2) }}Feed</button>
+  <button class="ss-segtab" type="button">{{ icon('trophy', 14, 'currentColor', 2) }}Leaderboard</button>
+  <button class="ss-segtab" type="button">{{ icon('chat', 14, 'currentColor', 2) }}Chat</button>
+</div></div>
+
+<!-- WEEKLY LEADERBOARD -->
+<div class="pad">
+  {{ sechead('This week', 'Full ranking', url_for('community_detail', cid=C.id)) }}
+  <div class="tile recess">
+    {% for l in LEADERS %}
+    <div class="lb-row">
+      <span class="lb-rank {{ l.hue if l.hue in ['gold','silver','bronze'] }}">{{ l.rank }}</span>
+      <span class="lb-av {{ 'me' if l.hue=='me' }}">{{ l.initials }}</span>
+      <div style="min-width:0">
+        <div class="lb-nm">{{ l.name }}{% if l.hue=='me' %} <span class="ss-tag full" style="font-size:7px;padding:1px 5px">You</span>{% endif %}</div>
+        <div class="lb-sub">{{ l.runs }} runs{% if l.streak %} · {{ icon('flame', 9, 'var(--amber)', 2) }} {{ l.streak }}d streak{% endif %}</div>
+      </div>
+      <div class="lb-km">
+        <div class="lb-kmv">{{ l.km }}</div>
+        <div class="lb-kmk">km</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- RECENT POSTS / FEED -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Recent posts') }}
+  <div class="tile recess">
+    {% for p in POSTS %}
+    <div class="pt">
+      {% if p.pinned %}<div class="pin-hdr">{{ icon('pin', 11, 'var(--amber)', 2) }} Pinned</div>{% endif %}
+      <div class="pt-top">
+        <span class="pt-av">{{ p.initials }}</span>
+        <div style="min-width:0">
+          <div class="pt-nm">{{ p.name }}</div>
+          <div class="pt-ago">{{ p.ago }}</div>
+        </div>
+        {% if p.pinned %}<span class="ss-tag maybe" style="margin-left:auto">Announcement</span>{% endif %}
+      </div>
+      <p class="pt-body">{{ p.body }}</p>
+      <div class="pt-react">
+        <span class="rx">{{ icon('heart', 13, 'var(--muted)', 2) }} {{ p.kudos }}</span>
+        <span class="rx">{{ icon('comment', 13, 'var(--muted)', 2) }} {{ p.comments }}</span>
+        <a class="rx" href="{{ url_for('share') }}" style="margin-left:auto;color:var(--violet-2)">{{ icon('share', 13, 'var(--violet-2)', 2) }} Share</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- POLL -->
+<div class="pad" style="margin-top:14px;margin-bottom:4px">
+  {{ sechead('Community poll') }}
+  <div class="tile recess">
+    <div class="thead">
+      <span class="ticon">{{ icon('poll', 14, 'var(--muted)', 2) }}</span>
+      <span class="tlbl">Open · 3 days left</span>
+      <span class="ss-dchip neutral" style="margin-left:auto">{{ POLL.total }} votes</span>
+    </div>
+    <p class="pl-q">{{ POLL.question }}</p>
+    <p class="pl-total">You voted · results below</p>
+    {% for o in POLL.options %}
+    <div class="pl-opt {{ 'on' if loop.index0 == POLL.my_vote }}">
+      <span class="pl-bar" style="width:{{ o.pct }}%"></span>
+      {% if loop.index0 == POLL.my_vote %}<span style="position:relative;z-index:1;flex:none;display:grid;place-items:center">{{ icon('check', 13, 'var(--accent-2)', 2.6) }}</span>{% endif %}
+      <span class="pl-lab">{{ o.label }}</span>
+      <span class="pl-pct">{{ o.pct }}%</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

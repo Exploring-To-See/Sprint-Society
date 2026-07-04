@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% from 'partials/ui.html' import icon, stat, sechead %}
+{% set S = seed %}
+
+{% block page_style %}
+  /* Layout-only helpers — surfaces/tokens come from ss-base */
+  .pf-head{display:flex;align-items:center;gap:14px;padding:16px 14px}
+  .pf-av{width:64px;height:64px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--violet));font:700 22px var(--head);color:#fff}
+  .pf-id{flex:1;min-width:0}
+  .pf-id h1{font:600 var(--m-lg) var(--head);letter-spacing:-.02em;color:var(--fg);margin:0 0 5px}
+  .pf-tags{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .pf-meta{display:flex;align-items:center;gap:12px;margin-top:7px}
+  .pf-meta span{display:inline-flex;align-items:center;gap:4px;font:500 10.5px var(--body);color:var(--muted-2);white-space:nowrap}
+  .pf-edit{align-self:flex-start;margin-top:2px}
+
+  /* Kendu balance strip */
+  .kendu{display:flex;align-items:center;gap:12px;padding:14px 15px}
+  .kendu .kicon{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
+    background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.28)}
+  .kendu .kbal{font:700 var(--m-lg) var(--mono);font-variant-numeric:tabular-nums;line-height:1;display:flex;align-items:baseline;gap:5px}
+  .kendu .kbal small{font:600 10px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--accent-2)}
+  .kendu .ksub{font:500 10.5px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:3px}
+
+  /* Athlete card (Running DNA block) */
+  .ath{padding:16px 14px}
+  .ath-top{display:flex;align-items:flex-start;gap:14px}
+  .ath-vo2{font:700 42px var(--mono);font-variant-numeric:tabular-nums;line-height:1;color:var(--fg);margin:0}
+  .ath-vlbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:5px;display:flex;align-items:center;gap:6px}
+  .ath-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;flex:1;min-width:0}
+  .ath-grid .c{padding:6px 4px;text-align:right}
+  .ath-grid .cv{font:700 15px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg)}
+  .ath-grid .ck{font:600 8.5px var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2);margin-top:4px}
+
+  /* Personal records mini */
+  .pr-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+  .pr-cell{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 13px}
+  .pr-cell .pk{font:500 10px var(--body);color:var(--muted-2)}
+  .pr-cell .pv{font:700 15px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);margin-top:3px}
+
+  /* XP / level bar */
+  .xp{padding:14px 15px}
+  .xp-top{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+  .xp-lv{width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:rgba(255,255,255,.05);border:1px solid var(--hair);font:700 17px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg)}
+  .xp-lbl{font:600 var(--lbl) var(--body);text-transform:uppercase;letter-spacing:var(--trk-sm);color:var(--muted-2)}
+  .xp-val{font:600 var(--m-md) var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);margin-top:2px}
+  .xp-track{height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+  .xp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--amber))}
+  .xp-foot{display:flex;justify-content:space-between;font:600 10px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted-2);margin-top:7px}
+
+  /* Settings list rows */
+  .set-row{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--hair);width:100%;text-align:left;background:none;border-left:none;border-right:none;border-top:none;color:inherit;font-family:inherit;cursor:pointer}
+  .set-row:last-child{border-bottom:none}
+  .set-ico{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--hair)}
+  .set-txt{flex:1;min-width:0}
+  .set-txt .st{font:600 13px var(--body);color:var(--fg)}
+  .set-txt .ss{font:500 10.5px var(--body);color:var(--muted-2);margin-top:2px}
+{% endblock %}
+
+{% block content %}
+{% set tier_cls = 'go' if S.TIER.tier=='advanced' else 'now' if S.TIER.tier=='intermediate' else 'go' %}
+
+<!-- PROFILE HEADER -->
+<div class="pad" style="padding-top:6px">
+  <div class="tile pf-head">
+    <span class="pf-av">{{ user.initials if user else S.USER.initials }}</span>
+    <div class="pf-id">
+      <h1>{{ user.name if user else S.USER.name }}</h1>
+      <div class="pf-tags">
+        <span class="ss-tag {{ tier_cls }}">{{ S.TIER.tier }}</span>
+        <span style="font:600 10px var(--mono);color:var(--muted-2)">L{{ S.XP.current_level }}</span>
+      </div>
+      <div class="pf-meta">
+        <span>{{ icon('pin', 11, 'var(--muted-2)', 2) }}{{ S.USER.city }}</span>
+        <span>{{ icon('calendar', 11, 'var(--muted-2)', 2) }}Since {{ S.USER.joined }}</span>
+      </div>
+    </div>
+    <a class="ss-btn ss-btn-ghost pf-edit" href="{{ url_for('profiling') }}" aria-label="Edit profile">{{ icon('edit', 17, 'var(--muted)', 2) }}</a>
+  </div>
+</div>
+
+<!-- KENDU BALANCE STRIP -->
+<div class="pad">
+  <a class="tile recess kendu" href="{{ url_for('rewards') }}">
+    <span class="kicon">{{ icon('coin', 19, 'var(--accent-2)', 2) }}</span>
+    <div style="flex:1;min-width:0">
+      <div class="kbal">{{ S.KENDU.balance }}<small>Kendu</small></div>
+      <div class="ksub">+{{ S.KENDU.this_week }} this week · Rank #{{ S.KENDU.rank }}</div>
+    </div>
+    <span style="display:inline-flex;align-items:center;gap:3px;font:600 10.5px var(--body);color:var(--violet-2)">History {{ icon('chevron', 12, 'currentColor', 2) }}</span>
+  </a>
+</div>
+
+<!-- ATHLETE CARD (RUNNING DNA) -->
+<div class="pad" style="margin-top:6px">
+  {{ sechead('Athlete card', 'AI profile', url_for('ai_profile')) }}
+  <div class="tile ath">
+    <div class="thead" style="margin-bottom:12px">
+      <span class="ticon">{{ icon('dna', 14, 'var(--violet-2)', 2) }}</span>
+      <span class="tlbl">Running DNA</span>
+      <span class="ss-tag {{ tier_cls }}" style="margin-left:auto">{{ S.TIER.tier }}</span>
+    </div>
+    <div class="ath-top">
+      <div style="flex:none">
+        <p class="ath-vo2">{{ S.TIER.vo2max }}</p>
+        <div class="ath-vlbl">VO<sub>2</sub> Max <span class="ss-dchip good">{{ icon('chevron', 9, 'currentColor', 2.4) }} 1.4</span></div>
+      </div>
+      <div class="ath-grid">
+        <div class="c"><div class="cv">{{ S.TIER.vdot }}</div><div class="ck">VDOT</div></div>
+        <div class="c"><div class="cv">{{ S.TIER.age_grade }}%</div><div class="ck">Age grade</div></div>
+        <div class="c"><div class="cv">4:52</div><div class="ck">Best /km</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAL RECORDS MINI -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Personal records', 'See all', url_for('records')) }}
+  <div class="pr-grid">
+    {% for r in S.RECORDS %}
+    <a class="tile recess pr-cell" href="{{ url_for('records') }}">
+      <div style="min-width:0">
+        <div class="pk">{{ r.distance }}</div>
+        <div class="pv">{{ r.time }}</div>
+      </div>
+      {% if r.pr %}<span class="ss-prtag">PR</span>{% else %}<span style="font:500 9px var(--mono);color:var(--muted-2);white-space:nowrap">{{ r.when }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- XP / LEVEL BAR -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Level & XP') }}
+  <div class="tile recess xp">
+    <div class="xp-top">
+      <span class="xp-lv">{{ S.XP.current_level }}</span>
+      <div style="flex:1;min-width:0">
+        <div class="xp-lbl">Level {{ S.XP.current_level }}</div>
+        <div class="xp-val">{{ S.XP.current_xp }} <span style="font-size:11px;color:var(--muted)">/ {{ S.XP.current_xp + S.XP.xp_to_next_level }} XP</span></div>
+      </div>
+      <span class="ss-dchip good">{{ icon('flame', 11, 'currentColor', 2) }} {{ S.XP.current_streak_days }}d streak</span>
+    </div>
+    <div class="xp-track"><div class="xp-fill" style="width:{{ S.XP.level_progress_percent }}%"></div></div>
+    <div class="xp-foot">
+      <span>{{ S.XP.total_xp }} total XP</span>
+      <span>{{ S.XP.xp_to_next_level }} XP to L{{ S.XP.current_level + 1 }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="pad" style="margin-top:14px">
+  {{ sechead('Settings') }}
+  <div class="tile recess" style="padding:2px 13px">
+    <a class="set-row" href="{{ url_for('notifications') }}">
+      <span class="set-ico">{{ icon('bell', 15, 'var(--muted)', 2) }}</span>
+      <div class="set-txt">
+        <div class="st">Notifications</div>
+        <div class="ss">{{ S.UNREAD_COUNT }} unread</div>
+      </div>
+      {{ icon('chevron', 15, 'var(--muted-2)', 2) }}
+    </a>
+    <a class="set-row" href="{{ url_for('subscription') }}">
+      <span class="set-ico">{{ icon('bolt', 15, 'var(--muted)', 2) }}</span>
+      <div class="set-txt">
+        <div class="st">Subscription</div>
+        <div class="ss">{{ S.SUBSCRIPTION.plan }} · {{ S.SUBSCRIPTION.price }}</div>
+      </div>
+      <span class="ss-tag go" style="margin-left:auto">{{ S.SUBSCRIPTION.status }}</span>
+      {{ icon('chevron', 15, 'var(--muted-2)', 2) }}
+    </a>
+    <a class="set-row" href="{{ url_for('profiling') }}">
+      <span class="set-ico">{{ icon('shield', 15, 'var(--muted)', 2) }}</span>
+      <div class="set-txt">
+        <div class="st">Privacy</div>
+        <div class="ss">Data, visibility & permissions</div>
+      </div>
+      {{ icon('chevron', 15, 'var(--muted-2)', 2) }}
+    </a>
+    <a class="set-row" href="{{ url_for('logout') }}">
+      <span class="set-ico">{{ icon('lock', 15, 'var(--muted)', 2) }}</span>
+      <div class="set-txt">
+        <div class="st">Sign out</div>
+      </div>
+      {{ icon('chevron', 15, 'var(--muted-2)', 2) }}
+    </a>
+  </div>
+</div>
+
+<p style="text-align:center;font:500 10px var(--body);color:var(--muted-2);opacity:.6;margin:22px 0 4px">Sprint Society v1.0 — Kendu Entertainment</p>
+{% endblock %}

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Bolt } from '../ss/icons';
 
 interface Offer {
   id: number;
@@ -27,58 +28,60 @@ export function OfferCard({ offer, userBalance, onRedeem }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border p-4 space-y-3 relative overflow-hidden ${
-        isAvailable && canAfford
-          ? 'bg-bg-secondary border-bg-tertiary hover:border-orange-500/30 transition-colors'
-          : 'bg-bg-secondary/60 border-bg-tertiary/50'
-      }`}
+      className={`tile ${isAvailable && canAfford ? '' : 'recess'}`}
+      style={{ gap: 10, padding: 14, opacity: isAvailable && canAfford ? 1 : 0.9 }}
     >
       {/* Locked overlay */}
       {(!canAfford || !isAvailable) && (
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">
-          <div className="text-center px-4">
-            {offer.user_redeemed ? (
-              <p className="text-[11px] text-emerald-400 font-semibold">Already redeemed</p>
-            ) : offer.remaining_quantity <= 0 ? (
-              <p className="text-[11px] text-zinc-400 font-semibold">Out of stock</p>
-            ) : (
-              <p className="text-[11px] text-orange-400 font-semibold">
-                {deficit.toLocaleString()} more Kendu needed
-              </p>
-            )}
-          </div>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2, display: 'grid', placeItems: 'center', background: 'rgba(5,5,11,.45)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', borderRadius: 'inherit' }}>
+          {offer.user_redeemed ? (
+            <span className="ss-tag go">Already redeemed</span>
+          ) : offer.remaining_quantity <= 0 ? (
+            <span className="ss-tag full">Out of stock</span>
+          ) : (
+            <span className="ss-tag maybe">{deficit.toLocaleString()} more Kendu needed</span>
+          )}
         </div>
       )}
 
       {/* Brand + Title */}
       <div>
-        <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">{offer.brand_name}</p>
-        <p className="text-[14px] font-semibold text-zinc-200 mt-0.5">{offer.offer_title}</p>
+        <p style={{ font: '600 var(--lbl) var(--body)', textTransform: 'uppercase', letterSpacing: 'var(--trk-sm)', color: 'var(--muted-2)', margin: 0 }}>
+          {offer.brand_name}
+        </p>
+        <p style={{ font: '600 14px var(--body)', color: 'var(--fg)', margin: '3px 0 0' }}>{offer.offer_title}</p>
         {offer.description && (
-          <p className="text-[11px] text-zinc-400 mt-1 line-clamp-2">{offer.description}</p>
+          <p style={{ font: '400 11px var(--body)', color: 'var(--muted)', margin: '5px 0 0', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {offer.description}
+          </p>
         )}
       </div>
 
       {/* Cost + Value */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm">🔥</span>
-          <span className="text-[14px] font-bold text-orange-400">{offer.kendu_cost.toLocaleString()}</span>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <Bolt width={13} height={13} style={{ color: 'var(--accent-2)' }} />
+          <span className="num" style={{ font: '700 14px var(--mono)', color: 'var(--accent-2)' }}>
+            {offer.kendu_cost.toLocaleString()}
+          </span>
+        </span>
         {offer.rupee_value > 0 && (
-          <span className="text-[11px] text-zinc-500">Worth ₹{offer.rupee_value}</span>
+          <span className="num" style={{ font: '500 10.5px var(--mono)', color: 'var(--muted-2)' }}>
+            Worth ₹{offer.rupee_value}
+          </span>
         )}
       </div>
 
       {/* Stock + Redeem */}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-zinc-500">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span className="num" style={{ font: '500 10px var(--mono)', color: 'var(--muted-2)' }}>
           {offer.remaining_quantity}/{offer.total_quantity} left
         </span>
         {isAvailable && canAfford && (
           <button
             onClick={() => onRedeem(offer.id)}
-            className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-[11px] font-semibold hover:bg-orange-600 transition-colors"
+            className="ss-btn ss-btn-primary"
+            style={{ height: 36, fontSize: 12.5, flex: 'none', padding: '0 18px' }}
           >
             Redeem
           </button>
