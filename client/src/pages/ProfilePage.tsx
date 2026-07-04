@@ -724,7 +724,7 @@ export function ProfilePage() {
                 reader.onload = async () => {
                   try {
                     await api.patch('/profile/photo', { photo: reader.result });
-                    queryClient.invalidateQueries({ queryKey: ['profile'] });
+                    queryClient.invalidateQueries({ queryKey: ['my-profile'] });
                   } catch { alert('Upload failed'); }
                 };
                 reader.readAsDataURL(file);

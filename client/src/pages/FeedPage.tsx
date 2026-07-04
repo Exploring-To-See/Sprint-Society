@@ -16,7 +16,7 @@ const REACTIONS: { type: string; emoji: string; label: string; Icon: ReactionIco
   { type: 'fire', emoji: '\u{1F525}', label: 'Fire', Icon: Flame },
   { type: 'impressive', emoji: '\u{1F4AA}', label: 'Impressive', Icon: Dumbbell },
   { type: 'respect', emoji: '\u{1FAE1}', label: 'Respect', Icon: Medal },
-  { type: 'lets_go', emoji: '⚡', label: "Let's go", Icon: Bolt },
+  { type: 'lets_go', emoji: '\u{26A1}', label: "Let's go", Icon: Bolt },
 ];
 
 // server stores the emoji the user reacted with — map it back to the crafted icon

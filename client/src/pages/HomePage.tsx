@@ -133,7 +133,7 @@ function CardInfographic({ index }: { index: number }) {
               transition={{ delay: 0.3 + i * 0.15 }}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 12, background: 'rgba(255,255,255,.04)', border: '1px solid var(--hair)' }}
             >
-              <span style={{ width: 30, height: 30, borderRadius: 9, flex: 'none', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,var(--accent),var(--violet))', font: '700 11px var(--head)', color: '#fff' }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, flex: 'none', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,var(--accent),var(--accent-2))', font: '700 11px var(--head)', color: '#fff' }}>
                 {c.name[0]}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
@@ -168,7 +168,7 @@ function CardInfographic({ index }: { index: number }) {
           <span style={{ font: '500 10px var(--body)', color: 'var(--muted-2)' }}>Sat 6:00 AM</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {['var(--accent)', 'var(--violet)', 'var(--green)', 'var(--violet-2)', 'var(--accent-2)'].map((c, i) => (
+          {['var(--accent)', 'var(--green)', 'var(--amber)', 'var(--accent-2)', 'var(--muted)'].map((c, i) => (
             <motion.span
               key={i}
               initial={{ scale: 0 }}
