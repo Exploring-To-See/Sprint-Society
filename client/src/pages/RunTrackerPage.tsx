@@ -14,7 +14,13 @@ import { SplitChart } from '../components/run/SplitChart';
 import { ProgressRing } from '../components/run/ProgressRing';
 import { ZoneBar } from '../components/run/ZoneBar';
 import { Play, Bolt, Flame, Trophy } from '../components/ss/icons';
-import { useAuth } from '../context/AuthContext';
+import api from '../lib/api';
+import {
+  getCurrentPosition, watchPosition, ensureLocationPermission,
+  type GeoPoint, type GeoWatch,
+} from '../lib/geolocation';
+import { useRunCoach, speak, stopSpeaking, isVoiceSupported } from '../lib/coach';
+import type { RunSnapshot } from '../../../shared/coach';
 
 type TrackingState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FINISHED' | 'ANALYSIS';
 
@@ -110,7 +116,6 @@ const RPE_OPTIONS = [
 ] as const;
 
 export function RunTrackerPage() {
-  const { token } = useAuth() as { token: string | null };
   const navigate = useNavigate();
   const [state, setState] = useState<TrackingState>('IDLE');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -131,7 +136,7 @@ export function RunTrackerPage() {
   const [paceZones, setPaceZones] = useState<{ easy_min: number; easy_max: number }>({ easy_min: 375, easy_max: 405 });
 
   const positionsRef = useRef<Position[]>([]);
-  const watchIdRef = useRef<number | null>(null);
+  const watchRef = useRef<GeoWatch | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<string | null>(null);
   const paceCalcRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -139,21 +144,27 @@ export function RunTrackerPage() {
   const lastSplitKmRef = useRef(0);
   const splitStartTimeRef = useRef(0);
 
+  // One-way voice coach (on-device cue engine + Web Speech synthesis)
+  const coach = useRunCoach();
+  const [voiceOn, setVoiceOn] = useState(() => isVoiceSupported());
+  const voiceOnRef = useRef(voiceOn);
+  voiceOnRef.current = voiceOn;
+  const coachArmedRef = useRef(false);
+  const samplesRef = useRef<RunSnapshot[]>([]);
+  const metricsRef = useRef({ elapsed: 0, distance: 0, pace: 0 });
+
   const [locating, setLocating] = useState(true);
 
-  // Get initial location
+  // Get initial location (triggers the system permission popup on native)
   useEffect(() => {
-    if (!navigator.geolocation) { setLocating(false); setGpsError('GPS not supported'); return; }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { setUserLocation([pos.coords.latitude, pos.coords.longitude]); setLocating(false); },
-      () => { setLocating(false); setGpsError('Could not determine location'); }
-    );
+    getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 })
+      .then((pos) => { setUserLocation([pos.latitude, pos.longitude]); setLocating(false); })
+      .catch((err: { message?: string }) => { setLocating(false); setGpsError(err?.message || 'Could not determine location'); });
     // Fetch pace zones for zone bar (non-critical, silent fallback to defaults)
-    fetch('/api/training/paces', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.easy_pace) {
-          setPaceZones({ easy_min: data.easy_pace - 15, easy_max: data.easy_pace + 15 });
+    api.get('/training/paces')
+      .then(({ data }) => {
+        if (data?.paces?.easy_min && data?.paces?.easy_max) {
+          setPaceZones({ easy_min: data.paces.easy_min, easy_max: data.paces.easy_max });
         }
       })
       .catch(() => { /* non-critical: pace zones use defaults */ });
@@ -192,12 +203,46 @@ export function RunTrackerPage() {
     return () => { if (paceCalcRef.current) clearInterval(paceCalcRef.current); };
   }, [state]);
 
-  const handlePositionUpdate = useCallback((position: GeolocationPosition) => {
+  // Keep the latest metrics visible to the coach loop without re-arming it
+  useEffect(() => {
+    metricsRef.current = { elapsed: elapsedSeconds, distance: totalDistance, pace: currentPace };
+  }, [elapsedSeconds, totalDistance, currentPace]);
+
+  // Voice coach loop — feed telemetry every 5s; the on-device cue engine decides
+  // when to actually say something (anti-nag spacing is built in).
+  useEffect(() => {
+    if (state !== 'RUNNING') return;
+    const interval = setInterval(() => {
+      if (!coachArmedRef.current) return;
+      const m = metricsRef.current;
+      if (m.distance < 10) return;
+      const avgPace = m.distance > 0 ? m.elapsed / (m.distance / 1000) : undefined;
+      const snap: RunSnapshot = {
+        t_s: m.elapsed,
+        dist_m: m.distance,
+        cur_pace_s_per_km: m.pace > 0 ? m.pace : undefined,
+        avg_pace_s_per_km: avgPace,
+        moving: true,
+      };
+      samplesRef.current.push(snap);
+      const cue = coach.feed(snap);
+      if (cue && voiceOnRef.current) speak(cue, coach.persona);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [state, coach]);
+
+  // Stop GPS + speech if the page unmounts mid-run
+  useEffect(() => () => {
+    if (watchRef.current) watchRef.current.clear();
+    stopSpeaking();
+  }, []);
+
+  const handlePositionUpdate = useCallback((position: GeoPoint) => {
     const newPos: Position = {
-      lat: position.coords.latitude,
-      lon: position.coords.longitude,
+      lat: position.latitude,
+      lon: position.longitude,
       timestamp: position.timestamp,
-      altitude: position.coords.altitude,
+      altitude: position.altitude,
     };
 
     // Elevation
@@ -238,9 +283,12 @@ export function RunTrackerPage() {
     }
   }, []);
 
-  const startTracking = useCallback(() => {
-    if (!navigator.geolocation) { setGpsError('GPS not supported'); return; }
+  const startTracking = useCallback(async () => {
     setGpsError(null);
+    // Native: shows the system location permission popup before the run starts.
+    const granted = await ensureLocationPermission();
+    if (!granted) { setGpsError('Location access denied — enable it in your device Settings to track runs'); return; }
+
     startTimeRef.current = new Date().toISOString();
     positionsRef.current = [];
     setRouteCoords([]);
@@ -256,66 +304,71 @@ export function RunTrackerPage() {
     prevAltitudeRef.current = null;
     lastSplitKmRef.current = 0;
     splitStartTimeRef.current = 0;
+    samplesRef.current = [];
+    coachArmedRef.current = false;
     setState('RUNNING');
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
+    // Arm the voice coach (non-critical — the run tracks fine without it)
+    coach.reset();
+    coach.start({ type: 'easy', target_distance_m: 5000 })
+      .then((res) => {
+        coachArmedRef.current = true;
+        if (voiceOnRef.current && res.brief) speak(res.brief, res.persona);
+      })
+      .catch(() => { /* coach unavailable — run silently */ });
+
+    watchRef.current = await watchPosition(
       handlePositionUpdate,
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) setGpsError('Location access denied');
-        else if (error.code === error.POSITION_UNAVAILABLE) setGpsError('GPS signal unavailable');
-        else setGpsError('GPS timeout — retrying...');
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+      (error) => setGpsError(error.message)
     );
-  }, [handlePositionUpdate]);
+  }, [handlePositionUpdate, coach]);
 
   const pauseTracking = useCallback(() => {
     setState('PAUSED');
-    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+    stopSpeaking();
+    if (watchRef.current) { watchRef.current.clear(); watchRef.current = null; }
   }, []);
 
-  const resumeTracking = useCallback(() => {
+  const resumeTracking = useCallback(async () => {
     setState('RUNNING');
-    watchIdRef.current = navigator.geolocation.watchPosition(handlePositionUpdate, () => {}, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+    watchRef.current = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
   }, [handlePositionUpdate]);
 
   const stopTracking = useCallback(() => {
     setState('FINISHED');
-    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+    stopSpeaking();
+    if (watchRef.current) { watchRef.current.clear(); watchRef.current = null; }
   }, []);
 
   const saveRun = async () => {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch('/api/runs/log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          distance_meters: Math.round(totalDistance),
-          moving_time_seconds: elapsedSeconds,
-          start_date: startTimeRef.current,
-          elevation_gain: Math.round(elevationGain),
-          splits: JSON.stringify(splits),
-          rpe,
-          map_polyline: routeCoords.length > 1 ? JSON.stringify(routeCoords) : null,
-        }),
+      // api client adds the JWT and resolves the backend origin on web AND
+      // inside the native (APK / iOS) shells.
+      const { data } = await api.post('/runs/log', {
+        distance_meters: Math.round(totalDistance),
+        moving_time_seconds: elapsedSeconds,
+        start_date: startTimeRef.current,
+        elevation_gain: Math.round(elevationGain),
+        splits: JSON.stringify(splits),
+        rpe,
+        map_polyline: routeCoords.length > 1 ? JSON.stringify(routeCoords) : null,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        // Without this branch a non-2xx response (e.g. a server/DB error) was
-        // silently swallowed: the run was lost with no message and no retry.
-        throw new Error(data?.error?.message || data?.error || `Save failed (${res.status})`);
-      }
       if (data.cascade) {
         setCascadeData(data.cascade);
         setKenduEarned(data.cascade.kendu?.awarded || 0);
       }
       // PR celebration (non-critical): did this run set any personal records?
       if (data.id) {
-        fetch(`/api/records/check/${data.id}`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => (r.ok ? r.json() : null))
-          .then((pr) => { if (pr?.has_new_pr) setPrCelebration(pr); })
+        api.get(`/records/check/${data.id}`)
+          .then(({ data: pr }) => { if (pr?.has_new_pr) setPrCelebration(pr); })
+          .catch(() => { /* non-critical */ });
+      }
+      // Spoken post-run recap (non-critical)
+      if (coachArmedRef.current && voiceOnRef.current && samplesRef.current.length > 0) {
+        coach.finish(samplesRef.current)
+          .then((recap) => { if (recap) speak(recap, coach.persona); })
           .catch(() => { /* non-critical */ });
       }
       generateAnalysis();
@@ -631,6 +684,27 @@ export function RunTrackerPage() {
                 </button>
               </div>
 
+              {/* VOICE COACH TOGGLE */}
+              {isVoiceSupported() && (
+                <button
+                  onClick={() => { setVoiceOn(v => { if (v) stopSpeaking(); return !v; }); }}
+                  aria-pressed={voiceOn}
+                  aria-label={voiceOn ? 'Turn voice coach off' : 'Turn voice coach on'}
+                  className="ss-surface"
+                  style={{
+                    alignSelf: 'center', borderRadius: 999, padding: '8px 16px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    border: voiceOn ? '1px solid rgba(124,107,240,.4)' : '1px solid var(--hair)',
+                    background: voiceOn ? 'rgba(124,107,240,.14)' : undefined,
+                  }}
+                >
+                  <span aria-hidden="true" style={{ fontSize: 13 }}>{voiceOn ? '🔊' : '🔇'}</span>
+                  <span style={{ font: '600 11.5px var(--body)', color: voiceOn ? 'var(--violet-2)' : 'var(--muted)' }}>
+                    Voice coach {voiceOn ? 'on' : 'off'}
+                  </span>
+                </button>
+              )}
+
               {/* TARGET PACE ZONE */}
               <section className="ss-surface ss-recess" style={{ borderRadius: 18, padding: 14 }} aria-label="Target pace zone">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -675,6 +749,13 @@ export function RunTrackerPage() {
                 <div style={{ marginTop: 12 }}>
                   <ZoneBar currentPace={currentPace} targetPaceMin={paceZones.easy_min} targetPaceMax={paceZones.easy_max} />
                 </div>
+
+                {/* Latest spoken coach cue */}
+                {coach.latestCue && (
+                  <div style={{ marginTop: 10, borderRadius: 12, background: 'rgba(124,107,240,.12)', border: '1px solid rgba(124,107,240,.26)', padding: '7px 11px' }} aria-live="polite">
+                    <p style={{ font: '500 11px/1.45 var(--body)', color: 'var(--violet-2)' }}>{coach.latestCue.text}</p>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--hair)' }}>
                   {[

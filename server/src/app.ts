@@ -83,7 +83,23 @@ export function createApp(options: CreateAppOptions = {}) {
   app.set('trust proxy', true);
 
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors({ origin: config.clientUrl, credentials: true }));
+  // Allowed origins: the web client plus the Capacitor WebView origins used by
+  // the native Android/iOS apps (assets are served from localhost inside the
+  // APK, capacitor://localhost inside the iOS shell).
+  const allowedOrigins = new Set([
+    config.clientUrl,
+    'https://localhost',
+    'http://localhost',
+    'capacitor://localhost',
+  ]);
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Same-origin / no-Origin requests (curl, health checks, Vercel rewrites)
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  }));
   app.use(express.json({ limit: '2mb' }));
   app.use(createRequestLogger());
   app.use(sanitizeInput);

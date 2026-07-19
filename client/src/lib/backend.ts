@@ -7,8 +7,18 @@
 // VITE_API_URL to the backend's API base, e.g. https://api.example.com/api.
 // VITE_API_URL is baked into the bundle at BUILD time by Vite, so it must be
 // present in the Vercel project's environment variables when the client builds.
+//
+// Native (Capacitor APK / iOS): assets are served from capacitor://localhost /
+// https://localhost, so relative /api paths cannot reach the backend. When no
+// VITE_API_URL was baked in, native builds fall back to the hosted production
+// API (NATIVE_DEFAULT_API) — the same Vercel deployment + Supabase DB that the
+// web app uses, so both share one backend and one database.
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '/api';
+import { isNative, NATIVE_DEFAULT_API } from './native';
+
+const API_URL =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
+  (isNative ? NATIVE_DEFAULT_API : '/api');
 
 export const API_BASE = API_URL;
 

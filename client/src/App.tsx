@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useNativeApp } from './hooks/useNativeApp';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { ErrorToast } from './components/ui/ErrorToast';
 import { PageTransition } from './components/ui/PageTransition';
@@ -106,6 +107,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const location = useLocation();
+
+  // Native (APK / iOS) behaviors: hardware back button, status bar, splash.
+  useNativeApp();
 
   // Reset scroll on route change — pages otherwise inherit the previous
   // page's scroll position (no ScrollRestoration in this router setup).

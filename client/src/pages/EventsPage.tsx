@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { getCurrentPosition } from '../lib/geolocation';
 import { SSScreen } from '../components/ss/SSScreen';
 import { EventCard } from '../components/events/EventCard';
 import { EventMapView } from '../components/events/EventMapView';
@@ -123,18 +124,14 @@ export function EventsPage() {
   });
 
   // Ask for location the first time the Nearby tab is opened.
+  // getCurrentPosition triggers the real system permission popup on native (APK/iOS).
   useEffect(() => {
     if (tab !== 'nearby' || geo.status !== 'idle') return;
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeo({ status: 'denied', reason: 'unsupported' });
-      return;
-    }
     setGeo({ status: 'locating' });
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setGeo({ status: 'ready', lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setGeo({ status: 'denied', reason: 'denied' }),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
-    );
+    getCurrentPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 })
+      .then((pos) => setGeo({ status: 'ready', lat: pos.latitude, lng: pos.longitude }))
+      .catch((err: { code?: string }) =>
+        setGeo({ status: 'denied', reason: err?.code === 'UNSUPPORTED' ? 'unsupported' : 'denied' }));
   }, [tab, geo.status]);
 
   const retryLocation = () => setGeo({ status: 'idle' });

@@ -2,3 +2,4 @@
 //   import { useRunCoach, fetchPreRun } from '../lib/coach';
 export * from './api';
 export * from './useRunCoach';
+export * from './voice';

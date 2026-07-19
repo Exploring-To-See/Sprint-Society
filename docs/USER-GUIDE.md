@@ -40,6 +40,24 @@ That's it. Go run. Your data flows in from Strava and the app does the rest.
 
 ## App Sections
 
+### 🏃 GPS Run Tracker (orange Run button)
+
+Track runs in real time with your phone — route on the map, live pace, distance,
+splits, and elevation. The first time you start a run the app asks for location
+permission (a system popup on Android/iOS, a browser prompt on the web).
+
+- **Voice Coach** — toggle 🔊 on the Ready-to-Run screen and your AI coach
+  speaks to you: a pre-run brief when you start, live cues during the run
+  (km milestones, "too fast — settle" pace corrections, final push), and a
+  spoken recap after you save. The coach stays quiet while you're in flow.
+- **Pace zone bar** — shows your personalized easy zone and where your current
+  pace sits in it.
+- **After the run** — rate the effort (RPE), save, and get a run score, split
+  analysis, XP/Kendu rewards, and PR celebrations.
+
+Works the same in the mobile apps (Android/iOS) and the web app — runs land in
+the same account either way.
+
 ### ⚡ Dashboard (Home)
 
 Your daily hub, prioritized for action:

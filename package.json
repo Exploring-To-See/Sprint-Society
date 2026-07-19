@@ -14,9 +14,14 @@
     "migrate": "cd server && npx tsx src/database/migrate.ts",
     "setup:admin": "cd server && npx tsx src/setup-admin.ts",
     "seed": "cd server && npx tsx src/scripts/seed-dummy-data.ts",
-    "test": "cd server && npm test",
-    "typecheck": "cd client && tsc -b --noEmit && cd ../server && tsc --noEmit"
-  },
+  "test": "cd server && npm test",
+  "typecheck": "cd client && tsc -b --noEmit && cd ../server && tsc --noEmit",
+  "android:sync": "cd client && npm run android:sync",
+  "android:open": "cd client && npm run android:open",
+  "android:apk": "cd client && npm run android:sync && cd android && gradlew assembleDebug",
+  "ios:sync": "cd client && npm run ios:sync",
+  "ios:open": "cd client && npm run ios:open"
+ },
   "engines": {
     "node": ">=20.0.0"
   },

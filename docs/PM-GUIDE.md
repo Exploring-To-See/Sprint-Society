@@ -275,6 +275,16 @@ Client (React + Vite, static)  →  /api (Express serverless function)  →  Sup
 - Background jobs run via **Vercel Cron** (`/api/cron/maintenance`)
 - Full runbook: [DEPLOYMENT.md](DEPLOYMENT.md)
 
+### Mobile Apps (Android APK + iOS)
+
+The same `main` branch also ships as native **Capacitor 8** apps
+(`client/android/`, `client/ios/`). They are shells around the built SPA that
+call the same Vercel API and Supabase DB — the Vercel deployment keeps running
+unchanged, and web + mobile users share one database. Native-only behaviors:
+system permission popups for GPS (run tracker, nearby events), Android hardware
+back-button navigation, dark status bar/splash, spoken voice-coach cues. Build
+guide + device testing checklist: [MOBILE-BUILD.md](MOBILE-BUILD.md).
+
 ### Environment Variables
 
 | Variable | Purpose |
