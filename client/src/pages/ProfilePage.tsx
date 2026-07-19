@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { SSScreen } from '../components/ss/SSScreen';
 import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
 import {
-  Spark, Bell, Lock, Crown, Camera, Pin, Calendar, ChevronRight, Check, Bolt,
+  Spark, Bell, Lock, Crown, Camera, Pin, Calendar, ChevronRight, Check, Bolt, Chart, Pulse,
 } from '../components/ss/icons';
 import type { Achievement, PersonalRecord, UserXP } from '../../../shared/types';
 
@@ -473,6 +473,18 @@ function SettingsSection() {
           onClick={() => navigate('/subscription')}
         />
 
+        <SetRow
+          icon={<Chart width={15} height={15} style={{ color: 'var(--muted)' }} />}
+          title="Progress & Journey"
+          onClick={() => navigate('/progress')}
+        />
+
+        <SetRow
+          icon={<Pulse width={15} height={15} style={{ color: 'var(--muted)' }} />}
+          title="Heart Rate Zones"
+          onClick={() => navigate('/heart-rate')}
+        />
+
         {/* Change password */}
         {!showPassword ? (
           <SetRow
@@ -809,8 +821,23 @@ export function ProfilePage() {
         {/* === PERSONAL RECORDS === */}
         {records && <PRBoard records={records} />}
 
-        {/* === UPDATE AI BUTTON === */}
-        <motion.div variants={fadeUp}>
+        {/* === AI PROFILE (view + update) === */}
+        <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            onClick={() => navigate('/ai-profile')}
+            className="tile w-full"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '13px 14px', cursor: 'pointer', textAlign: 'left' }}
+            data-testid="profile-view-dna"
+          >
+            <span style={{ width: 32, height: 32, borderRadius: 10, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(124,107,240,.16)', border: '1px solid rgba(124,107,240,.28)' }}>
+              <Bolt width={15} height={15} style={{ color: 'var(--violet-2)' }} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', font: '600 13px var(--body)', color: 'var(--fg)' }}>Your Runner DNA</span>
+              <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>View your AI running profile</span>
+            </span>
+            <ChevronRight width={15} height={15} style={{ color: 'var(--violet-2)', flex: 'none' }} />
+          </button>
           <button
             onClick={() => navigate('/profiling')}
             className="tile w-full"

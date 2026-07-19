@@ -89,9 +89,20 @@ export function CommunityDetailPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['community', id] }),
   });
 
+  // Server POST /communities/:id/mute is a TOGGLE and returns { muted }.
   const muteMutation = useMutation({
-    mutationFn: () => api.post(`/communities/${id}/mute`),
-    onSuccess: () => setMuted(true),
+    mutationFn: () => api.post(`/communities/${id}/mute`).then(r => r.data),
+    onSuccess: (data: { muted: boolean }) => setMuted(!!data?.muted),
+  });
+
+  // Hydrate mute state so it survives refreshes / reopening the app.
+  useQuery({
+    queryKey: ['community-mute', id],
+    queryFn: () => api.get(`/communities/${id}/mute`).then(r => {
+      setMuted(!!r.data?.muted);
+      return r.data;
+    }),
+    enabled: !!community?.is_member,
   });
 
   const { data: kenduBalance } = useQuery({
@@ -360,12 +371,13 @@ export function CommunityDetailPage() {
                 {community.is_member && (
                   <button
                     onClick={() => muteMutation.mutate()}
-                    disabled={muted || muteMutation.isPending}
+                    disabled={muteMutation.isPending}
+                    aria-pressed={muted}
                     className="ss-btn ss-btn-soft"
                     style={{ justifyContent: 'flex-start', gap: 10, padding: '0 16px', height: 46 }}
                   >
                     <BellOff width={16} height={16} style={{ color: 'var(--muted)' }} />
-                    {muted ? 'Notifications muted' : 'Mute notifications'}
+                    {muted ? 'Unmute notifications' : 'Mute notifications'}
                     {muted && <Check width={13} height={13} style={{ color: 'var(--green)', marginLeft: 'auto' }} />}
                   </button>
                 )}

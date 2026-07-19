@@ -10,7 +10,7 @@ import { SSScreen } from '../components/ss/SSScreen';
 import { SSSeg } from '../components/ss/SSSeg';
 import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
 import {
-  ArrowLeft, Bolt, Flame, Crown, Spark, Send, Flag, Target, Trophy, Medal, Calendar, CommunityOutline,
+  ArrowLeft, Bolt, Flame, Crown, Spark, Send, Trophy, Medal, CommunityOutline,
 } from '../components/ss/icons';
 
 type Tab = 'marketplace' | 'actions' | 'history';
@@ -20,15 +20,17 @@ type SsIcon = ComponentType<SVGProps<SVGSVGElement>>;
 const SPEND_ACTIONS: readonly {
   key: string; Icon: SsIcon; label: string; cost: number | string; description: string; route: string | null;
 }[] = [
-  { key: 'community', Icon: CommunityOutline, label: 'Create Community', cost: 200, description: 'Start your own run club', route: '/communities/create' },
-  { key: 'event', Icon: Calendar, label: 'Host Event', cost: 75, description: 'Create an event for runners', route: '/events' },
+  // Every tile routes to the surface where the spend ACTUALLY happens (card
+  // skins on Share, AI deep dive in Coach chat, boost/sponsor inside a
+  // community, challenge stakes on Challenges). Actions with no real spend
+  // flow in the app (host event, priority RSVP, group challenge) are not
+  // listed — no dead or misleading buttons.
+  { key: 'community', Icon: CommunityOutline, label: 'Request Community', cost: 'Free', description: 'Apply to start your own run club', route: '/communities/create' },
   { key: 'challenge', Icon: Medal, label: '1v1 Challenge', cost: '5-50', description: 'Stake Kendu, compete head-to-head', route: '/challenges' },
-  { key: 'card-skin', Icon: Crown, label: 'Premium Card Skin', cost: 40, description: 'Unlock exclusive share templates', route: null },
-  { key: 'ai-dive', Icon: Spark, label: 'AI Deep Dive', cost: 30, description: 'Extended AI coach session', route: null },
-  { key: 'boost', Icon: Send, label: 'Boost Post', cost: 10, description: 'Pin your post to top for 24h', route: null },
-  { key: 'rsvp', Icon: Flag, label: 'Priority RSVP', cost: 15, description: 'Guaranteed spot in limited events', route: '/events' },
-  { key: 'group-challenge', Icon: Target, label: 'Group Challenge', cost: 50, description: 'Challenge multiple runners at once', route: null },
-  { key: 'sponsor', Icon: Trophy, label: 'Sponsor Leaderboard', cost: 500, description: 'Your name on community board 7 days', route: null },
+  { key: 'card-skin', Icon: Crown, label: 'Premium Card Skin', cost: 40, description: 'Unlock exclusive share templates', route: '/share' },
+  { key: 'ai-dive', Icon: Spark, label: 'AI Deep Dive', cost: 30, description: 'Extended AI coach session', route: '/coach' },
+  { key: 'boost', Icon: Send, label: 'Boost Post', cost: 10, description: 'Pin your post to top for 24h', route: '/communities' },
+  { key: 'sponsor', Icon: Trophy, label: 'Sponsor Leaderboard', cost: 500, description: 'Your name on community board 7 days', route: '/communities' },
 ];
 
 export function RewardsPage() {

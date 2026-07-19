@@ -24,11 +24,13 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 28 } },
 };
 
+// The server filters generically by event_type (GET /events?type=X), so every
+// category is live — an empty category simply shows the empty state.
 const FILTERS = [
-  { key: 'all', label: 'All', active: true },
-  { key: 'group_run', label: 'Runs', active: true },
-  { key: 'social', label: 'Social', active: false },
-  { key: 'health_fitness', label: 'Health & Fitness', active: false },
+  { key: 'all', label: 'All' },
+  { key: 'group_run', label: 'Runs' },
+  { key: 'social', label: 'Social' },
+  { key: 'health_fitness', label: 'Health & Fitness' },
 ] as const;
 
 // Shape mirrors server/src/routes/events.routes.ts. `/events` returns the richest
@@ -220,14 +222,12 @@ function UpcomingTab({
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            onClick={() => f.active && setActiveFilter(f.key)}
-            className={`ss-tab${f.active && activeFilter === f.key ? ' on' : ''}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: f.active ? 1 : .55, cursor: f.active ? 'pointer' : 'default' }}
-            aria-pressed={f.active ? activeFilter === f.key : undefined}
-            aria-disabled={!f.active || undefined}
+            onClick={() => setActiveFilter(f.key)}
+            className={`ss-tab${activeFilter === f.key ? ' on' : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+            aria-pressed={activeFilter === f.key}
           >
             {f.label}
-            {!f.active && <span className="ss-tag soon" style={{ fontSize: 7, padding: '1px 5px' }}>Soon</span>}
           </button>
         ))}
       </motion.div>

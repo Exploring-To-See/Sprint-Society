@@ -36,17 +36,62 @@ talk to the **same Vercel API and the same Supabase (Postgres) database**.
 - Android Studio (SDK 34+) — or just the Android SDK + JDK 21 for CLI builds
 - Node 20+
 
-### Build
+### Debug APK (install on your own phone)
 ```bash
 # from the repo root
 npm run android:sync    # builds the client and syncs it into client/android
-npm run android:open    # opens the project in Android Studio
-# or produce a debug APK directly:
 npm run android:apk     # → client/android/app/build/outputs/apk/debug/app-debug.apk
 ```
+Copy `app-debug.apk` to the phone and install it (allow "install unknown apps").
 
-For a **release** APK/AAB: in Android Studio use Build → Generate Signed
-Bundle/APK with your keystore (never commit the keystore).
+### Release signing (one-time setup)
+
+1. Generate a keystore (keep it forever — losing it means you can never update
+   the Play Store app):
+   ```bash
+   keytool -genkey -v -keystore sprint-society-release.jks -keyalg RSA \
+     -keysize 2048 -validity 10000 -alias sprint-society
+   ```
+2. Put the `.jks` file in `client/android/` (it is gitignored).
+3. Create `client/android/keystore.properties` (also gitignored):
+   ```properties
+   storeFile=../sprint-society-release.jks
+   storePassword=YOUR_STORE_PASSWORD
+   keyAlias=sprint-society
+   keyPassword=YOUR_KEY_PASSWORD
+   ```
+   `app/build.gradle` picks this up automatically and signs release builds.
+
+### Release APK
+```bash
+npm run android:sync
+cd client/android
+gradlew assembleRelease   # → app/build/outputs/apk/release/app-release.apk
+```
+
+### AAB bundle (what Google Play requires)
+```bash
+npm run android:sync
+cd client/android
+gradlew bundleRelease     # → app/build/outputs/bundle/release/app-release.aab
+```
+
+### Publishing to Google Play
+
+1. [Play Console](https://play.google.com/console) → pay the one-time $25 fee.
+2. Create app → name "Sprint Society", package `in.sprintsociety.app`.
+3. Upload `app-release.aab` to **Internal testing** first, install via the
+   opt-in link, run the device checklist below.
+4. Complete the required declarations:
+   - **Privacy policy URL** (required because of the location permission).
+   - **Data safety form** — declare: location (collected, not shared),
+     email/name (account), fitness info (runs). All encrypted in transit.
+   - **Location permissions declaration** — foreground only
+     (`ACCESS_FINE_LOCATION`): "GPS run tracking while using the app".
+   - Content rating questionnaire, target audience (18+ or 13+), ads = none.
+5. Promote to **Production** and roll out.
+6. Each new upload needs `versionCode` bumped (+1) and `versionName` updated
+   in `client/android/app/build.gradle`.
 
 ### Permissions (Android)
 `client/android/app/src/main/AndroidManifest.xml` declares:
