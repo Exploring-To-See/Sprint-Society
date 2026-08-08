@@ -40,6 +40,17 @@ api.interceptors.response.use(
       window.dispatchEvent(new CustomEvent('sprint:session-expired'));
     }
 
+    // Network / CORS failures have no response — surface a clearer message for
+    // the APK (most common cause: API CORS not allowing the Capacitor origin).
+    if (!error.response) {
+      const message = error.message?.includes('Network')
+        ? 'Cannot reach the server. Check your internet connection and try again.'
+        : (error.message || 'Cannot reach the server. Please try again.');
+      const apiError = new ApiError('NETWORK_ERROR', message, 0);
+      window.dispatchEvent(new CustomEvent('sprint:api-error', { detail: { code: 'NETWORK_ERROR', message, status: 0 } }));
+      return Promise.reject(apiError);
+    }
+
     // Server errors come back as either { error: { code, message } } or a plain
     // { error: "string" } (older routes). Normalize both so the real reason reaches the UI.
     const rawErr = error.response?.data?.error;

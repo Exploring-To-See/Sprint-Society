@@ -291,7 +291,7 @@ guide + device testing checklist: [MOBILE-BUILD.md](MOBILE-BUILD.md).
 |----------|---------|
 | `JWT_SECRET` | Auth token signing (required) |
 | `DATABASE_URL` | Supabase Postgres connection (pooler `:6543` in prod) |
-| `CLIENT_URL` | Frontend origin (for CORS) |
+| `CLIENT_URL` | Primary web origin (emails/links). CORS also allows Capacitor localhost origins + `app.sprintsociety.in` regardless of this value. |
 | `CRON_SECRET` | Guards the maintenance cron |
 | `ANTHROPIC_API_KEY` | Claude AI coaching (optional — degrades gracefully) |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | Payments |

@@ -71,6 +71,17 @@ async function verifyGoogleToken(idToken: string): Promise<GoogleTokenPayload> {
   return payload;
 }
 
+// Public config for the SPA / native shells. The OAuth client ID is not a secret
+// (it ships in every web bundle); exposing it here lets the APK fetch it at
+// runtime even when VITE_GOOGLE_CLIENT_ID wasn't baked into the Capacitor build.
+router.get('/google-config', (_req: Request, res: Response) => {
+  const clientId = config.google.clientId;
+  res.json({
+    available: !!clientId,
+    clientId: clientId || null,
+  });
+});
+
 router.post('/google', async (req: Request, res: Response) => {
   try {
     const { credential } = req.body;

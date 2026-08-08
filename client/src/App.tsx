@@ -40,6 +40,7 @@ const ChallengesPage = lazy(() => import('./pages/ChallengesPage'));
 const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.RewardsPage })));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const NativeAuthPage = lazy(() => import('./pages/NativeAuthPage').then(m => ({ default: m.NativeAuthPage })));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -137,6 +138,9 @@ function AppRoutes() {
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
         <Route path="/forgot-password" element={<PageTransition><LazyLoad><ForgotPasswordPage /></LazyLoad></PageTransition>} />
         <Route path="/reset-password/:token" element={<PageTransition><LazyLoad><ResetPasswordPage /></LazyLoad></PageTransition>} />
+        {/* Capacitor APK/iOS Google+email bridge — must stay outside PublicRoute so a
+            web session doesn't redirect to /dashboard before the deep-link bounce. */}
+        <Route path="/native-auth" element={<PageTransition><LazyLoad><NativeAuthPage /></LazyLoad></PageTransition>} />
         <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/run/track" element={<ProtectedRoute><PageTransition><LazyLoad><RunTrackerPage /></LazyLoad></PageTransition></ProtectedRoute>} />

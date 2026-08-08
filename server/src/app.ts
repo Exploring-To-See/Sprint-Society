@@ -82,20 +82,48 @@ export function createApp(options: CreateAppOptions = {}) {
   // rate limiter becomes a single GLOBAL bucket and locks out all users at once.
   app.set('trust proxy', true);
 
-  app.use(helmet({ contentSecurityPolicy: false }));
-  // Allowed origins: the web client plus the Capacitor WebView origins used by
-  // the native Android/iOS apps (assets are served from localhost inside the
-  // APK, capacitor://localhost inside the iOS shell).
-  const allowedOrigins = new Set([
-    config.clientUrl,
-    'https://localhost',
-    'http://localhost',
-    'capacitor://localhost',
-  ]);
+  // crossOriginResourcePolicy MUST be cross-origin — the Capacitor APK/iOS
+  // WebViews call this API from https://localhost / capacitor://localhost.
+  // Helmet's default (same-origin) blocks those fetches even when CORS allows them.
+  // COOP allow-popups keeps Google Identity Services usable on the web client.
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  }));
+
+  // Allowed origins: production web, admin portal, Capacitor WebView shells, and
+  // Vercel preview deploys. Always reflect the request Origin (never a hardcoded
+  // CLIENT_URL) so a mis-set CLIENT_URL cannot break the APK.
+  const allowedOrigins = new Set(
+    [
+      config.clientUrl,
+      config.appUrl,
+      'https://app.sprintsociety.in',
+      'https://www.sprintsociety.in',
+      'https://sprintsociety.in',
+      'https://sprint-society-admin.vercel.app',
+      'https://localhost',
+      'http://localhost',
+      'capacitor://localhost',
+      'ionic://localhost',
+    ].filter(Boolean),
+  );
+
+  const isAllowedOrigin = (origin: string) => {
+    if (allowedOrigins.has(origin)) return true;
+    // Capacitor / Ionic localhost with optional port
+    if (/^(capacitor|ionic|https?):\/\/localhost(:\d+)?$/i.test(origin)) return true;
+    // Vercel preview / project URLs
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
+    return false;
+  };
+
   app.use(cors({
     origin: (origin, callback) => {
       // Same-origin / no-Origin requests (curl, health checks, Vercel rewrites)
-      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      if (!origin) return callback(null, true);
+      if (isAllowedOrigin(origin)) return callback(null, origin);
       return callback(null, false);
     },
     credentials: true,

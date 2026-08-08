@@ -21,6 +21,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   googleLogin: (credential: string) => Promise<{ isNew?: boolean }>;
+  /** Apply a JWT received from the native deep-link auth bridge. */
+  acceptToken: (token: string) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -71,6 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { isNew: res.data.isNew };
   };
 
+  const acceptToken = (jwt: string) => {
+    localStorage.setItem('sprint_society_token', jwt);
+    setToken(jwt);
+    // /auth/me effect will hydrate `user` from the new token
+  };
+
   const logout = () => {
     localStorage.removeItem('sprint_society_token');
     setToken(null);
@@ -78,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, googleLogin, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, googleLogin, acceptToken, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

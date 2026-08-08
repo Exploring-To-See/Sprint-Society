@@ -27,8 +27,17 @@ talk to the **same Vercel API and the same Supabase (Postgres) database**.
 - WebSockets stay **off** (`VITE_ENABLE_WS` unset) — the client polls over
   REST, which works against the serverless backend from web and native alike.
 - CORS: `server/src/app.ts` allows the Capacitor WebView origins
-  (`https://localhost`, `http://localhost`, `capacitor://localhost`) in
-  addition to `CLIENT_URL`.
+  (`https://localhost`, `http://localhost`, `capacitor://localhost`) plus the
+  production/admin web origins. Helmet `Cross-Origin-Resource-Policy` is set to
+  `cross-origin` so the APK can read API responses (the default `same-origin`
+  blocks Capacitor).
+- Google Sign-In in the APK: GIS buttons don't render reliably inside the
+  WebView, so the native shell opens the hosted bridge page
+  `https://app.sprintsociety.in/native-auth`, completes Google/email there, and
+  returns via the deep link `in.sprintsociety.app://auth?token=…`.
+- Email/password login talks to the API directly from the WebView once CORS/CORP
+  are correct. Rebuild the APK after any auth change, and wait for Vercel to
+  redeploy `main` so the server-side CORS fix is live.
 
 ## Android (APK)
 
