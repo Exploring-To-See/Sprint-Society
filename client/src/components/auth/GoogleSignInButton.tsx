@@ -145,7 +145,12 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'continue_with' 
     window.location.href = nativeAuthBridgeUrl(mode);
   }
 
-  if (!available && !useNativeBridge) return null;
+  // Hide the button whenever the backend reports Google sign-in isn't configured.
+  // This also covers the native bridge: /auth/google-config and the hosted
+  // /native-auth page ship together, so a 404 here means tapping the button would
+  // navigate the WebView to a page that doesn't exist yet and strand the user
+  // outside the app shell.
+  if (!available) return null;
 
   // Capacitor shell: always show a real button (GIS iframes usually don't render).
   if (useNativeBridge) {

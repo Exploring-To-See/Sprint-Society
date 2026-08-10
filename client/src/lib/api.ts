@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { API_BASE } from './backend';
+import { nativeHttpAdapter } from './nativeHttp';
 
 export class ApiError extends Error {
   code: string;
@@ -16,6 +17,10 @@ export class ApiError extends Error {
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  // Native (APK / iOS): go through Capacitor's HTTP layer so the cross-origin
+  // call from the https://localhost WebView is not subject to CORS/CORP.
+  // Undefined on web, where axios keeps its default XHR adapter.
+  ...(nativeHttpAdapter ? { adapter: nativeHttpAdapter } : {}),
 });
 
 api.interceptors.request.use((config) => {
