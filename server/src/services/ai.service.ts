@@ -27,6 +27,22 @@ function getRandomErrorMessage(): string {
 }
 
 /**
+ * Pull the assistant's text out of a Messages API response.
+ *
+ * Indexing content[0] is not safe: when thinking is on, a `thinking` block comes
+ * first and the text block sits behind it, so content[0].type === 'text' is false
+ * and the coach silently answers with an empty string. Find the text block instead.
+ */
+function textOf(response: any): string {
+  const blocks: any[] = Array.isArray(response?.content) ? response.content : [];
+  return blocks
+    .filter(b => b?.type === 'text' && typeof b.text === 'string')
+    .map(b => b.text)
+    .join('')
+    .trim();
+}
+
+/**
  * Build full context string for a user (used in system prompts)
  */
 export async function buildUserContext(userId: number): Promise<string> {
@@ -195,7 +211,7 @@ export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
       }],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = textOf(response);
     await trackUsage(userId, 'haiku', response.usage.input_tokens, response.usage.output_tokens, 'background_eval');
 
     try {
@@ -237,11 +253,14 @@ export async function chatWithSonnet(userId: number, userMessage: string, recent
     const response = await anthropic.messages.create({
       model: config.anthropic.models.sonnet,
       max_tokens: 600,
+      // Sonnet 5 thinks by default. The coach replies in 2-4 sentences off a
+      // 600-token budget, so thinking would eat the budget and truncate the answer.
+      thinking: { type: 'disabled' },
       system: `You are Sprint Society's AI running coach. You are warm, knowledgeable, and direct. You know this runner personally:\n\n${context}\n\nRules:\n- Always reference their specific data (pace, VO2max, recent runs) when relevant\n- Never give generic advice — personalize everything\n- Be concise (2-4 sentences unless they ask for detail)\n- If they mention injury/pain, always recommend caution and suggest seeing a professional\n- Use their name occasionally\n- If you notice something in their data (overtraining, improvement, consistency), proactively mention it\n- Keep a supportive but honest tone — celebrate progress, flag concerns`,
       messages: conversationHistory,
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = textOf(response);
     await trackUsage(userId, 'sonnet', response.usage.input_tokens, response.usage.output_tokens, 'chat');
     await extractAndStoreInsights(userId, userMessage, text);
 

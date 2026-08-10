@@ -60,8 +60,12 @@ export const config = {
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
     models: {
-      sonnet: 'claude-sonnet-4-6',
-      haiku: 'claude-haiku-4-5-20251001',
+      // Sonnet 5 turns adaptive thinking ON when the `thinking` field is omitted
+      // (Sonnet 4.6 ran thinking-off by default). Both call sites in
+      // services/ai.service.ts pass `thinking: { type: 'disabled' }` so the
+      // small max_tokens budgets aren't spent on reasoning the coach never shows.
+      sonnet: 'claude-sonnet-5',
+      haiku: 'claude-haiku-4-5',
     },
   },
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
