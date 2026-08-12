@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { isNative } from '../lib/native';
@@ -57,6 +58,9 @@ export function useNativeApp() {
         }
         const jwt = parsed.searchParams.get('token');
         if (!jwt) return;
+        // Sign-in happened in a Chrome Custom Tab (GoogleSignInButton) — close
+        // it so the user lands back in the app, not on the bridge page.
+        Browser.close().catch(() => {});
         acceptToken(jwt);
         const isNew = parsed.searchParams.get('isNew') === '1';
         navigate(isNew ? '/profiling' : '/dashboard', { replace: true });

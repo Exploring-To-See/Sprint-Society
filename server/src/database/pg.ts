@@ -1,4 +1,10 @@
-import { Pool, type PoolConfig } from 'pg';
+import { Pool, types, type PoolConfig } from 'pg';
+
+// Return Postgres DATE columns as plain 'YYYY-MM-DD' strings instead of JS
+// Date objects. Otherwise res.json serializes events.date as a full ISO
+// timestamp and every client `new Date(date + 'T' + time)` concatenation
+// produces Invalid Date ("NaN days" badges, broken event headers).
+types.setTypeParser(1082, (v) => v);
 
 // Use SSL only for remote/managed Postgres (e.g. Supabase). Local/test Postgres
 // typically has no SSL, and forcing it throws "server does not support SSL connections".

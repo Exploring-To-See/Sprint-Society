@@ -28,8 +28,8 @@ if (isProduction || isStaging) {
   if (!process.env.DATABASE_URL) {
     failFast(`[FATAL] DATABASE_URL is required in ${nodeEnv}. Server cannot start without a Postgres connection.`);
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn('[CONFIG] ⚠️  ANTHROPIC_API_KEY not set — AI coaching/chat will be disabled');
+  if (!process.env.GROQ_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    console.warn('[CONFIG] ⚠️  Neither GROQ_API_KEY nor ANTHROPIC_API_KEY set — AI coaching/chat will be disabled');
   }
   if (!process.env.CLIENT_URL) {
     console.warn('[CONFIG] ⚠️  CLIENT_URL not set — using default. Set it for CORS to work correctly.');
@@ -57,12 +57,23 @@ export const config = {
   // reset, notifications). Set APP_URL to the main app domain — NOT the admin
   // portal — so reset links open the real app's /reset-password page, not admin.
   appUrl: process.env.APP_URL || process.env.CLIENT_URL || 'http://localhost:5173',
+  // AI provider selection (services/ai.service.ts): Groq is used when
+  // GROQ_API_KEY is set; otherwise Anthropic when ANTHROPIC_API_KEY is set.
+  groq: {
+    apiKey: (process.env.GROQ_API_KEY || '').trim(),
+    baseUrl: 'https://api.groq.com/openai/v1',
+    models: {
+      // chat = conversational coach, background = cheap structured evals
+      chat: process.env.GROQ_CHAT_MODEL || 'llama-3.3-70b-versatile',
+      background: process.env.GROQ_BACKGROUND_MODEL || 'llama-3.1-8b-instant',
+    },
+  },
   anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    apiKey: (process.env.ANTHROPIC_API_KEY || '').trim(),
     models: {
       // Sonnet 5 turns adaptive thinking ON when the `thinking` field is omitted
-      // (Sonnet 4.6 ran thinking-off by default). Both call sites in
-      // services/ai.service.ts pass `thinking: { type: 'disabled' }` so the
+      // (Sonnet 4.6 ran thinking-off by default). The Anthropic path in
+      // services/ai.service.ts passes `thinking: { type: 'disabled' }` so the
       // small max_tokens budgets aren't spent on reasoning the coach never shows.
       sonnet: 'claude-sonnet-5',
       haiku: 'claude-haiku-4-5',

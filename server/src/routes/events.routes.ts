@@ -46,8 +46,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   const events = await db.query(`
     SELECT e.*,
       u.name as creator_name, u.profile_image_url as creator_image,
-      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count,
-      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'maybe') as maybe_count,
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going')::int as attendee_count,
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'maybe')::int as maybe_count,
       (SELECT status FROM event_rsvps WHERE event_id = e.id AND user_id = $1) as user_rsvp
     FROM events e
     JOIN users u ON e.creator_id = u.id
@@ -111,15 +111,19 @@ router.get('/nearby', async (req: AuthRequest, res: Response) => {
 
   const events = await db.query(`
     SELECT e.*, u.name as creator_name,
-      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going')::int as attendee_count
     FROM events e
     JOIN users u ON e.creator_id = u.id
     WHERE e.status IN ('upcoming', 'live')
       AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
       AND CAST(e.latitude AS DOUBLE PRECISION) BETWEEN $1 AND $2
       AND CAST(e.longitude AS DOUBLE PRECISION) BETWEEN $3 AND $4
+      AND (e.visibility = 'public'
+        OR e.creator_id = $5
+        OR (e.visibility = 'followers_only' AND e.creator_id IN (SELECT following_id FROM follows WHERE follower_id = $5))
+        OR e.id IN (SELECT event_id FROM event_hosts WHERE user_id = $5))
     ORDER BY e.date ASC
-  `, [minLat, maxLat, minLng, maxLng]) as any[];
+  `, [minLat, maxLat, minLng, maxLng, req.userId]) as any[];
 
   const nearby = events.filter(e => {
     const dLat = (parseFloat(e.latitude) - lat) * Math.PI / 180;
@@ -133,16 +137,20 @@ router.get('/nearby', async (req: AuthRequest, res: Response) => {
   res.json({ events: nearby, radius_km: radiusKm });
 });
 
-// GET /events/my — events user is attending or hosting
+// GET /events/my — events user is attending, hosting, or created
 router.get('/my', async (req: AuthRequest, res: Response) => {
   const attending = await db.query(`
     SELECT e.*, u.name as creator_name,
-      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count,
-      er.status as user_rsvp
-    FROM event_rsvps er
-    JOIN events e ON er.event_id = e.id
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going')::int as attendee_count,
+      (SELECT status FROM event_rsvps WHERE event_id = e.id AND user_id = $1) as user_rsvp
+    FROM events e
     JOIN users u ON e.creator_id = u.id
-    WHERE er.user_id = $1 AND er.status IN ('going', 'maybe') AND e.status IN ('upcoming', 'live')
+    WHERE e.status IN ('upcoming', 'live')
+      AND (
+        e.id IN (SELECT event_id FROM event_rsvps WHERE user_id = $1 AND status IN ('going', 'maybe'))
+        OR e.creator_id = $1
+        OR e.id IN (SELECT event_id FROM event_hosts WHERE user_id = $1)
+      )
     ORDER BY e.date ASC
   `, [req.userId]) as any[];
 
@@ -154,12 +162,17 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   const event = await db.queryOne(`
     SELECT e.*,
       u.name as creator_name, u.profile_image_url as creator_image,
-      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going') as attendee_count,
-      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'maybe') as maybe_count,
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'going')::int as attendee_count,
+      (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'maybe')::int as maybe_count,
       (SELECT status FROM event_rsvps WHERE event_id = e.id AND user_id = $1) as user_rsvp
     FROM events e
     JOIN users u ON e.creator_id = u.id
     WHERE e.id = $2
+      AND (e.visibility = 'public'
+        OR e.creator_id = $1
+        OR (e.visibility = 'followers_only' AND e.creator_id IN (SELECT following_id FROM follows WHERE follower_id = $1))
+        OR e.id IN (SELECT event_id FROM event_hosts WHERE user_id = $1)
+        OR e.id IN (SELECT event_id FROM event_rsvps WHERE user_id = $1))
   `, [req.userId, parseInt(req.params.id)]) as any;
 
   if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -198,7 +211,13 @@ router.post('/:id/rsvp', async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'Status must be going or maybe' });
   }
 
-  const event = await db.queryOne('SELECT * FROM events WHERE id = $1 AND status != $2', [eventId, 'cancelled']) as any;
+  const event = await db.queryOne(`
+    SELECT * FROM events e WHERE e.id = $1 AND e.status != $2
+      AND (e.visibility = 'public'
+        OR e.creator_id = $3
+        OR (e.visibility = 'followers_only' AND e.creator_id IN (SELECT following_id FROM follows WHERE follower_id = $3))
+        OR e.id IN (SELECT event_id FROM event_hosts WHERE user_id = $3))
+  `, [eventId, 'cancelled', req.userId]) as any;
   if (!event) return res.status(404).json({ error: 'Event not found or cancelled' });
 
   if (status === 'going' && event.max_attendees) {

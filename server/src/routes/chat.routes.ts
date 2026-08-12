@@ -6,7 +6,7 @@ import { estimateVDOT, getTrainingPaces, calculateReadiness } from '../engine/tr
 import { calculateTrainingLoad } from '../engine/adaptiveEngine';
 import { calculateHRZones, estimateMaxHR } from '../engine/heartRateZones';
 import { config } from '../config';
-import { chatWithSonnet, extractAndStoreInsights } from '../services/ai.service';
+import { chatWithSonnet, extractAndStoreInsights, aiAvailable } from '../services/ai.service';
 
 const router = Router();
 router.use(authenticate);
@@ -42,9 +42,11 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
     [req.userId]
   ) as any[];
 
-  // Check if user has pro subscription AND API key exists → use Sonnet
-  const subscription = await db.queryOne('SELECT plan_key FROM user_subscriptions WHERE user_id = $1 AND status = $2', [req.userId, 'active']) as any;
-  const useAI = config.anthropic.apiKey && subscription?.plan_key === 'pro';
+  // Use the real AI whenever a provider is configured (Groq or Anthropic).
+  // Per-plan fairness is enforced inside chatWithSonnet via checkUsageLimit
+  // (base = 5 messages/day, pro = 30/day), so free users get the real coach
+  // within their daily budget instead of only canned responses.
+  const useAI = aiAvailable;
 
   let response: string;
 

@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { config } from '../config';
 import db from '../database/pg';
 import { getUserPlan } from '../middleware/subscription';
@@ -6,12 +7,67 @@ let Anthropic: any = null;
 try {
   Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 } catch {
-  console.log('[AI Service] @anthropic-ai/sdk not available — AI features disabled');
+  console.log('[AI Service] @anthropic-ai/sdk not available — Anthropic provider disabled');
 }
 
 const anthropic = (Anthropic && config.anthropic.apiKey)
   ? new Anthropic({ apiKey: config.anthropic.apiKey })
   : null;
+
+/** True when any AI provider is configured. Groq wins when both keys are set. */
+const useGroq = !!config.groq.apiKey;
+export const aiAvailable = useGroq || !!anthropic;
+
+interface AiTurn { role: 'user' | 'assistant'; content: string }
+interface AiResult { text: string; model: string; inputTokens: number; outputTokens: number }
+
+/**
+ * Provider-agnostic chat completion. `kind` picks the model tier:
+ * 'chat' = conversational coach, 'background' = cheap structured evals.
+ *
+ * Groq (OpenAI-compatible /chat/completions) is primary — the key lives in the
+ * GROQ_API_KEY Vercel env var. Anthropic is the fallback provider when only
+ * ANTHROPIC_API_KEY is set.
+ */
+async function completeChat(kind: 'chat' | 'background', system: string, turns: AiTurn[], maxTokens: number): Promise<AiResult> {
+  if (useGroq) {
+    const model = kind === 'chat' ? config.groq.models.chat : config.groq.models.background;
+    const res = await axios.post(
+      `${config.groq.baseUrl}/chat/completions`,
+      {
+        model,
+        max_tokens: maxTokens,
+        messages: [{ role: 'system', content: system }, ...turns],
+      },
+      {
+        headers: { Authorization: `Bearer ${config.groq.apiKey}` },
+        timeout: 25000, // Vercel function budget is 30s — fail before the platform does
+      },
+    );
+    return {
+      text: (res.data?.choices?.[0]?.message?.content ?? '').trim(),
+      model,
+      inputTokens: res.data?.usage?.prompt_tokens ?? 0,
+      outputTokens: res.data?.usage?.completion_tokens ?? 0,
+    };
+  }
+
+  if (!anthropic) throw new Error('No AI provider configured');
+  const model = kind === 'chat' ? config.anthropic.models.sonnet : config.anthropic.models.haiku;
+  const response = await anthropic.messages.create({
+    model,
+    max_tokens: maxTokens,
+    thinking: { type: 'disabled' },
+    system,
+    messages: turns,
+  });
+  return {
+    text: textOf(response),
+    model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
+}
 
 // Fun error messages when AI is unavailable
 const AI_UNAVAILABLE_MESSAGES = [
@@ -195,32 +251,33 @@ export async function extractAndStoreInsights(userId: number, userMessage: strin
  * Call Haiku for background training evaluation (lightweight, fast)
  */
 export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
-  if (!anthropic) return { error: 'AI not configured' };
+  if (!aiAvailable) return { error: 'AI not configured' };
 
   const context = await buildUserContext(userId);
   if (!context) return { error: 'User not found' };
 
   try {
-    const response = await anthropic.messages.create({
-      model: config.anthropic.models.haiku,
-      max_tokens: 500,
-      system: 'You are Sprint Society\'s training intelligence engine. Analyze the runner\'s data and output ONLY valid JSON. No markdown, no explanation.',
-      messages: [{
+    const result = await completeChat(
+      'background',
+      'You are Sprint Society\'s training intelligence engine. Analyze the runner\'s data and output ONLY valid JSON. No markdown, no explanation.',
+      [{
         role: 'user',
         content: `${context}\n\nEvaluate this runner's recent performance. Output JSON:\n{\n  "plan_adjustments": ["adjustment1", "adjustment2"],\n  "insight_text": "1-2 sentence personalized insight for the runner",\n  "risk_flags": ["flag1 if any"],\n  "readiness_score": 0-100,\n  "weekly_summary": "brief summary if it's been 7+ days since last evaluation"\n}`,
       }],
-    });
+      500,
+    );
 
-    const text = textOf(response);
-    await trackUsage(userId, 'haiku', response.usage.input_tokens, response.usage.output_tokens, 'background_eval');
+    await trackUsage(userId, result.model, result.inputTokens, result.outputTokens, 'background_eval');
 
     try {
-      return JSON.parse(text);
+      // Models sometimes wrap JSON in a markdown fence despite instructions.
+      const cleaned = result.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      return JSON.parse(cleaned);
     } catch {
-      return { insight_text: text, plan_adjustments: [], risk_flags: [] };
+      return { insight_text: result.text, plan_adjustments: [], risk_flags: [] };
     }
   } catch (err: any) {
-    console.error('[AI] Haiku evaluation failed:', err.message);
+    console.error('[AI] background evaluation failed:', err.message);
     return { error: getRandomErrorMessage() };
   }
 }
@@ -229,7 +286,7 @@ export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
  * Call Sonnet for conversational AI coaching (richer, more nuanced)
  */
 export async function chatWithSonnet(userId: number, userMessage: string, recentMessages: Array<{ role: string; content: string }>): Promise<{ response: string; error?: string }> {
-  if (!anthropic) return { response: '', error: 'AI coach is not configured yet. Coming soon!' };
+  if (!aiAvailable) return { response: '', error: 'AI coach is not configured yet. Coming soon!' };
 
   const plan = await getUserPlan(userId);
   const tier = plan === 'pro' ? 'pro' : 'base';
@@ -250,23 +307,19 @@ export async function chatWithSonnet(userId: number, userMessage: string, recent
   conversationHistory.push({ role: 'user', content: userMessage });
 
   try {
-    const response = await anthropic.messages.create({
-      model: config.anthropic.models.sonnet,
-      max_tokens: 600,
-      // Sonnet 5 thinks by default. The coach replies in 2-4 sentences off a
-      // 600-token budget, so thinking would eat the budget and truncate the answer.
-      thinking: { type: 'disabled' },
-      system: `You are Sprint Society's AI running coach. You are warm, knowledgeable, and direct. You know this runner personally:\n\n${context}\n\nRules:\n- Always reference their specific data (pace, VO2max, recent runs) when relevant\n- Never give generic advice — personalize everything\n- Be concise (2-4 sentences unless they ask for detail)\n- If they mention injury/pain, always recommend caution and suggest seeing a professional\n- Use their name occasionally\n- If you notice something in their data (overtraining, improvement, consistency), proactively mention it\n- Keep a supportive but honest tone — celebrate progress, flag concerns`,
-      messages: conversationHistory,
-    });
+    const result = await completeChat(
+      'chat',
+      `You are Sprint Society's AI running coach. You are warm, knowledgeable, and direct. You know this runner personally:\n\n${context}\n\nRules:\n- Always reference their specific data (pace, VO2max, recent runs) when relevant\n- Never give generic advice — personalize everything\n- Be concise (2-4 sentences unless they ask for detail)\n- If they mention injury/pain, always recommend caution and suggest seeing a professional\n- Use their name occasionally\n- If you notice something in their data (overtraining, improvement, consistency), proactively mention it\n- Keep a supportive but honest tone — celebrate progress, flag concerns`,
+      conversationHistory,
+      600,
+    );
 
-    const text = textOf(response);
-    await trackUsage(userId, 'sonnet', response.usage.input_tokens, response.usage.output_tokens, 'chat');
-    await extractAndStoreInsights(userId, userMessage, text);
+    await trackUsage(userId, result.model, result.inputTokens, result.outputTokens, 'chat');
+    await extractAndStoreInsights(userId, userMessage, result.text);
 
-    return { response: text };
+    return { response: result.text };
   } catch (err: any) {
-    console.error('[AI] Sonnet chat failed:', err.message);
+    console.error('[AI] coach chat failed:', err.message);
     return { response: getRandomErrorMessage(), error: 'api_error' };
   }
 }

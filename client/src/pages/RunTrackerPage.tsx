@@ -155,11 +155,28 @@ export function RunTrackerPage() {
 
   const [locating, setLocating] = useState(true);
 
-  // Get initial location (triggers the system permission popup on native)
-  useEffect(() => {
-    getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 })
-      .then((pos) => { setUserLocation([pos.latitude, pos.longitude]); setLocating(false); })
+  // Prime the location permission the moment the tracker opens (system dialog
+  // shows in-app on native), then grab the initial fix. Split into two steps so
+  // a denied dialog produces the clear "access denied" state with a retry CTA
+  // instead of a generic "could not determine location".
+  const primeLocation = useCallback(() => {
+    setGpsError(null);
+    setLocating(true);
+    ensureLocationPermission()
+      .then((granted) => {
+        if (!granted) {
+          setLocating(false);
+          setGpsError('Location access denied — tap to allow location');
+          return null;
+        }
+        return getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+      })
+      .then((pos) => { if (pos) { setUserLocation([pos.latitude, pos.longitude]); setLocating(false); } })
       .catch((err: { message?: string }) => { setLocating(false); setGpsError(err?.message || 'Could not determine location'); });
+  }, []);
+
+  useEffect(() => {
+    primeLocation();
     // Fetch pace zones for zone bar (non-critical, silent fallback to defaults)
     api.get('/training/paces')
       .then(({ data }) => {
@@ -230,6 +247,33 @@ export function RunTrackerPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [state, coach]);
+
+  // Keep the screen awake while recording. If the screen sleeps, Android pauses
+  // the WebView and GPS samples + timers stop — the classic "my run flatlined
+  // in my pocket" failure. Screen Wake Lock is supported by the Android WebView;
+  // it auto-releases when the app is backgrounded, so re-acquire on return.
+  useEffect(() => {
+    if (state !== 'RUNNING') return;
+    let sentinel: { release?: () => Promise<void> } | null = null;
+    let active = true;
+    const acquire = async () => {
+      try {
+        const wl = (navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<never> } }).wakeLock;
+        if (!wl) return;
+        const s = await wl.request('screen');
+        if (!active) { (s as { release?: () => Promise<void> }).release?.(); return; }
+        sentinel = s as { release?: () => Promise<void> };
+      } catch { /* unsupported or denied — run continues, screen may sleep */ }
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
+    acquire();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      active = false;
+      document.removeEventListener('visibilitychange', onVisible);
+      sentinel?.release?.().catch(() => {});
+    };
+  }, [state]);
 
   // Stop GPS + speech if the page unmounts mid-run
   useEffect(() => () => {
@@ -657,9 +701,14 @@ export function RunTrackerPage() {
               </div>
 
               {gpsError && (
-                <div style={{ borderRadius: 13, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.22)', padding: '8px 14px', alignSelf: 'center' }}>
-                  <p style={{ font: '500 11px var(--body)', color: 'var(--amber)' }}>{gpsError}</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={primeLocation}
+                  data-testid="gps-error-retry"
+                  style={{ borderRadius: 13, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.22)', padding: '8px 14px', alignSelf: 'center', cursor: 'pointer' }}
+                >
+                  <p style={{ font: '500 11px var(--body)', color: 'var(--amber)', margin: 0 }}>{gpsError} · tap to retry</p>
+                </button>
               )}
 
               {/* START disc — the FAB language, enlarged */}

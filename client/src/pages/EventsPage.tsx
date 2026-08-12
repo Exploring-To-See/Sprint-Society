@@ -30,7 +30,9 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'group_run', label: 'Runs' },
   { key: 'social', label: 'Social' },
-  { key: 'health_fitness', label: 'Health & Fitness' },
+  // Maps to the 'workout' event_type — 'health_fitness' is not a valid type per
+  // the events.event_type CHECK constraint, so that tab was permanently empty.
+  { key: 'workout', label: 'Health & Fitness' },
 ] as const;
 
 // Shape mirrors server/src/routes/events.routes.ts. `/events` returns the richest

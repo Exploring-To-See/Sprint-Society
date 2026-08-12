@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Browser } from '@capacitor/browser';
 import { useAuth } from '../../context/AuthContext';
 import { isNative, NATIVE_DEFAULT_API } from '../../lib/native';
 import api from '../../lib/api';
@@ -141,8 +142,13 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'continue_with' 
 
   function openNativeBridge() {
     const mode = text === 'signup_with' ? 'signup' : 'signin';
-    // Full navigation so Google sees a real https origin (app.sprintsociety.in).
-    window.location.href = nativeAuthBridgeUrl(mode);
+    // Chrome Custom Tab, NOT the WebView: Google blocks OAuth inside WebViews
+    // ("disallowed_useragent"), so navigating the shell to the bridge page can
+    // never complete sign-in. The Custom Tab is a real browser; the bridge page
+    // bounces back via the in.sprintsociety.app://auth deep link, which
+    // useNativeApp catches and closes the tab.
+    Browser.open({ url: nativeAuthBridgeUrl(mode), presentationStyle: 'popover' })
+      .catch(() => { window.location.href = nativeAuthBridgeUrl(mode); });
   }
 
   // Hide the button whenever the backend reports Google sign-in isn't configured.
