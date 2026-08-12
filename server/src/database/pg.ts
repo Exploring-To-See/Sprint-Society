@@ -6,9 +6,27 @@ import { Pool, types, type PoolConfig } from 'pg';
 // produces Invalid Date ("NaN days" badges, broken event headers).
 types.setTypeParser(1082, (v) => v);
 
+// Resolve the Postgres URL. DATABASE_URL wins when set; otherwise fall back to
+// the vars the Supabase↔Vercel integration injects (POSTGRES_PRISMA_URL is the
+// pgBouncer transaction-pooler URL — the right one for serverless).
+const rawDbUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  '';
+
+// Strip query params that fight the explicit `ssl` config below: node-postgres
+// treats sslmode=require in the URL as verify-full, which rejects Supabase's
+// pooler cert with "self-signed certificate in certificate chain" even when
+// ssl.rejectUnauthorized=false is passed. pgbouncer/supa are Vercel-integration
+// markers node-postgres doesn't understand.
+const dbUrl = rawDbUrl
+  .replace(/([?&])(sslmode|pgbouncer|supa|uselibpqcompat)=[^&]*/g, '$1')
+  .replace(/[?&]+$/, '')
+  .replace(/\?&+/, '?');
+
 // Use SSL only for remote/managed Postgres (e.g. Supabase). Local/test Postgres
 // typically has no SSL, and forcing it throws "server does not support SSL connections".
-const dbUrl = process.env.DATABASE_URL || '';
 const isLocalDb =
   /@(localhost|127\.0\.0\.1|::1)/.test(dbUrl) ||
   process.env.NODE_ENV === 'development' ||
@@ -23,7 +41,7 @@ const isLocalDb =
 const isServerless = !!process.env.VERCEL;
 
 const poolConfig: PoolConfig = {
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl || undefined,
   max: isServerless ? 1 : 10,
   ssl: isLocalDb ? false : { rejectUnauthorized: false },
   connectionTimeoutMillis: 10000,

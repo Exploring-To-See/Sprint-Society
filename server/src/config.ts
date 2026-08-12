@@ -25,8 +25,8 @@ if (isProduction || isStaging) {
   if (process.env.JWT_SECRET!.length < 32) {
     console.warn(`[CONFIG] ⚠️  JWT_SECRET is short (${process.env.JWT_SECRET!.length} chars) — recommend 32+ for production`);
   }
-  if (!process.env.DATABASE_URL) {
-    failFast(`[FATAL] DATABASE_URL is required in ${nodeEnv}. Server cannot start without a Postgres connection.`);
+  if (!process.env.DATABASE_URL && !process.env.POSTGRES_PRISMA_URL && !process.env.POSTGRES_URL) {
+    failFast(`[FATAL] DATABASE_URL (or the Supabase integration's POSTGRES_PRISMA_URL/POSTGRES_URL) is required in ${nodeEnv}. Server cannot start without a Postgres connection.`);
   }
   if (!process.env.GROQ_API_KEY && !process.env.ANTHROPIC_API_KEY) {
     console.warn('[CONFIG] ⚠️  Neither GROQ_API_KEY nor ANTHROPIC_API_KEY set — AI coaching/chat will be disabled');
