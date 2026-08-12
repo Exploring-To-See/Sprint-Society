@@ -7,7 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // Registration is done manually in main.tsx, guarded by isNative — the
+      // auto-injected registerSW.js also ran inside the Capacitor shell, where
+      // a service worker can pin the APK to a stale cached bundle forever.
+      injectRegister: null,
       // Use the existing public/manifest.json (already linked in index.html).
       manifest: false,
       includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg', 'icons/logo.png'],

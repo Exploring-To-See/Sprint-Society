@@ -81,12 +81,14 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
 router.get('/history', async (req: AuthRequest, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 50;
 
+  // Newest-first for the LIMIT, then chronological for display — ASC+LIMIT
+  // returned the oldest 50 rows forever once a user passed ~25 exchanges.
   const messages = await db.query(
-    `SELECT id, role, content, created_at FROM chat_messages WHERE user_id = $1 ORDER BY created_at ASC LIMIT $2`,
+    `SELECT id, role, content, created_at FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
     [req.userId, limit]
   );
 
-  res.json(messages);
+  res.json(messages.reverse());
 });
 
 // DELETE /chat/history — Clear chat history

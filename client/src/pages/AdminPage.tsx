@@ -515,7 +515,7 @@ function CommunitiesTab({ communities, queryClient }: { communities: any[]; quer
                 </button>
               </div>
               {approveMutation.isError && (
-                <p style={{ font: '500 10.5px var(--body)', color: 'var(--amber)', margin: 0 }}>{(approveMutation.error as any)?.response?.data?.error || 'Failed'}</p>
+                <p style={{ font: '500 10.5px var(--body)', color: 'var(--amber)', margin: 0 }}>{(approveMutation.error as any)?.message || 'Failed'}</p>
               )}
             </div>
           ))}
@@ -703,9 +703,9 @@ function AnalyticsTab() {
       <motion.div variants={fadeUp} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 9 }}>
         {[
           { label: 'DAU', value: dashboard.dau ?? 0 },
-          { label: 'New This Week', value: dashboard.new_users_this_week ?? 0 },
+          { label: 'New This Week', value: dashboard.new_users_week ?? 0 },
           { label: 'Runs Today', value: dashboard.total_runs_today ?? 0 },
-          { label: 'Active Runners', value: dashboard.active_runners ?? 0 },
+          { label: 'Active Runners', value: dashboard.active_runners_today ?? 0 },
         ].map(s => (
           <div key={s.label} className="tile recess" style={{ padding: '14px 12px', alignItems: 'center' }}>
             <p className="num" style={{ font: '700 20px var(--mono)', color: 'var(--fg)', margin: 0 }}>{s.value}</p>
@@ -714,16 +714,18 @@ function AnalyticsTab() {
         ))}
       </motion.div>
 
-      {metrics?.dau_history && metrics.dau_history.length > 0 && (
+      {Array.isArray(metrics) && metrics.length > 0 && (
         <motion.div variants={fadeUp} className="tile" style={{ padding: 16 }}>
           <p style={{ ...secLbl, marginBottom: 11 }}>DAU — Last 30 Days</p>
           <div style={{ height: 190 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={metrics.dau_history}>
+              {/* /admin/analytics/metrics returns the daily_metrics rows directly
+                  (date, dau, ...) — there is no dau_history wrapper object. */}
+              <LineChart data={[...metrics].reverse()}>
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-2)' }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--muted-2)' }} tickLine={false} axisLine={false} width={30} />
                 <Tooltip contentStyle={{ background: 'rgba(12,12,18,.94)', border: '1px solid var(--hair)', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: 'var(--muted)' }} />
-                <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="dau" stroke="var(--accent)" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -1152,7 +1154,7 @@ function AuditTab() {
                 <tr key={i} style={{ borderBottom: i < auditLog.length - 1 ? '1px solid var(--hair)' : 'none' }}>
                   <td className="num" style={{ ...td, font: '500 11.5px var(--mono)', color: 'var(--muted)' }}>{entry.admin_name || `#${entry.admin_id}`}</td>
                   <td style={{ ...td, color: 'var(--fg)' }}>{entry.action}</td>
-                  <td style={{ ...td, color: 'var(--muted)' }}>{entry.target || '-'}</td>
+                  <td style={{ ...td, color: 'var(--muted)' }}>{entry.target_type ? `${entry.target_type}${entry.target_id ? ` #${entry.target_id}` : ''}` : '-'}</td>
                   <td style={{ ...td, font: '400 10px var(--body)', color: 'var(--muted-2)' }}>
                     {entry.created_at ? new Date(entry.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
                   </td>
@@ -1308,10 +1310,10 @@ function EngineeringTab() {
       <motion.p variants={fadeUp} style={countLine}>{sprints.length} sprints</motion.p>
 
       {sprints.map((sprint: any) => (
-        <motion.div key={sprint.id || sprint.date} variants={fadeUp} className="tile" style={{ padding: 14 }}>
+        <motion.div key={sprint.id || sprint.sprint_date} variants={fadeUp} className="tile" style={{ padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
             <p style={{ font: '600 13.5px var(--body)', color: 'var(--fg)', margin: 0 }}>
-              {sprint.date ? new Date(sprint.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sprint'}
+              {sprint.sprint_date ? new Date(sprint.sprint_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sprint'}
             </p>
             <span className={`ss-tag ${SPRINT_TAG[sprint.status] || 'full'}`}>{sprint.status}</span>
           </div>

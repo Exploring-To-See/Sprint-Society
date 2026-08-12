@@ -113,7 +113,9 @@ export function EventDetailPage() {
     },
     onError: (err: any) => {
       setCheckInStatus('error');
-      setCheckInMessage(err.response?.data?.error || 'Check-in failed');
+      // api.ts rejects with a normalized ApiError — the server's real reason
+      // lives on .message, not on an axios-style .response.
+      setCheckInMessage(err?.message || 'Check-in failed');
     },
   });
 

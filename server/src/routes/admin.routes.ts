@@ -210,10 +210,13 @@ router.post('/events/:id/go-live', async (req: AuthRequest, res: Response) => {
 router.post('/events/:id/complete', async (req: AuthRequest, res: Response) => {
   const eventId = parseInt(req.params.id);
 
-  // Use BEGIN/COMMIT for transactional event completion
-  try {
-    await db.execute('BEGIN', []);
-
+  // NOTE: no BEGIN/COMMIT here on purpose. db.execute goes through a pool —
+  // BEGIN and the following statements can land on different connections
+  // (multi-connection pool) so the "transaction" never actually covered them,
+  // and on the serverless max-1 pool a checked-out client would deadlock the
+  // pooled awardXP calls. Statements are individually idempotent-ish; a partial
+  // failure surfaces via errorHandler and re-running complete is safe.
+  {
     await db.execute("UPDATE events SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1", [eventId]);
 
     const checkins = await db.query('SELECT user_id FROM event_checkins WHERE event_id = $1', [eventId]) as any[];
@@ -271,11 +274,7 @@ router.post('/events/:id/complete', async (req: AuthRequest, res: Response) => {
       }
     }
 
-    await db.execute('COMMIT', []);
     res.json({ success: true, message: `Event completed. ${checkins.length} runners awarded 100 XP + smart awards generated.` });
-  } catch (err) {
-    await db.execute('ROLLBACK', []);
-    throw err;
   }
 });
 

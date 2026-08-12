@@ -7,6 +7,15 @@ import { awardKenduForEvent } from '../engine/kenduEngine';
 const router = Router();
 router.use(authenticate);
 
+// The check-in code is what attendees type at the venue to prove they showed
+// up (admin sets it when the event goes live). The event SELECTs use e.*, so
+// strip it from every public payload — leaking it lets anyone check in (and
+// collect the XP/Kendu rewards) from their couch.
+function stripCheckInCode<T extends Record<string, any>>(row: T): Omit<T, 'check_in_code'> {
+  const { check_in_code: _omitted, ...rest } = row;
+  return rest;
+}
+
 async function awardXP(userId: number, amount: number, source: string, description: string) {
   await db.execute('INSERT INTO user_xp (user_id, total_xp, current_level) VALUES ($1, 0, 1) ON CONFLICT DO NOTHING', [userId]);
   await db.execute('UPDATE user_xp SET total_xp = total_xp + $1 WHERE user_id = $2', [amount, userId]);
@@ -37,9 +46,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     params.push(to);
   }
 
-  // Visibility filter: public events + followers_only from people user follows
-  where += ` AND (e.visibility = 'public' OR (e.visibility = 'followers_only' AND e.creator_id IN (SELECT following_id FROM follows WHERE follower_id = $${paramIndex++})))`;
-  params.push(req.userId);
+  // Visibility filter: public events, followers_only from people the user
+  // follows, plus the user's OWN events and events they host — creators could
+  // not see their own non-public events in the list before.
+  where += ` AND (e.visibility = 'public'
+    OR e.creator_id = $1
+    OR (e.visibility = 'followers_only' AND e.creator_id IN (SELECT following_id FROM follows WHERE follower_id = $1))
+    OR e.id IN (SELECT event_id FROM event_hosts WHERE user_id = $1))`;
 
   params.push(limitNum, offset);
 
@@ -82,7 +95,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     events: events.map(e => {
       const friends_going = friendsMap[e.id] || [];
       return {
-        ...e,
+        ...stripCheckInCode(e),
         is_recurring: !!e.is_recurring,
         is_full: e.max_attendees ? parseInt(e.attendee_count) >= e.max_attendees : false,
         friends_going,
@@ -134,7 +147,7 @@ router.get('/nearby', async (req: AuthRequest, res: Response) => {
     return distance <= radiusKm;
   });
 
-  res.json({ events: nearby, radius_km: radiusKm });
+  res.json({ events: nearby.map(stripCheckInCode), radius_km: radiusKm });
 });
 
 // GET /events/my — events user is attending, hosting, or created
@@ -154,7 +167,7 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
     ORDER BY e.date ASC
   `, [req.userId]) as any[];
 
-  res.json({ attending });
+  res.json({ attending: attending.map(stripCheckInCode) });
 });
 
 // GET /events/:id — event detail
@@ -194,7 +207,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   `, [event.id]) as any[];
 
   res.json({
-    ...event,
+    ...stripCheckInCode(event),
     is_recurring: !!event.is_recurring,
     is_full: event.max_attendees ? parseInt(event.attendee_count) >= event.max_attendees : false,
     attendees,
@@ -235,11 +248,20 @@ router.post('/:id/rsvp', async (req: AuthRequest, res: Response) => {
     ON CONFLICT (event_id, user_id) DO UPDATE SET status = $3
   `, [eventId, req.userId, status]);
 
-  // Award XP on first time going (not for changing from maybe to going etc)
+  // Award XP only the FIRST time this user ever RSVPs 'going' to this event.
+  // `!wasGoing` alone was farmable: DELETE /rsvp removes the row, so
+  // rsvp → cancel → rsvp re-awarded +15 XP forever. The xp_transactions ledger
+  // is the durable record of whether this event already paid out.
   if (status === 'going' && !wasGoing) {
-    await awardXP(req.userId!, 15, 'event_rsvp', `RSVP'd to: ${event.title}`);
-    const actorName = ((await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId])) as any)?.name || 'Someone';
-    await createNotification(event.creator_id, 'event_rsvp', `${actorName} is going to your event`, event.title, req.userId, 'event', eventId);
+    const alreadyPaid = await db.queryOne(
+      `SELECT id FROM xp_transactions WHERE user_id = $1 AND source = 'event_rsvp' AND description = $2 LIMIT 1`,
+      [req.userId, `RSVP'd to: ${event.title}`]
+    );
+    if (!alreadyPaid) {
+      await awardXP(req.userId!, 15, 'event_rsvp', `RSVP'd to: ${event.title}`);
+      const actorName = ((await db.queryOne('SELECT name FROM users WHERE id = $1', [req.userId])) as any)?.name || 'Someone';
+      await createNotification(event.creator_id, 'event_rsvp', `${actorName} is going to your event`, event.title, req.userId, 'event', eventId);
+    }
   }
 
   const attendee_count = (await db.queryOne('SELECT COUNT(*) as c FROM event_rsvps WHERE event_id = $1 AND status = $2', [eventId, 'going']) as any).c;

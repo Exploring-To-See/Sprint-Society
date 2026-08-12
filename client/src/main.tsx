@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import { isNative } from './lib/native';
 import './lib/sentry';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
@@ -26,16 +27,27 @@ import './styles/ss-base.css';
   }).catch(() => {});
 })();
 
-// Auto-refresh when a new deploy's service worker activates. With registerType
-// 'autoUpdate' the new SW skip-waits and takes control, firing `controllerchange`
-// — reload once so users immediately get the new bundle instead of being stuck on
-// a stale cached app after a deploy. Guarded so it reloads at most once per session.
+// Service worker: web only. Inside the Capacitor shell (APK / iOS) a SW caches
+// the app shell and can pin the WebView to a stale bundle across APK updates —
+// so on native we never register and actively unregister anything left behind
+// by older builds. On web we register manually (vite.config injectRegister is
+// null) and auto-refresh once when a new deploy's SW takes control.
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (sessionStorage.getItem('__ss_reloaded_for_update')) return;
-    sessionStorage.setItem('__ss_reloaded_for_update', '1');
-    window.location.reload();
-  });
+  if (isNative) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .then(() => (window.caches ? caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))) : undefined))
+      .catch(() => {});
+  } else {
+    import('virtual:pwa-register')
+      .then(({ registerSW }) => registerSW({ immediate: true }))
+      .catch(() => {});
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (sessionStorage.getItem('__ss_reloaded_for_update')) return;
+      sessionStorage.setItem('__ss_reloaded_for_update', '1');
+      window.location.reload();
+    });
+  }
 }
 
 const queryClient = new QueryClient({

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     phone TEXT,
     password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'runner' CHECK(role IN ('admin', 'runner')),
+    role TEXT NOT NULL DEFAULT 'runner' CHECK(role IN ('admin', 'runner', 'disabled')),
     gender TEXT NOT NULL CHECK(gender IN ('male', 'female', 'non-binary')),
     age INTEGER NOT NULL,
     height_cm DOUBLE PRECISION NOT NULL,
@@ -1027,3 +1027,16 @@ ALTER TABLE activities      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 ALTER TABLE communities     ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 ALTER TABLE kudos           ADD COLUMN IF NOT EXISTS reaction_type TEXT DEFAULT 'high_five';
+
+-- Allow the admin console's disable action: role gains a 'disabled' state.
+-- The inline CHECK above covers fresh databases; this migrates existing ones.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'users_role_check' AND conrelid = 'users'::regclass
+  ) THEN
+    ALTER TABLE users DROP CONSTRAINT users_role_check;
+  END IF;
+  ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'runner', 'disabled'));
+END $$;

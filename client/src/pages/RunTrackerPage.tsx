@@ -304,7 +304,14 @@ export function RunTrackerPage() {
     if (positions.length > 0) {
       const lastPos = positions[positions.length - 1];
       const dist = haversineDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
-      if (dist >= 2 && dist < 100) {
+      if (dist >= 100) {
+        // GPS teleport — signal regained after a tunnel/dropout. Re-anchor at
+        // the new fix WITHOUT crediting the jump, so tracking resumes. Before,
+        // every later point stayed >100m from the stale anchor and distance
+        // froze for the rest of the run.
+        positionsRef.current = [...positions, newPos];
+        setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
+      } else if (dist >= 2) {
         positionsRef.current = [...positions, newPos];
         setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
         setTotalDistance(prev => {

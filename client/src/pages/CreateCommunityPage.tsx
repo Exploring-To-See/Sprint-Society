@@ -46,7 +46,7 @@ export function CreateCommunityPage() {
   const mutation = useMutation({
     mutationFn: () => api.post('/communities/request', { name, purpose, category, leader_name: leaderName, contact }),
     onSuccess: () => setSubmitted(true),
-    onError: (err: any) => setError(err.response?.data?.error || 'Submission failed'),
+    onError: (err: any) => setError(err?.message || 'Submission failed'),
   });
 
   const canSubmit = name.trim().length >= 3 && purpose.trim().length >= 10 && leaderName.trim().length >= 2 && contact.trim().length >= 5;

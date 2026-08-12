@@ -129,7 +129,10 @@ router.post('/:id/evaluate', async (req: AuthRequest, res: Response) => {
   const segment = await db.queryOne('SELECT * FROM segments WHERE id = $1', [req.params.id]) as any;
   if (!segment) return res.status(404).json({ error: 'Segment not found' });
 
-  const criteria: SegmentCriteria = JSON.parse(segment.criteria);
+  // criteria may arrive as a parsed object (JSONB column) or a string (TEXT) —
+  // JSON.parse on an object coerces to "[object Object]" and throws a 500.
+  const criteria: SegmentCriteria =
+    typeof segment.criteria === 'string' ? JSON.parse(segment.criteria) : segment.criteria;
   const { sql, params } = buildWhereClause(criteria.rules, 1);
 
   const matchingUsers = await db.query(`

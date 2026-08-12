@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import api from '../lib/api';
+import api, { ApiError } from '../lib/api';
 
 interface User {
   id: number;
@@ -33,17 +33,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('sprint_society_token'));
   const [loading, setLoading] = useState(true);
+  // Bumped to re-run the /auth/me bootstrap after a transient network failure.
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
-    if (token) {
-      api.get('/auth/me', { timeout: 10000 })
-        .then(res => setUser(res.data))
-        .catch(() => { localStorage.removeItem('sprint_society_token'); setToken(null); })
-        .finally(() => setLoading(false));
-    } else {
+    if (!token) {
       setLoading(false);
+      return;
     }
-  }, [token]);
+    let cancelled = false;
+    // loading must flip true on every token change, not only on mount —
+    // otherwise the deep-link sign-in (acceptToken) races the route guards:
+    // user is still null, loading is false, and ProtectedRoute bounces the
+    // fresh session back to the login screen, losing the /profiling redirect.
+    setLoading(true);
+    const timer: { id?: ReturnType<typeof setTimeout> } = {};
+    api.get('/auth/me', { timeout: 10000 })
+      .then(res => { if (!cancelled) setUser(res.data); })
+      .catch((err) => {
+        if (cancelled) return;
+        // Only a definitive 401/403 means the token is dead. A network blip on
+        // cold start (APK on flaky mobile data) must NOT log the user out —
+        // keep the token and retry shortly.
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          localStorage.removeItem('sprint_society_token');
+          setToken(null);
+        } else {
+          timer.id = setTimeout(() => { if (!cancelled) setRetryTick(t => t + 1); }, 4000);
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; if (timer.id) clearTimeout(timer.id); };
+  }, [token, retryTick]);
 
   useEffect(() => {
     const handleSessionExpired = () => { setToken(null); setUser(null); };

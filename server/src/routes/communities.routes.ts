@@ -98,7 +98,9 @@ router.get('/discover', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /communities/:id — community detail + recent posts
-router.get('/:id', async (req: AuthRequest, res: Response) => {
+// :id is digits-only so literal paths registered later (GET /requests) can't be
+// swallowed by this route — '/communities/requests' used to parseInt to NaN and 500.
+router.get('/:id(\\d+)', async (req: AuthRequest, res: Response) => {
   const communityId = parseInt(req.params.id);
 
   const community = await db.queryOne(`
@@ -342,9 +344,11 @@ router.post('/:id/posts/:postId/pin', async (req: AuthRequest, res: Response) =>
   const post = await db.queryOne('SELECT pinned FROM community_posts WHERE id = $1 AND community_id = $2', [postId, communityId]) as any;
   if (!post) return res.status(404).json({ error: 'Post not found' });
 
-  const newPinned = post.pinned ? false : true;
+  // pinned is INTEGER in the schema — binding a JS boolean makes Postgres
+  // reject the update with "invalid input syntax for type integer".
+  const newPinned = post.pinned ? 0 : 1;
   await db.execute('UPDATE community_posts SET pinned = $1 WHERE id = $2', [newPinned, postId]);
-  res.json({ success: true, pinned: newPinned });
+  res.json({ success: true, pinned: !!newPinned });
 });
 
 // POST /communities/:id/polls — create poll
@@ -528,7 +532,9 @@ router.post('/requests/:id/approve', async (req: AuthRequest, res: Response) => 
 
   const communityId = result.rows[0]?.id as number;
   await db.execute('INSERT INTO community_members (community_id, user_id, role) VALUES ($1, $2, $3)', [communityId, request.user_id, 'owner']);
-  createCommunitySubscription(request.user_id, communityId);
+  // Must be awaited: Vercel can freeze the function right after res.json, which
+  // would drop the subscription row (community approved + Kendu charged, no renewal).
+  await createCommunitySubscription(request.user_id, communityId);
 
   await db.execute("UPDATE community_requests SET status = 'approved', reviewed_at = NOW() WHERE id = $1", [requestId]);
   res.json({ message: 'Approved', communityId, kenduCharged: 1000 });

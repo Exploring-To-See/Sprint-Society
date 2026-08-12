@@ -132,6 +132,10 @@ router.post('/login', async (req, res: Response) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  if (user.role === 'disabled') {
+    return res.status(403).json({ error: 'This account has been disabled. Contact support.' });
+  }
+
   // Accounts created via Google sign-in have no password hash — bcrypt.compare
   // against an empty hash always fails, which looked like "Invalid credentials".
   // Tell the user to use Google instead.
