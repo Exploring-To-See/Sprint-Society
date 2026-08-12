@@ -100,6 +100,9 @@ router.post('/google', async (req: Request, res: Response) => {
     let user = await db.queryOne('SELECT id, name, email, role FROM users WHERE google_id = $1', [googleId]);
 
     if (user) {
+      if (user.role === 'disabled') {
+        return res.status(403).json({ error: { code: 'ACCOUNT_DISABLED', message: 'This account has been disabled. Contact support.' } });
+      }
       const token = signToken(user.id);
       return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     }
@@ -108,6 +111,9 @@ router.post('/google', async (req: Request, res: Response) => {
     user = await db.queryOne('SELECT id, name, email, role FROM users WHERE email = $1', [email]);
 
     if (user) {
+      if (user.role === 'disabled') {
+        return res.status(403).json({ error: { code: 'ACCOUNT_DISABLED', message: 'This account has been disabled. Contact support.' } });
+      }
       await db.execute(
         'UPDATE users SET google_id = $1, profile_image_url = COALESCE(profile_image_url, $2) WHERE id = $3',
         [googleId, picture || null, user.id]
