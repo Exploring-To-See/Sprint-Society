@@ -28,8 +28,8 @@ if (isProduction || isStaging) {
   if (!process.env.DATABASE_URL && !process.env.POSTGRES_PRISMA_URL && !process.env.POSTGRES_URL) {
     failFast(`[FATAL] DATABASE_URL (or the Supabase integration's POSTGRES_PRISMA_URL/POSTGRES_URL) is required in ${nodeEnv}. Server cannot start without a Postgres connection.`);
   }
-  if (!process.env.GROQ_API_KEY && !process.env.ANTHROPIC_API_KEY) {
-    console.warn('[CONFIG] ⚠️  Neither GROQ_API_KEY nor ANTHROPIC_API_KEY set — AI coaching/chat will be disabled');
+  if (!process.env.GROQ_API_KEY && !process.env.GROK_API_KEY && !process.env.XAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    console.warn('[CONFIG] ⚠️  No AI key set (GROQ_API_KEY / GROK_API_KEY / XAI_API_KEY / ANTHROPIC_API_KEY) — AI coaching/chat will be disabled');
   }
   if (!process.env.CLIENT_URL) {
     console.warn('[CONFIG] ⚠️  CLIENT_URL not set — using default. Set it for CORS to work correctly.');
@@ -57,17 +57,23 @@ export const config = {
   // reset, notifications). Set APP_URL to the main app domain — NOT the admin
   // portal — so reset links open the real app's /reset-password page, not admin.
   appUrl: process.env.APP_URL || process.env.CLIENT_URL || 'http://localhost:5173',
-  // AI provider selection (services/ai.service.ts): Groq is used when
-  // GROQ_API_KEY is set; otherwise Anthropic when ANTHROPIC_API_KEY is set.
-  groq: {
-    apiKey: (process.env.GROQ_API_KEY || '').trim(),
-    baseUrl: 'https://api.groq.com/openai/v1',
-    models: {
-      // chat = conversational coach, background = cheap structured evals
-      chat: process.env.GROQ_CHAT_MODEL || 'llama-3.3-70b-versatile',
-      background: process.env.GROQ_BACKGROUND_MODEL || 'llama-3.1-8b-instant',
-    },
-  },
+  // AI provider selection (services/ai.service.ts): an OpenAI-compatible key
+  // (Groq or xAI) is used when set; otherwise Anthropic when ANTHROPIC_API_KEY
+  // is set. Accept the env names people actually use — GROQ/GROK/XAI — and
+  // route by key prefix: Groq keys start with "gsk_", xAI keys with "xai-".
+  groq: (() => {
+    const apiKey = (process.env.GROQ_API_KEY || process.env.GROK_API_KEY || process.env.XAI_API_KEY || '').trim();
+    const isXai = apiKey.startsWith('xai-');
+    return {
+      apiKey,
+      baseUrl: isXai ? 'https://api.x.ai/v1' : 'https://api.groq.com/openai/v1',
+      models: {
+        // chat = conversational coach, background = cheap structured evals
+        chat: process.env.GROQ_CHAT_MODEL || (isXai ? 'grok-3' : 'llama-3.3-70b-versatile'),
+        background: process.env.GROQ_BACKGROUND_MODEL || (isXai ? 'grok-3-mini' : 'llama-3.1-8b-instant'),
+      },
+    };
+  })(),
   anthropic: {
     apiKey: (process.env.ANTHROPIC_API_KEY || '').trim(),
     models: {

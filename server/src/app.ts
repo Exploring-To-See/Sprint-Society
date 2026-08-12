@@ -199,7 +199,10 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', name: 'Sprint Society API', version: '1.2.0', uptime: Math.floor(process.uptime()) });
+    // `ai` = whether an AI provider key is configured (never the key itself) —
+    // lets ops verify a deploy picked up the env var without shelling into logs.
+    const { aiAvailable } = require('./services/ai.service');
+    res.json({ status: 'ok', name: 'Sprint Society API', version: '1.3.0', uptime: Math.floor(process.uptime()), ai: !!aiAvailable });
   });
 
   // Public announcements endpoint (runners see these on their dashboard)
