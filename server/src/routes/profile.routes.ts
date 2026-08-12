@@ -5,8 +5,9 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 const router = Router();
 router.use(authenticate);
 
-// GET /profile/:id — public profile of another user
-router.get('/:id', async (req: AuthRequest, res: Response) => {
+// GET /profile/:id — public profile of another user. Digits only: a stray
+// non-numeric path otherwise reaches parseInt → NaN → Postgres 22P02 → 500.
+router.get('/:id(\\d+)', async (req: AuthRequest, res: Response) => {
   const userId = parseInt(req.params.id);
 
   const user = await db.queryOne(`

@@ -47,6 +47,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Android 13+ runtime notification permission — requested in-app right
+         after sign-in (hooks/useNativeNotifications.ts), so users never have to
+         grant it from device Settings. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- GPS run tracking (system permission popup shown at runtime) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

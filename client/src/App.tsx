@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useNativeApp } from './hooks/useNativeApp';
+import { useNativeNotifications } from './hooks/useNativeNotifications';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { ErrorToast } from './components/ui/ErrorToast';
 import { PageTransition } from './components/ui/PageTransition';
@@ -110,6 +111,10 @@ function AppRoutes() {
 
   // Native (APK / iOS) behaviors: hardware back button, status bar, splash.
   useNativeApp();
+
+  // Native notifications: in-app permission dialog after sign-in + mirror new
+  // notifications into the system tray. No-op on web.
+  useNativeNotifications();
 
   // Reset scroll on route change — pages otherwise inherit the previous
   // page's scroll position (no ScrollRestoration in this router setup).
