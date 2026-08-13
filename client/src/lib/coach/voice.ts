@@ -1,20 +1,25 @@
 /**
  * Voice output for the AI coach.
  *
- * Uses the Web Speech Synthesis API — supported by every modern browser, the
- * Android System WebView, and iOS WKWebView that Capacitor apps run in — so the
- * same code speaks on web, APK, and iOS. Degrades gracefully to silent no-ops
- * when speech synthesis is unavailable.
+ * Native (APK / iOS): the Android System WebView does NOT implement the Web
+ * Speech API, so voice goes through the device text-to-speech engine via
+ * @capacitor-community/text-to-speech — the same engine Google Maps uses for
+ * turn-by-turn audio, including audio-focus ducking over music.
+ *
+ * Web: Web Speech Synthesis API. Degrades to a silent no-op when neither is
+ * available — voice is an enhancement and must never break the run tracker.
  *
  * Each persona has a signature delivery (rate/pitch).
  */
 
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import { isNative } from '../native';
 import type { Persona } from './api';
 
 interface VoiceStyle {
   rate: number;
   pitch: number;
-  /** Preferred voice-name fragments, best first. */
+  /** Preferred voice-name fragments, best first (web voices only). */
   prefer: string[];
 }
 
@@ -26,20 +31,25 @@ const PERSONA_VOICE: Record<Persona, VoiceStyle> = {
 };
 
 export function isVoiceSupported(): boolean {
+  if (isNative) return true; // native TTS engine
   return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 }
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 
+function webSpeechAvailable(): boolean {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+}
+
 function loadVoices(): SpeechSynthesisVoice[] {
-  if (!isVoiceSupported()) return [];
+  if (!webSpeechAvailable()) return [];
   const voices = window.speechSynthesis.getVoices();
   if (voices.length > 0) cachedVoices = voices;
   return cachedVoices;
 }
 
-// Voices load asynchronously on some platforms (notably Android WebView).
-if (isVoiceSupported()) {
+// Voices load asynchronously on some platforms.
+if (!isNative && webSpeechAvailable()) {
   loadVoices();
   window.speechSynthesis.onvoiceschanged = () => loadVoices();
 }
@@ -60,11 +70,30 @@ function pickVoice(persona: Persona): SpeechSynthesisVoice | null {
  * being spoken first — during a run the newest cue always wins.
  */
 export function speak(text: string, persona: Persona = 'energizer'): void {
-  if (!isVoiceSupported() || !text) return;
+  if (!text) return;
+  const style = PERSONA_VOICE[persona];
+
+  if (isNative) {
+    // stop() before speak so the newest cue always wins; queueStrategy 0 also
+    // flushes, but stopping explicitly matches the web behavior exactly.
+    TextToSpeech.stop().catch(() => {})
+      .then(() => TextToSpeech.speak({
+        text,
+        lang: 'en-US',
+        rate: style.rate,
+        pitch: style.pitch,
+        volume: 1.0,
+        category: 'playback',
+        queueStrategy: 0,
+      }))
+      .catch(() => { /* engine missing/busy — stay silent */ });
+    return;
+  }
+
+  if (!webSpeechAvailable()) return;
   try {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    const style = PERSONA_VOICE[persona];
     utterance.rate = style.rate;
     utterance.pitch = style.pitch;
     utterance.volume = 1;
@@ -77,6 +106,12 @@ export function speak(text: string, persona: Persona = 'energizer'): void {
 }
 
 export function stopSpeaking(): void {
-  if (!isVoiceSupported()) return;
-  try { window.speechSynthesis.cancel(); } catch { /* noop */ }
+  if (isNative) {
+    TextToSpeech.stop().catch(() => {});
+    return;
+  }
+  if (!webSpeechAvailable()) return;
+  try {
+    window.speechSynthesis.cancel();
+  } catch { /* ignore */ }
 }

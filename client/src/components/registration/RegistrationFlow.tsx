@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
@@ -89,6 +90,7 @@ function ValidGlyph({ ok }: { ok: boolean }) {
 
 export function RegistrationFlow() {
   const { register } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL);
   const [error, setError] = useState('');
@@ -148,7 +150,9 @@ export function RegistrationFlow() {
       if (form.profile_photo_preview) {
         try { await api.patch('/profile/photo', { photo: form.profile_photo_preview }); } catch {}
       }
-      window.location.href = '/profiling';
+      // SPA navigation — window.location.href reloaded the whole WebView here,
+      // which flashed a blank screen on Android between signup and profiling.
+      navigate('/profiling', { replace: true });
     } catch (err: any) {
       setError(err?.message || err?.response?.data?.error || 'Registration failed');
       setSubmitting(false);
@@ -227,7 +231,7 @@ export function RegistrationFlow() {
                   <motion.div variants={fadeUp}>
                     <GoogleSignInButton
                       text="signup_with"
-                      onSuccess={(isNew) => { window.location.href = isNew ? '/profiling' : '/dashboard'; }}
+                      onSuccess={(isNew) => { navigate(isNew ? '/profiling' : '/dashboard', { replace: true }); }}
                       onError={(msg) => setError(msg)}
                     />
                   </motion.div>

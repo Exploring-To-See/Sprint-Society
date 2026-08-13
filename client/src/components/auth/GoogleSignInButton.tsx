@@ -140,13 +140,36 @@ export function GoogleSignInButton({ onSuccess, onError, text = 'continue_with' 
     }
   }
 
-  function openNativeBridge() {
+  async function openNativeBridge() {
     const mode = text === 'signup_with' ? 'signup' : 'signin';
-    // Chrome Custom Tab, NOT the WebView: Google blocks OAuth inside WebViews
-    // ("disallowed_useragent"), so navigating the shell to the bridge page can
-    // never complete sign-in. The Custom Tab is a real browser; the bridge page
-    // bounces back via the in.sprintsociety.app://auth deep link, which
-    // useNativeApp catches and closes the tab.
+    // 1st choice — FULLY in-app: the native Google account sheet via Android's
+    // Credential Manager (@capgo/capacitor-social-login). Returns an ID token
+    // whose audience is the same web client id the backend already verifies.
+    // Requires an Android OAuth client (package + SHA-1) in the Google Cloud
+    // project; until that exists this throws and we fall back.
+    setLoading(true);
+    try {
+      const { SocialLogin } = await import('@capgo/capacitor-social-login');
+      await SocialLogin.initialize({ google: { webClientId: clientId } });
+      const { result } = await SocialLogin.login({
+        provider: 'google',
+        options: { scopes: ['email', 'profile'] },
+      });
+      const idToken =
+        (result as { idToken?: string })?.idToken ||
+        (result as { accessToken?: { idToken?: string } })?.accessToken?.idToken;
+      if (!idToken) throw new Error('No Google credential returned');
+      const r = await googleLogin(idToken);
+      onSuccess?.(!!r.isNew);
+      return;
+    } catch (err) {
+      console.warn('[GoogleSignIn] native sign-in unavailable, falling back to browser bridge:', err);
+    } finally {
+      setLoading(false);
+    }
+    // Fallback — Chrome Custom Tab to the hosted bridge (Google blocks OAuth
+    // inside raw WebViews). Deep link returns to the app; useNativeApp closes
+    // the tab.
     Browser.open({ url: nativeAuthBridgeUrl(mode), presentationStyle: 'popover' })
       .catch(() => { window.location.href = nativeAuthBridgeUrl(mode); });
   }

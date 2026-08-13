@@ -15,6 +15,8 @@ import { ProgressRing } from '../components/run/ProgressRing';
 import { ZoneBar } from '../components/run/ZoneBar';
 import { Play, Bolt, Flame, Trophy } from '../components/ss/icons';
 import api from '../lib/api';
+import { App as CapApp } from '@capacitor/app';
+import { isNative } from '../lib/native';
 import {
   getCurrentPosition, watchPosition, ensureLocationPermission,
   type GeoPoint, type GeoWatch,
@@ -159,21 +161,50 @@ export function RunTrackerPage() {
   // shows in-app on native), then grab the initial fix. Split into two steps so
   // a denied dialog produces the clear "access denied" state with a retry CTA
   // instead of a generic "could not determine location".
-  const primeLocation = useCallback(() => {
+  // Tracks whether the user already declined the in-app system dialog once.
+  // Android then flips to "don't ask again" — the dialog can never reappear, so
+  // the next tap deep-links straight into this app's own settings screen
+  // (one toggle away) instead of dead-ending.
+  const deniedOnceRef = useRef(false);
+
+  const primeLocation = useCallback(async () => {
     setGpsError(null);
     setLocating(true);
-    ensureLocationPermission()
-      .then((granted) => {
-        if (!granted) {
-          setLocating(false);
-          setGpsError('Location access denied — tap to allow location');
-          return null;
+    try {
+      const granted = await ensureLocationPermission();
+      if (!granted) {
+        setLocating(false);
+        if (deniedOnceRef.current && isNative) {
+          const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
+          NativeSettings.open({ optionAndroid: AndroidSettings.ApplicationDetails, optionIOS: IOSSettings.App }).catch(() => {});
+          setGpsError('Turn on Location for Sprint Society, then come back');
+        } else {
+          deniedOnceRef.current = true;
+          setGpsError('Location is needed to track your run — tap to allow');
         }
-        return getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
-      })
-      .then((pos) => { if (pos) { setUserLocation([pos.latitude, pos.longitude]); setLocating(false); } })
-      .catch((err: { message?: string }) => { setLocating(false); setGpsError(err?.message || 'Could not determine location'); });
+        return;
+      }
+      deniedOnceRef.current = false;
+      const pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+      setUserLocation([pos.latitude, pos.longitude]);
+      setLocating(false);
+    } catch (err) {
+      setLocating(false);
+      setGpsError((err as { message?: string })?.message || 'Could not determine location');
+    }
   }, []);
+
+  // Coming back from the Settings screen (or any background hop): re-check the
+  // permission automatically so the error chip clears without a manual tap.
+  const gpsErrorRef = useRef<string | null>(null);
+  useEffect(() => { gpsErrorRef.current = gpsError; }, [gpsError]);
+  useEffect(() => {
+    if (!isNative) return;
+    const sub = CapApp.addListener('resume', () => {
+      if (gpsErrorRef.current) primeLocation();
+    });
+    return () => { sub.then(s => s.remove()); };
+  }, [primeLocation]);
 
   useEffect(() => {
     primeLocation();
@@ -247,6 +278,29 @@ export function RunTrackerPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [state, coach]);
+
+  // Persistent "run active" notification while recording (native): the user
+  // sees Sprint Society working in the tray, Google-Maps-navigation style.
+  useEffect(() => {
+    if (!isNative) return;
+    const RUN_NOTIF_ID = 424242;
+    import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+      if (state === 'RUNNING') {
+        LocalNotifications.schedule({
+          notifications: [{
+            id: RUN_NOTIF_ID,
+            title: 'Run active — AI coach on',
+            body: 'Tracking your route, pace and distance. Keep the app open.',
+            ongoing: true,
+            autoCancel: false,
+            smallIcon: 'ic_launcher_foreground',
+          }],
+        }).catch(() => {});
+      } else {
+        LocalNotifications.cancel({ notifications: [{ id: RUN_NOTIF_ID }] }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, [state]);
 
   // Keep the screen awake while recording. If the screen sleeps, Android pauses
   // the WebView and GPS samples + timers stop — the classic "my run flatlined
@@ -337,8 +391,10 @@ export function RunTrackerPage() {
   const startTracking = useCallback(async () => {
     setGpsError(null);
     // Native: shows the system location permission popup before the run starts.
+    // On denial, primeLocation escalates — first tap re-asks, second tap opens
+    // this app's settings screen directly (Android won't re-show the dialog).
     const granted = await ensureLocationPermission();
-    if (!granted) { setGpsError('Location access denied — enable it in your device Settings to track runs'); return; }
+    if (!granted) { primeLocation(); return; }
 
     startTimeRef.current = new Date().toISOString();
     positionsRef.current = [];
@@ -372,7 +428,7 @@ export function RunTrackerPage() {
       handlePositionUpdate,
       (error) => setGpsError(error.message)
     );
-  }, [handlePositionUpdate, coach]);
+  }, [handlePositionUpdate, coach, primeLocation]);
 
   const pauseTracking = useCallback(() => {
     setState('PAUSED');

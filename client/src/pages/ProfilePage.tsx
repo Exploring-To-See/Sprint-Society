@@ -821,23 +821,10 @@ export function ProfilePage() {
         {/* === PERSONAL RECORDS === */}
         {records && <PRBoard records={records} />}
 
-        {/* === AI PROFILE (view + update) === */}
+        {/* === AI PROFILE — one profile: the DNA card above shows it, this
+              single action re-runs the wizard. (The old separate /ai-profile
+              page is folded in here.) === */}
         <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button
-            onClick={() => navigate('/ai-profile')}
-            className="tile w-full"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '13px 14px', cursor: 'pointer', textAlign: 'left' }}
-            data-testid="profile-view-dna"
-          >
-            <span style={{ width: 32, height: 32, borderRadius: 10, flex: 'none', display: 'grid', placeItems: 'center', background: 'rgba(124,107,240,.16)', border: '1px solid rgba(124,107,240,.28)' }}>
-              <Bolt width={15} height={15} style={{ color: 'var(--violet-2)' }} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', font: '600 13px var(--body)', color: 'var(--fg)' }}>Your Runner DNA</span>
-              <span style={{ display: 'block', font: '500 10.5px var(--body)', color: 'var(--muted-2)', marginTop: 2 }}>View your AI running profile</span>
-            </span>
-            <ChevronRight width={15} height={15} style={{ color: 'var(--violet-2)', flex: 'none' }} />
-          </button>
           <button
             onClick={() => navigate('/profiling')}
             className="tile w-full"

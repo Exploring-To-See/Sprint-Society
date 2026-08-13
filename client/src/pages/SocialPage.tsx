@@ -15,10 +15,11 @@ import { SSSeg, SegItem } from '../components/ss/SSSeg';
 import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
 import { Trophy, Medal, Bolt, ChevronRight, Check, Flag } from '../components/ss/icons';
 
-type SocialTab = 'feed' | 'discover' | 'following' | 'followers' | 'leaderboard';
+type SocialTab = 'feed' | 'clubs' | 'discover' | 'following' | 'followers' | 'leaderboard';
 
 const TABS: SegItem<SocialTab>[] = [
   { key: 'feed', label: 'Feed' },
+  { key: 'clubs', label: 'Clubs' },
   { key: 'discover', label: 'Discover' },
   { key: 'following', label: 'Following' },
   { key: 'followers', label: 'Followers' },
@@ -261,6 +262,111 @@ function FriendStreaksStrip() {
   );
 }
 
+/* ---------- Clubs (communities) tab ---------- */
+
+interface ClubRow {
+  id: number;
+  name: string;
+  description?: string | null;
+  category?: string;
+  member_count: number;
+  is_member: boolean;
+  is_verified: boolean;
+}
+
+function ClubsTab() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isError, refetch } = useQuery<{ communities: ClubRow[] }>({
+    queryKey: ['communities'],
+    queryFn: () => api.get('/communities').then((r) => r.data),
+  });
+
+  const join = useMutation({
+    mutationFn: (id: number) => api.post(`/communities/${id}/join`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['communities'] }),
+  });
+
+  const clubs = data?.communities ?? [];
+  const mine = clubs.filter((c) => c.is_member);
+  const discover = clubs.filter((c) => !c.is_member);
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[0, 1, 2, 3].map((i) => <SSSkeleton key={i} height={58} />)}
+      </div>
+    );
+  }
+  if (isError) return <SSError onRetry={() => refetch()} message="We couldn't load communities. Try again." testid="clubs-error" />;
+
+  const Row = ({ c }: { c: ClubRow }) => (
+    <div className="tile" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '12px 13px' }}>
+      <button
+        onClick={() => navigate(`/communities/${c.id}`)}
+        style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        data-testid={`club-${c.id}`}
+      >
+        <span className="ticon" style={{ width: 36, height: 36, borderRadius: 12, flex: 'none' }}>
+          <Flag width={15} height={15} style={{ color: 'var(--accent-2)' }} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', font: '600 13px var(--body)', color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+          <span className="num" style={{ display: 'block', font: '500 10.5px var(--mono)', color: 'var(--muted-2)', marginTop: 2 }}>
+            {c.member_count} member{c.member_count === 1 ? '' : 's'}
+          </span>
+        </span>
+      </button>
+      {c.is_member ? (
+        <span className="ss-tag" style={{ flex: 'none' }}>Joined</span>
+      ) : (
+        <button
+          className="ss-btn ss-btn-soft"
+          style={{ flex: 'none', height: 32, padding: '0 13px', font: '600 11px var(--head)' }}
+          onClick={() => join.mutate(c.id)}
+          disabled={join.isPending}
+          data-testid={`club-join-${c.id}`}
+        >
+          Join
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div data-testid="social-tab-clubs" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {mine.length > 0 && (
+        <section>
+          <p className="tlbl" style={{ marginBottom: 8 }}>My communities</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{mine.map((c) => <Row key={c.id} c={c} />)}</div>
+        </section>
+      )}
+      {discover.length > 0 && (
+        <section>
+          <p className="tlbl" style={{ marginBottom: 8 }}>Discover</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{discover.map((c) => <Row key={c.id} c={c} />)}</div>
+        </section>
+      )}
+      {clubs.length === 0 && (
+        <SSEmpty
+          title="No communities yet"
+          body="Start the first one — rally your running crew."
+          testid="clubs-empty"
+        />
+      )}
+      <button
+        className="ss-btn ss-btn-soft"
+        style={{ height: 44 }}
+        onClick={() => navigate('/communities/create')}
+        data-testid="clubs-create"
+      >
+        Start a community
+      </button>
+    </div>
+  );
+}
+
 /* ---------- Discover tab ---------- */
 
 function DiscoverTab() {
@@ -442,6 +548,7 @@ export function SocialPage() {
 
       <div className="ss-pad">
         {tab === 'feed' && <div data-testid="social-tab-feed"><FeedPage /></div>}
+        {tab === 'clubs' && <ClubsTab />}
         {tab === 'discover' && <DiscoverTab />}
         {tab === 'following' && <ConnectionsTab kind="following" />}
         {tab === 'followers' && <ConnectionsTab kind="followers" />}

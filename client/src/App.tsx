@@ -176,7 +176,8 @@ function AppRoutes() {
         <Route path="/notifications" element={<ProtectedRoute><PageTransition><LazyLoad><NotificationsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/subscription" element={<ProtectedRoute><PageTransition><LazyLoad><SubscriptionPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/profiling" element={<ProtectedRoute><PageTransition><LazyLoad><AIProfilingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/ai-profile" element={<ProtectedRoute><PageTransition><LazyLoad><AIProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        {/* One profile, not two — the AI profile now lives inside /profile. */}
+        <Route path="/ai-profile" element={<Navigate to="/profile" replace />} />
         <Route path="/user/:id" element={<ProtectedRoute><PageTransition><LazyLoad><UserProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />

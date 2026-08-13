@@ -14,6 +14,7 @@
     "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.4.2",
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "^8.0.4",
@@ -23,9 +24,11 @@
     "@capacitor/local-notifications": "^8.2.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
+    "@capgo/capacitor-social-login": "^8.4.1",
     "@sentry/react": "^8.0.0",
     "@tanstack/react-query": "^5.45.1",
     "axios": "^1.7.2",
+    "capacitor-native-settings": "^8.2.0",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.2.10",
     "html-to-image": "^1.11.11",

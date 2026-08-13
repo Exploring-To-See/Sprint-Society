@@ -9,6 +9,7 @@ import api from '../../lib/api';
 import { Spark, Send, Chat as ChatIcon } from '../ss/icons';
 import { SSError } from '../ss/SSStates';
 import { KenduSpendConfirmModal } from '../kendu/KenduSpendConfirmModal';
+import { CoachMarkdown } from './CoachMarkdown';
 
 interface ChatMessage { id?: number | string; role: 'user' | 'assistant'; content: string; created_at?: string }
 interface Suggestion { label: string }
@@ -52,7 +53,44 @@ export function CoachChat() {
 
   const sendMessage = useMutation({
     mutationFn: (message: string) => api.post('/chat/message', { message }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['chat-history'] }); setInput(''); },
+    // Optimistic UX: the user's bubble appears the instant they hit send, and
+    // the coach's reply is inserted straight from the POST response — no
+    // waiting for a history refetch round-trip (the old flow felt frozen, then
+    // dumped the reply seconds later).
+    onMutate: async (message) => {
+      setInput('');
+      await queryClient.cancelQueries({ queryKey: ['chat-history'] });
+      queryClient.setQueryData<ChatMessage[]>(['chat-history'], (old = []) => [
+        ...old,
+        { id: `local-${Date.now()}`, role: 'user', content: message, created_at: new Date().toISOString() },
+      ]);
+    },
+    onSuccess: (res) => {
+      const reply: string = res.data?.message || '';
+      if (reply) {
+        queryClient.setQueryData<ChatMessage[]>(['chat-history'], (old = []) => [
+          ...old,
+          { id: `local-ai-${Date.now()}`, role: 'assistant', content: reply, created_at: new Date().toISOString() },
+        ]);
+        // App backgrounded mid-reply (native): pop a system notification so the
+        // user knows the coach answered.
+        if (document.visibilityState === 'hidden') {
+          import('@capacitor/local-notifications')
+            .then(({ LocalNotifications }) => LocalNotifications.schedule({
+              notifications: [{
+                id: Date.now() % 2147483647,
+                title: 'AI Coach replied',
+                body: reply.slice(0, 120),
+                smallIcon: 'ic_launcher_foreground',
+              }],
+            }))
+            .catch(() => {});
+        }
+      }
+      // Reconcile with the server copy in the background (ids, timestamps).
+      queryClient.invalidateQueries({ queryKey: ['chat-history'] });
+    },
+    onError: () => { queryClient.invalidateQueries({ queryKey: ['chat-history'] }); },
   });
 
   const deepDive = useMutation({
@@ -163,7 +201,11 @@ export function CoachChat() {
                   background: isUser ? 'var(--glass-2)' : 'var(--glass)',
                 }}
               >
-                <p style={{ font: '400 13px/1.5 var(--body)', color: isUser ? 'var(--fg)' : '#D7D7E4', whiteSpace: 'pre-wrap' }}>{m.content}</p>
+                {isUser ? (
+                  <p style={{ font: '400 13px/1.5 var(--body)', color: 'var(--fg)', whiteSpace: 'pre-wrap' }}>{m.content}</p>
+                ) : (
+                  <div style={{ color: '#D7D7E4' }}><CoachMarkdown text={m.content} /></div>
+                )}
                 {m.created_at && <p style={{ font: '500 9.5px var(--mono)', color: 'var(--muted-2)', marginTop: 5 }}>{fmtTime(m.created_at)}</p>}
               </div>
             </motion.div>
