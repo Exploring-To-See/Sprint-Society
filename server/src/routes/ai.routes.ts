@@ -7,6 +7,7 @@ import {
   evaluateTrainingWithHaiku,
   getTodayUsage,
   checkUsageLimit,
+  aiAvailable,
 } from '../services/ai.service';
 
 const router = Router();
@@ -14,7 +15,10 @@ router.use(authenticate);
 
 // GET /api/ai/status — check if AI features are available
 router.get('/status', async (req: AuthRequest, res: Response) => {
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+  // aiAvailable covers Groq AND Anthropic — the old ANTHROPIC-only check kept
+  // the dashboard's coach card saying "coming soon" while Groq chat worked.
+  // chat is enabled for every plan; daily message limits are enforced by
+  // checkUsageLimit inside the chat pipeline (base 5/day, pro 30/day).
   const subscription = await db.queryOne(`
     SELECT plan_key FROM user_subscriptions
     WHERE user_id = $1 AND status = 'active' AND expires_at > NOW()
@@ -23,10 +27,10 @@ router.get('/status', async (req: AuthRequest, res: Response) => {
 
   const planKey = subscription?.plan_key || 'free';
   res.json({
-    available: hasApiKey,
-    chat_enabled: hasApiKey && planKey !== 'free',
+    available: aiAvailable,
+    chat_enabled: aiAvailable,
     plan: planKey,
-    message: hasApiKey ? undefined : 'AI Coach is coming soon. We\'re finalizing the setup — you\'ll be the first to know!',
+    message: aiAvailable ? undefined : 'AI Coach is coming soon. We\'re finalizing the setup — you\'ll be the first to know!',
   });
 });
 
