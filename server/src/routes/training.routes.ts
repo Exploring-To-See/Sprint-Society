@@ -19,9 +19,22 @@ router.get('/plan', async (req: AuthRequest, res: Response) => {
 
   if (existingPlan) {
     const planData = JSON.parse(existingPlan.plan_data || '{}');
+    // current_week/current_phase were only computed by GET /training/week —
+    // without them the full-plan view was stuck at "Week 1 of N" forever.
+    const anchor = new Date(existingPlan.generated_at);
+    const dow = (anchor.getDay() + 6) % 7;
+    anchor.setDate(anchor.getDate() - dow);
+    anchor.setHours(0, 0, 0, 0);
+    const weeksArr = Array.isArray(planData.weeks) ? planData.weeks : [];
+    const wk = Math.max(0, Math.min(
+      Math.floor((Date.now() - anchor.getTime()) / (7 * 86400000)),
+      Math.max(0, weeksArr.length - 1),
+    ));
     return res.json({
       ...existingPlan,
       ...planData,
+      current_week: wk + 1,
+      current_phase: weeksArr[wk]?.phase_name || weeksArr[wk]?.phase || undefined,
       plan_data: undefined,
     });
   }
@@ -37,7 +50,11 @@ router.get('/plan', async (req: AuthRequest, res: Response) => {
     distance_meters: user.running_experience === 'advanced' ? 21100 : user.running_experience === 'intermediate' ? 10000 : 5000,
   };
 
-  const plan = generateTrainingPlan(user, runs, defaultGoal);
+  const tierRowDefault = await db.queryOne(
+    `SELECT estimated_vo2max FROM tier_history WHERE user_id = $1 ORDER BY calculated_at DESC LIMIT 1`,
+    [req.userId]
+  ) as any;
+  const plan = generateTrainingPlan(user, runs, defaultGoal, tierRowDefault?.estimated_vo2max ?? null);
 
   // Save to DB
   await db.execute(
@@ -73,7 +90,11 @@ router.post('/plan', async (req: AuthRequest, res: Response) => {
   );
 
   const goal = { distance_meters, target_time_seconds, race_date, race_name };
-  const plan = generateTrainingPlan(user, runs, goal);
+  const tierRowPost = await db.queryOne(
+    `SELECT estimated_vo2max FROM tier_history WHERE user_id = $1 ORDER BY calculated_at DESC LIMIT 1`,
+    [req.userId]
+  ) as any;
+  const plan = generateTrainingPlan(user, runs, goal, tierRowPost?.estimated_vo2max ?? null);
 
   // Save
   await db.execute(

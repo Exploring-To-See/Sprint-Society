@@ -41,7 +41,9 @@ export function CoachCard() {
   const currentDay = plan?.current_day || 0;
   const totalDays = plan?.total_days || (plan?.total_weeks ? plan.total_weeks * 7 : 56);
 
-  const hasGoal = !!plan && (plan.race_name || plan.goal_name);
+  // The plan payload nests the goal ({goal:{race_name,...}}) — top-level
+  // race_name never exists, so this card showed "set a goal" forever.
+  const hasGoal = !!plan && !!(plan.race_name || plan.goal_name || plan.goal?.race_name || (plan.goal?.distance_meters && plan.total_weeks));
 
   // AI not available — show daily insight with "coming soon" state
   if (aiStatus && !aiStatus.available) {

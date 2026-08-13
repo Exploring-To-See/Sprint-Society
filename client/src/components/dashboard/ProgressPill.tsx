@@ -14,9 +14,9 @@ export function ProgressPill() {
     queryFn: () => api.get('/training/plan').then(r => r.data).catch(() => null),
   });
 
-  if (!plan || (!plan.race_name && !plan.goal_name)) return null;
+  if (!plan || (!plan.race_name && !plan.goal_name && !plan.goal?.race_name)) return null;
 
-  const goalName = plan.race_name || plan.goal_name || 'Training';
+  const goalName = plan.race_name || plan.goal_name || plan.goal?.race_name || 'Training';
   const currentWeek = plan.current_week || 1;
   const totalWeeks = plan.total_weeks || 8;
   const daysLeft = plan.race_date ? Math.ceil((new Date(plan.race_date).getTime() - Date.now()) / 86400000) : null;

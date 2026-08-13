@@ -167,7 +167,12 @@ router.post('/generate-plan', async (req: AuthRequest, res: Response) => {
 
   try {
     const { generateTrainingPlan } = require('../engine/trainingPlanGenerator');
-    const plan = generateTrainingPlan(user, recentRuns, raceGoal);
+    // Profiling's VO2max estimate personalizes the plan when run history is thin.
+    const tierRow = await db.queryOne(
+      `SELECT estimated_vo2max FROM tier_history WHERE user_id = $1 ORDER BY calculated_at DESC LIMIT 1`,
+      [req.userId]
+    ) as any;
+    const plan = generateTrainingPlan(user, recentRuns, raceGoal, tierRow?.estimated_vo2max ?? null);
 
     // Store the plan
     await db.execute(`

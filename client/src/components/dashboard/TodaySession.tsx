@@ -34,8 +34,10 @@ export function TodaySession({ streak = 0, readinessScore, readinessLabel }: Tod
   if (!data?.week) return null;
 
   const today = new Date().getDay() || 7;
-  const todaySession = data.week.sessions.find((s: any) => s.day === today);
-  if (!todaySession) return null;
+  // Generated weeks only include entries for scheduled days — a missing day IS
+  // a rest day, not "hide the whole hero card".
+  const todaySession = data.week.sessions.find((s: any) => s.day === today)
+    ?? { type: 'rest', title: 'Rest Day', description: 'No session scheduled — recover today. Muscles rebuild during recovery.', rpe: 0 };
 
   const isRest = todaySession.type === 'rest';
 

@@ -130,8 +130,12 @@ export function estimateVDOT(runs: RunHistory[]): number {
   for (const run of relevantRuns) {
     if (run.distance_meters < 1500) continue; // Skip very short runs
     const velocity = run.distance_meters / run.moving_time_seconds; // m/s
-    const percentVO2 = 0.8 + 0.1894393 * Math.exp(-0.012778 * run.moving_time_seconds) +
-      0.2989558 * Math.exp(-0.1932605 * run.moving_time_seconds);
+    // Daniels' %VO2max formula takes time in MINUTES. Feeding seconds pushed
+    // both exponentials to ~0 (percentVO2 → 0.8 for every run), inflating VDOT
+    // and every derived training pace.
+    const tMin = run.moving_time_seconds / 60;
+    const percentVO2 = 0.8 + 0.1894393 * Math.exp(-0.012778 * tMin) +
+      0.2989558 * Math.exp(-0.1932605 * tMin);
     const vo2 = -4.60 + 0.182258 * velocity * 60 + 0.000104 * Math.pow(velocity * 60, 2);
     const vdot = vo2 / percentVO2;
     if (vdot > bestVDOT && vdot < 85) bestVDOT = vdot;
@@ -206,11 +210,18 @@ function allocatePhases(totalWeeks: number): { phase: TrainingWeek['phase']; wee
     ];
   }
   if (totalWeeks <= 12) {
+    // Phases must sum EXACTLY to totalWeeks — the old all-ceil split produced
+    // 9 weeks for an 8-week plan ("week 1/9" in the UI) and shifted every
+    // phase boundary. Taper takes the remainder, floored at 1.
+    const base = Math.ceil(totalWeeks * 0.3);
+    const build = Math.ceil(totalWeeks * 0.3);
+    const peak = Math.max(1, Math.floor(totalWeeks * 0.25));
+    const taper = Math.max(1, totalWeeks - base - build - peak);
     return [
-      { phase: 'base', weeks: Math.ceil(totalWeeks * 0.3) },
-      { phase: 'build', weeks: Math.ceil(totalWeeks * 0.3) },
-      { phase: 'peak', weeks: Math.ceil(totalWeeks * 0.25) },
-      { phase: 'taper', weeks: Math.max(1, Math.floor(totalWeeks * 0.15)) },
+      { phase: 'base', weeks: base },
+      { phase: 'build', weeks: build },
+      { phase: 'peak', weeks: peak },
+      { phase: 'taper', weeks: taper },
     ];
   }
   // 12+ weeks: full periodization
@@ -387,9 +398,15 @@ function generateWeek(
 export function generateTrainingPlan(
   user: UserProfile,
   runs: RunHistory[],
-  goal: RaceGoal
+  goal: RaceGoal,
+  // VO2max estimate from AI profiling (tier_history/runner_profiles). With no
+  // run history every user otherwise got the identical VDOT-30 floor plan —
+  // profiling answers had zero effect on the generated paces.
+  fallbackVdot?: number | null
 ): TrainingPlan {
-  const vdot = estimateVDOT(runs);
+  const vdot = runs.length > 0
+    ? estimateVDOT(runs)
+    : Math.min(Math.max(fallbackVdot ?? 30, 30), 85);
   const paces = getTrainingPaces(vdot);
   const currentVolume = calculateWeeklyVolume(runs);
 

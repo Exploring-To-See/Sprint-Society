@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { SSScreen } from '../components/ss/SSScreen';
 import { SSSeg } from '../components/ss/SSSeg';
@@ -43,6 +43,7 @@ const monoInput: React.CSSProperties = {
 
 export function SetGoalPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [goalType, setGoalType] = useState<GoalType | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
@@ -78,12 +79,18 @@ export function SetGoalPage() {
       return { goal, plan };
     },
     onSuccess: () => {
+      // The dashboard/coach pages cached "no plan" moments ago — invalidate so
+      // the freshly generated plan actually shows up when the user lands there.
+      queryClient.invalidateQueries({ queryKey: ['training-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['training-week'] });
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-batch'] });
       setGenerating(false);
       setStep(3);
     },
     onError: (error: any) => {
       setGenerating(false);
-      alert(error?.response?.data?.error || 'Failed to generate your plan. Please try again.');
+      alert(error?.message || 'Failed to generate your plan. Please try again.');
     },
   });
 
