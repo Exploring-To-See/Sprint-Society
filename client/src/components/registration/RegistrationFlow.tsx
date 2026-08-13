@@ -145,10 +145,10 @@ export function RegistrationFlow() {
         phone: form.phone,
         password: form.password,
       });
-      // Upload the captured profile photo (non-fatal — it's collected here but
-      // was previously never sent; the user can still add it later from Profile).
+      // Photo upload is non-fatal AND non-blocking: awaiting it kept the user
+      // parked on the signup screen (guards could bounce to /dashboard first).
       if (form.profile_photo_preview) {
-        try { await api.patch('/profile/photo', { photo: form.profile_photo_preview }); } catch {}
+        api.patch('/profile/photo', { photo: form.profile_photo_preview }).catch(() => {});
       }
       // SPA navigation — window.location.href reloaded the whole WebView here,
       // which flashed a blank screen on Android between signup and profiling.

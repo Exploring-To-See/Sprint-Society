@@ -11,8 +11,14 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 20;
   const offset = (page - 1) * limit;
 
+  // Exclude map_polyline from the list payload — an encoded GPS track is
+  // 10-50KB per run and no list UI renders it (the detail route serves it).
   const runs = await db.query(`
-    SELECT * FROM activities WHERE user_id = $1 AND deleted_at IS NULL ORDER BY start_date DESC LIMIT $2 OFFSET $3
+    SELECT id, user_id, strava_activity_id, session_id, distance_meters, moving_time_seconds,
+      elapsed_time_seconds, average_speed, max_speed, average_pace_per_km, elevation_gain,
+      start_date, start_latlng, end_latlng, splits, average_heartrate, max_heartrate,
+      calories, activity_type, rpe, suspicious, created_at
+    FROM activities WHERE user_id = $1 AND deleted_at IS NULL ORDER BY start_date DESC LIMIT $2 OFFSET $3
   `, [req.userId, limit, offset]);
 
   const total = await db.queryOne('SELECT COUNT(*) as count FROM activities WHERE user_id = $1 AND deleted_at IS NULL', [req.userId]);
@@ -84,21 +90,30 @@ router.get('/weekly-summary', authenticate, async (req: AuthRequest, res: Respon
 
 // GET /runs/trends — weekly volume + consistency for last 8 weeks
 router.get('/trends', authenticate, async (req: AuthRequest, res: Response) => {
+  // One grouped query for the whole 8-week window — the old per-week loop made
+  // 8 serialized pooled round-trips per request.
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() - 7 * 7 - 6);
+  windowStart.setHours(0, 0, 0, 0);
+
+  const rows = await db.query(`
+    SELECT
+      floor(EXTRACT(EPOCH FROM (NOW() - start_date)) / (7 * 86400))::int AS weeks_ago,
+      COUNT(*)::int as runs,
+      COALESCE(SUM(distance_meters), 0) as distance,
+      COUNT(DISTINCT DATE(start_date))::int as days_run
+    FROM activities
+    WHERE user_id = $1 AND start_date >= $2 AND deleted_at IS NULL
+    GROUP BY 1
+  `, [req.userId, windowStart.toISOString()]) as any[];
+
+  const byWeeksAgo = new Map<number, any>(rows.map((r: any) => [r.weeks_ago, r]));
   const weeks = [];
   for (let i = 7; i >= 0; i--) {
-    const weekEnd = new Date();
-    weekEnd.setDate(weekEnd.getDate() - (i * 7));
-    weekEnd.setHours(23, 59, 59, 999);
-    const weekStart = new Date(weekEnd);
-    weekStart.setDate(weekStart.getDate() - 6);
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - i * 7 - 6);
     weekStart.setHours(0, 0, 0, 0);
-
-    const data = await db.queryOne(`
-      SELECT COUNT(*) as runs, COALESCE(SUM(distance_meters), 0) as distance,
-        COUNT(DISTINCT DATE(start_date)) as days_run
-      FROM activities WHERE user_id = $1 AND start_date >= $2 AND start_date <= $3
-    `, [req.userId, weekStart.toISOString(), weekEnd.toISOString()]);
-
+    const data = byWeeksAgo.get(i) || { runs: 0, distance: 0, days_run: 0 };
     weeks.push({
       week_start: weekStart.toISOString().split('T')[0],
       km: Math.round(data.distance / 1000 * 10) / 10,

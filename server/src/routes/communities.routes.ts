@@ -300,13 +300,17 @@ router.post('/:id/posts/:postId/like', async (req: AuthRequest, res: Response) =
 router.get('/:id/members', async (req: AuthRequest, res: Response) => {
   const communityId = parseInt(req.params.id);
 
+  // Bounded: the flagship club contains every registered user, so an unbounded
+  // list ships the whole user table through one serverless response.
+  const limit = Math.min(parseInt(req.query.limit as string) || 100, 200);
   const members = await db.query(`
     SELECT u.id as user_id, u.name, u.profile_image_url, cm.role, cm.joined_at
     FROM community_members cm
     JOIN users u ON cm.user_id = u.id
     WHERE cm.community_id = $1
     ORDER BY CASE cm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, cm.joined_at ASC
-  `, [communityId]) as any[];
+    LIMIT $2
+  `, [communityId, limit]) as any[];
 
   res.json(members);
 });
@@ -381,18 +385,31 @@ router.get('/:id/polls', async (req: AuthRequest, res: Response) => {
     ORDER BY p.created_at DESC LIMIT 10
   `, [req.userId, communityId]) as any[];
 
-  const pollsWithResults = [];
-  for (const p of polls) {
-    const votes = await db.query('SELECT option_index, COUNT(*) as count FROM community_poll_votes WHERE poll_id = $1 GROUP BY option_index', [p.id]) as any[];
-    const totalVotes = votes.reduce((sum: number, v: any) => sum + parseInt(v.count), 0);
-    pollsWithResults.push({
+  // One grouped query for all listed polls instead of a per-poll count loop.
+  const pollIds = polls.map((p: any) => p.id);
+  const voteRows = pollIds.length
+    ? await db.query(
+        `SELECT poll_id, option_index, COUNT(*)::int as count FROM community_poll_votes WHERE poll_id = ANY($1) GROUP BY poll_id, option_index`,
+        [pollIds],
+      ) as any[]
+    : [];
+  const votesByPoll = new Map<number, any[]>();
+  for (const v of voteRows) {
+    const list = votesByPoll.get(v.poll_id) || [];
+    list.push({ option_index: v.option_index, count: v.count });
+    votesByPoll.set(v.poll_id, list);
+  }
+
+  const pollsWithResults = polls.map((p: any) => {
+    const votes = votesByPoll.get(p.id) || [];
+    return {
       ...p,
       options: typeof p.options === 'string' ? JSON.parse(p.options) : p.options,
       votes,
-      total_votes: totalVotes,
+      total_votes: votes.reduce((sum: number, v: any) => sum + v.count, 0),
       user_vote: p.user_vote !== null ? p.user_vote : null,
-    });
-  }
+    };
+  });
 
   res.json(pollsWithResults);
 });
@@ -429,17 +446,18 @@ router.post('/:id/broadcasts', async (req: AuthRequest, res: Response) => {
 
   // Notify non-muted members
   const community = await db.queryOne('SELECT name FROM communities WHERE id = $1', [communityId]) as any;
-  const members = await db.query(`
-    SELECT user_id FROM community_members WHERE community_id = $1 AND user_id != $2
-    AND user_id NOT IN (SELECT user_id FROM community_mutes WHERE community_id = $1)
-  `, [communityId, req.userId]) as any[];
+  // Single INSERT..SELECT fan-out. The old per-member await loop serialized one
+  // pooled round-trip per member — with a mandatory club this is one round-trip
+  // per REGISTERED USER per broadcast, which stalls the serverless function.
+  const result = await db.execute(`
+    INSERT INTO user_notifications (user_id, type, title, body, actor_id, target_type, target_id)
+    SELECT cm.user_id, 'community_post', $3, $4, $2, 'community', $1
+    FROM community_members cm
+    WHERE cm.community_id = $1 AND cm.user_id != $2
+      AND cm.user_id NOT IN (SELECT user_id FROM community_mutes WHERE community_id = $1)
+  `, [communityId, req.userId, `📢 ${community.name}`, body.trim().slice(0, 100)]);
 
-  for (const m of members) {
-    await db.execute("INSERT INTO user_notifications (user_id, type, title, body, actor_id, target_type, target_id) VALUES ($1, 'community_post', $2, $3, $4, 'community', $5)",
-      [m.user_id, `📢 ${community.name}`, body.trim().slice(0, 100), req.userId, communityId]);
-  }
-
-  res.json({ success: true, notified: members.length });
+  res.json({ success: true, notified: result.rowCount });
 });
 
 // GET /communities/:id/broadcasts — list broadcasts

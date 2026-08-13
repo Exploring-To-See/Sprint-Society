@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
@@ -202,6 +202,7 @@ function CardInfographic({ index }: { index: number }) {
 
 export function HomePage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [introDone, setIntroDone] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState('');
@@ -365,7 +366,7 @@ export function HomePage() {
 
                 {/* CTA — Google sign-in lives on the Join (register) and Log in pages, not here */}
                 <div style={{ paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  <button className="ss-btn ss-btn-primary" style={{ height: 50, fontSize: 15, flex: 'none' }} onClick={() => { window.location.href = '/register'; }}>
+                  <button className="ss-btn ss-btn-primary" style={{ height: 50, fontSize: 15, flex: 'none' }} onClick={() => navigate('/register')}>
                     Join with Email
                   </button>
                   <button className="ss-btn ss-btn-soft" style={{ height: 46, fontSize: 13.5, flex: 'none' }} onClick={() => setShowLogin(true)}>
@@ -394,7 +395,7 @@ export function HomePage() {
                 </div>
                 <GoogleSignInButton
                   text="signin_with"
-                  onSuccess={(isNew) => { window.location.href = isNew ? '/profiling' : '/dashboard'; }}
+                  onSuccess={(isNew) => navigate(isNew ? '/profiling' : '/dashboard', { replace: true })}
                   onError={(msg) => setError(msg)}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>

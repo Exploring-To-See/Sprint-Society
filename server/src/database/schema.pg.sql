@@ -1040,3 +1040,13 @@ BEGIN
   END IF;
   ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'runner', 'disabled'));
 END $$;
+
+-- ===== Scale indexes (round-2 audit) =====
+-- Chat polling is the hottest read path (every open community chat polls every
+-- 4s); without this it seq-scans and re-sorts the whole table per poll.
+CREATE INDEX IF NOT EXISTS idx_community_chat_community ON community_chat_messages(community_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_tier_history_user ON tier_history(user_id, calculated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_kendu_transactions_user ON kendu_transactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages(user_id, created_at DESC);
+-- Concurrency guard for weekly-challenge generation (check-then-insert race).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_challenges_user_week_title ON challenges(user_id, week_start, title);

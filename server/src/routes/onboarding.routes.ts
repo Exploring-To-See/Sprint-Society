@@ -12,7 +12,7 @@ router.get('/status', async (req: AuthRequest, res: Response) => {
   const user = await db.queryOne('SELECT * FROM users WHERE id = $1', [req.userId]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const runCount = (await db.queryOne('SELECT COUNT(*) as c FROM activities WHERE user_id = $1', [req.userId]) as any).c;
+  const runCount = (await db.queryOne('SELECT COUNT(*)::int as c FROM activities WHERE user_id = $1', [req.userId]) as any).c;
   const profile = await db.queryOne('SELECT * FROM user_profiles WHERE user_id = $1', [req.userId]) as any;
   const hasPlan = !!(await db.queryOne('SELECT id FROM transformation_plans WHERE user_id = $1 LIMIT 1', [req.userId]));
 

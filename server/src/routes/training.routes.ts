@@ -103,9 +103,15 @@ router.get('/week', async (req: AuthRequest, res: Response) => {
   if (!existingPlan) return res.json({ week: null, message: 'No active plan. Generate one first.' });
 
   const plan = JSON.parse(existingPlan.plan_data);
+  // Anchor plan weeks to the MONDAY of the generation week — raw generated_at
+  // made "week 1" span e.g. Thursday→Thursday, so the weekday calendar strip
+  // and the sessions' day numbers disagreed with the user's actual week.
   const startDate = new Date(existingPlan.generated_at);
+  const dow = (startDate.getDay() + 6) % 7; // Mon=0 … Sun=6
+  startDate.setDate(startDate.getDate() - dow);
+  startDate.setHours(0, 0, 0, 0);
   const weeksSinceStart = Math.floor((Date.now() - startDate.getTime()) / (7 * 86400000));
-  const currentWeekIndex = Math.min(weeksSinceStart, plan.weeks.length - 1);
+  const currentWeekIndex = Math.max(0, Math.min(weeksSinceStart, plan.weeks.length - 1));
 
   // Wellness-adjusted intensity
   const today = new Date().toISOString().split('T')[0];

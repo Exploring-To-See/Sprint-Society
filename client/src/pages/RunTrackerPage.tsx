@@ -18,8 +18,8 @@ import api from '../lib/api';
 import { App as CapApp } from '@capacitor/app';
 import { isNative } from '../lib/native';
 import {
-  getCurrentPosition, watchPosition, ensureLocationPermission,
-  type GeoPoint, type GeoWatch,
+  getCurrentPosition, watchPosition, ensureLocationPermissionDetailed, openLocationRemedy,
+  type GeoPoint, type GeoWatch, type LocationPermissionState,
 } from '../lib/geolocation';
 import { useRunCoach, speak, stopSpeaking, isVoiceSupported } from '../lib/coach';
 import type { RunSnapshot } from '../../../shared/coach';
@@ -120,6 +120,9 @@ const RPE_OPTIONS = [
 export function RunTrackerPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<TrackingState>('IDLE');
+  // Live mirror for async callbacks that outlive a state change.
+  const stateRef = useRef<TrackingState>('IDLE');
+  useEffect(() => { stateRef.current = state; }, [state]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [totalDistance, setTotalDistance] = useState(0);
   const [currentPace, setCurrentPace] = useState(0);
@@ -145,6 +148,8 @@ export function RunTrackerPage() {
   const prevAltitudeRef = useRef<number | null>(null);
   const lastSplitKmRef = useRef(0);
   const splitStartTimeRef = useRef(0);
+  // Moving-time (elapsedSeconds) value at the last recorded split boundary.
+  const lastSplitElapsedRef = useRef(0);
 
   // One-way voice coach (on-device cue engine + Web Speech synthesis)
   const coach = useRunCoach();
@@ -161,38 +166,53 @@ export function RunTrackerPage() {
   // shows in-app on native), then grab the initial fix. Split into two steps so
   // a denied dialog produces the clear "access denied" state with a retry CTA
   // instead of a generic "could not determine location".
-  // Tracks whether the user already declined the in-app system dialog once.
-  // Android then flips to "don't ask again" — the dialog can never reappear, so
-  // the next tap deep-links straight into this app's own settings screen
-  // (one toggle away) instead of dead-ending.
-  const deniedOnceRef = useRef(false);
+  // Last known permission blocker, so the error chip's tap does the RIGHT
+  // remedial action: 'ask-again' re-shows the in-app system dialog (Android
+  // allows this until the user picks "don't allow" twice), 'denied-forever'
+  // opens this app's settings screen, 'services-off' opens the device Location
+  // toggle screen. Never jumps to Settings while the dialog can still appear.
+  const permStateRef = useRef<LocationPermissionState>('granted');
 
   const primeLocation = useCallback(async () => {
     setGpsError(null);
     setLocating(true);
-    try {
-      const granted = await ensureLocationPermission();
-      if (!granted) {
-        setLocating(false);
-        if (deniedOnceRef.current && isNative) {
-          const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
-          NativeSettings.open({ optionAndroid: AndroidSettings.ApplicationDetails, optionIOS: IOSSettings.App }).catch(() => {});
-          setGpsError('Turn on Location for Sprint Society, then come back');
-        } else {
-          deniedOnceRef.current = true;
-          setGpsError('Location is needed to track your run — tap to allow');
-        }
-        return;
-      }
-      deniedOnceRef.current = false;
-      const pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
-      setUserLocation([pos.latitude, pos.longitude]);
+    const state = await ensureLocationPermissionDetailed();
+    permStateRef.current = state;
+    if (state !== 'granted' && state !== 'coarse-only') {
       setLocating(false);
-    } catch (err) {
-      setLocating(false);
-      setGpsError((err as { message?: string })?.message || 'Could not determine location');
+      setGpsError(
+        state === 'services-off' ? 'Your device Location (GPS) is off — tap to turn it on'
+        : state === 'denied-forever' ? 'Location permission is off — tap to open app settings'
+        : 'Location is needed to track your run — tap to allow',
+      );
+      return;
     }
+    if (state === 'coarse-only') {
+      // Tracking works, but approximate location makes pace/distance rough.
+      setGpsError('Using approximate location — allow Precise location for accurate tracking');
+    }
+    // Permission is granted: an initial fix is a nicety for centering the map,
+    // NOT a gate. Indoors the first high-accuracy fix can take minutes — never
+    // surface that as an error or block the start button; the run watcher will
+    // deliver positions once the signal lands. Cheap cached fix first.
+    try {
+      const pos = await getCurrentPosition({ enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 })
+        .catch(() => getCurrentPosition({ enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }));
+      setUserLocation([pos.latitude, pos.longitude]);
+    } catch {
+      /* no fix yet — map centers on the first watcher position instead */
+    }
+    setLocating(false);
   }, []);
+
+  const onGpsChipTap = useCallback(async () => {
+    if (permStateRef.current === 'denied-forever' || permStateRef.current === 'services-off') {
+      await openLocationRemedy(permStateRef.current);
+      setGpsError('Enable location, then come back — we re-check automatically');
+      return;
+    }
+    primeLocation();
+  }, [primeLocation]);
 
   // Coming back from the Settings screen (or any background hop): re-check the
   // permission automatically so the error chip clears without a manual tap.
@@ -218,12 +238,27 @@ export function RunTrackerPage() {
       .catch(() => { /* non-critical: pace zones use defaults */ });
   }, []);
 
-  // Timer
+  // Timer — derived from the wall clock, not `prev + 1`. Android throttles
+  // WebView timers when backgrounded (even with the foreground-service GPS
+  // watcher running), so an incrementing counter silently loses the whole
+  // background gap. Wall-clock deltas survive throttling exactly.
+  const runClockRef = useRef({ segmentStart: 0, accumulated: 0 });
   useEffect(() => {
     if (state === 'RUNNING') {
-      timerRef.current = setInterval(() => setElapsedSeconds(prev => prev + 1), 1000);
+      runClockRef.current.segmentStart = Date.now();
+      const tick = () => {
+        const { segmentStart, accumulated } = runClockRef.current;
+        setElapsedSeconds(accumulated + Math.floor((Date.now() - segmentStart) / 1000));
+      };
+      tick();
+      timerRef.current = setInterval(tick, 1000);
     } else {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (runClockRef.current.segmentStart > 0) {
+        // Bank the finished segment's moving time (pause/stop).
+        runClockRef.current.accumulated += Math.floor((Date.now() - runClockRef.current.segmentStart) / 1000);
+        runClockRef.current.segmentStart = 0;
+      }
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [state]);
@@ -234,13 +269,16 @@ export function RunTrackerPage() {
       paceCalcRef.current = setInterval(() => {
         const positions = positionsRef.current;
         if (positions.length < 2) return;
+        // Walk back until ~100m accumulated; the time span is the WHOLE window
+        // (newest minus oldest point used), not the last segment — the old code
+        // overwrote timeSpan each iteration and produced wildly fast paces.
         let distAccum = 0;
-        let timeSpan = 0;
-        for (let i = positions.length - 1; i > 0 && distAccum < 100; i--) {
-          const d = haversineDistance(positions[i - 1].lat, positions[i - 1].lon, positions[i].lat, positions[i].lon);
-          distAccum += d;
-          timeSpan = (positions[i].timestamp - positions[i - 1].timestamp) / 1000;
+        let i = positions.length - 1;
+        while (i > 0 && distAccum < 100) {
+          distAccum += haversineDistance(positions[i - 1].lat, positions[i - 1].lon, positions[i].lat, positions[i].lon);
+          i--;
         }
+        const timeSpan = (positions[positions.length - 1].timestamp - positions[i].timestamp) / 1000;
         if (distAccum > 10 && timeSpan > 0) {
           setCurrentPace((timeSpan / distAccum) * 1000);
         }
@@ -279,28 +317,9 @@ export function RunTrackerPage() {
     return () => clearInterval(interval);
   }, [state, coach]);
 
-  // Persistent "run active" notification while recording (native): the user
-  // sees Sprint Society working in the tray, Google-Maps-navigation style.
-  useEffect(() => {
-    if (!isNative) return;
-    const RUN_NOTIF_ID = 424242;
-    import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
-      if (state === 'RUNNING') {
-        LocalNotifications.schedule({
-          notifications: [{
-            id: RUN_NOTIF_ID,
-            title: 'Run active — AI coach on',
-            body: 'Tracking your route, pace and distance. Keep the app open.',
-            ongoing: true,
-            autoCancel: false,
-            smallIcon: 'ic_launcher_foreground',
-          }],
-        }).catch(() => {});
-      } else {
-        LocalNotifications.cancel({ notifications: [{ id: RUN_NOTIF_ID }] }).catch(() => {});
-      }
-    }).catch(() => {});
-  }, [state]);
+  // The background-geolocation watcher's foreground service shows its own
+  // persistent "Run active — Sprint Society" notification while recording, so
+  // no separate ongoing notification is scheduled here.
 
   // Keep the screen awake while recording. If the screen sleeps, Android pauses
   // the WebView and GPS samples + timers stop — the classic "my run flatlined
@@ -336,6 +355,13 @@ export function RunTrackerPage() {
   }, []);
 
   const handlePositionUpdate = useCallback((position: GeoPoint) => {
+    // A good fix arrived — clear any stale "GPS signal unavailable" banner.
+    setGpsError((prev) => (prev && prev.includes('unavailable') ? null : prev));
+
+    // Accuracy gate: urban/indoor fixes with 50-200m uncertainty create phantom
+    // distance while standing still. Drop hopeless fixes entirely.
+    if (position.accuracy > 30) return;
+
     const newPos: Position = {
       lat: position.latitude,
       lon: position.longitude,
@@ -365,16 +391,19 @@ export function RunTrackerPage() {
         // froze for the rest of the run.
         positionsRef.current = [...positions, newPos];
         setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
-      } else if (dist >= 2) {
+      } else if (dist >= Math.max(2, position.accuracy * 0.5)) {
         positionsRef.current = [...positions, newPos];
         setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
         setTotalDistance(prev => {
           const newTotal = prev + dist;
           const currentKm = Math.floor(newTotal / 1000);
           if (currentKm > lastSplitKmRef.current) {
+            // Splits run on the MOVING-time clock (elapsedSeconds), not GPS
+            // wall-clock — otherwise a pause inflates the split it lands in.
+            const elapsedNow = metricsRef.current.elapsed;
             for (let km = lastSplitKmRef.current + 1; km <= currentKm; km++) {
-              setSplits(prevSplits => [...prevSplits, { km, time_seconds: Math.round((position.timestamp - splitStartTimeRef.current) / 1000) }]);
-              splitStartTimeRef.current = position.timestamp;
+              setSplits(prevSplits => [...prevSplits, { km, time_seconds: Math.max(1, elapsedNow - lastSplitElapsedRef.current) }]);
+              lastSplitElapsedRef.current = elapsedNow;
             }
             lastSplitKmRef.current = currentKm;
           }
@@ -391,15 +420,15 @@ export function RunTrackerPage() {
   const startTracking = useCallback(async () => {
     setGpsError(null);
     // Native: shows the system location permission popup before the run starts.
-    // On denial, primeLocation escalates — first tap re-asks, second tap opens
-    // this app's settings screen directly (Android won't re-show the dialog).
-    const granted = await ensureLocationPermission();
-    if (!granted) { primeLocation(); return; }
+    const state = await ensureLocationPermissionDetailed();
+    permStateRef.current = state;
+    if (state !== 'granted') { primeLocation(); return; }
 
     startTimeRef.current = new Date().toISOString();
     positionsRef.current = [];
     setRouteCoords([]);
     setTotalDistance(0);
+    runClockRef.current = { segmentStart: 0, accumulated: 0 };
     setElapsedSeconds(0);
     setCurrentPace(0);
     setElevationGain(0);
@@ -411,6 +440,7 @@ export function RunTrackerPage() {
     prevAltitudeRef.current = null;
     lastSplitKmRef.current = 0;
     splitStartTimeRef.current = 0;
+    lastSplitElapsedRef.current = 0;
     samplesRef.current = [];
     coachArmedRef.current = false;
     setState('RUNNING');
@@ -424,10 +454,14 @@ export function RunTrackerPage() {
       })
       .catch(() => { /* coach unavailable — run silently */ });
 
-    watchRef.current = await watchPosition(
-      handlePositionUpdate,
-      (error) => setGpsError(error.message)
-    );
+    // Guard against the async gap: if the user pauses/stops while the watcher
+    // was still being created, kill the late-arriving watcher immediately —
+    // otherwise it leaks and keeps feeding positions (and the foreground
+    // service notification never clears).
+    const w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    if (stateRef.current !== 'RUNNING') { w.clear(); return; }
+    if (watchRef.current) watchRef.current.clear();
+    watchRef.current = w;
   }, [handlePositionUpdate, coach, primeLocation]);
 
   const pauseTracking = useCallback(() => {
@@ -438,14 +472,42 @@ export function RunTrackerPage() {
 
   const resumeTracking = useCallback(async () => {
     setState('RUNNING');
-    watchRef.current = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    const w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    if (stateRef.current !== 'RUNNING') { w.clear(); return; }
+    if (watchRef.current) watchRef.current.clear();
+    watchRef.current = w;
   }, [handlePositionUpdate]);
 
   const stopTracking = useCallback(() => {
     setState('FINISHED');
     stopSpeaking();
     if (watchRef.current) { watchRef.current.clear(); watchRef.current = null; }
-  }, []);
+    // Finish-line audio: a varied congratulation with the run's real numbers —
+    // rotating scripts so it never repeats the same line back-to-back runs.
+    if (voiceOnRef.current) {
+      const m = metricsRef.current;
+      const km = m.distance / 1000;
+      const mins = Math.round(m.elapsed / 60);
+      const kmStr = km >= 0.1 ? `${km.toFixed(km >= 10 ? 0 : 1)} kilometers` : 'your run';
+      const timeStr = mins >= 1 ? `${mins} minute${mins === 1 ? '' : 's'}` : 'no time at all';
+      const scripts = [
+        `Run complete! ${kmStr} in ${timeStr}. That's how it's done.`,
+        `And that's a wrap — ${kmStr} banked. Great work out there.`,
+        `You just crushed ${kmStr}. Take a breath, you earned it.`,
+        `Finished! ${kmStr} in ${timeStr}. Your future self says thanks.`,
+        `Strong finish. ${kmStr} added to your story — recover well.`,
+        `Done and dusted: ${kmStr}. Consistency like this is what builds champions.`,
+        `That's ${kmStr} you didn't have this morning. Beautiful effort.`,
+        `Legs did the work, heart did the rest — ${kmStr} in ${timeStr}. Well run.`,
+      ];
+      const lastIdx = Number(sessionStorage.getItem('ss_congrats_idx') || '-1');
+      let idx = Math.floor(Math.random() * scripts.length);
+      if (idx === lastIdx) idx = (idx + 1) % scripts.length;
+      sessionStorage.setItem('ss_congrats_idx', String(idx));
+      // Small delay so the stopSpeaking() above doesn't clip the congrats.
+      setTimeout(() => speak(scripts[idx], coach.persona), 400);
+    }
+  }, [coach]);
 
   const saveRun = async () => {
     setSaving(true);
@@ -540,6 +602,7 @@ export function RunTrackerPage() {
 
   const discardRun = () => {
     setState('IDLE');
+    runClockRef.current = { segmentStart: 0, accumulated: 0 };
     setElapsedSeconds(0);
     setTotalDistance(0);
     setCurrentPace(0);
@@ -554,6 +617,7 @@ export function RunTrackerPage() {
     prevAltitudeRef.current = null;
     lastSplitKmRef.current = 0;
     splitStartTimeRef.current = 0;
+    lastSplitElapsedRef.current = 0;
     positionsRef.current = [];
     startTimeRef.current = null;
   };
@@ -766,7 +830,7 @@ export function RunTrackerPage() {
               {gpsError && (
                 <button
                   type="button"
-                  onClick={primeLocation}
+                  onClick={onGpsChipTap}
                   data-testid="gps-error-retry"
                   style={{ borderRadius: 13, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.22)', padding: '8px 14px', alignSelf: 'center', cursor: 'pointer' }}
                 >

@@ -106,21 +106,30 @@ export const authLimiter = createRateLimiter({
  * AI routes: 10 requests per minute per user
  * Protects expensive AI API calls
  */
+// These limiters run BEFORE route-level authenticate, so req.userId is never
+// set yet — key on the bearer token's tail instead (unique per session, cheap,
+// no verification needed just for bucketing). Falls back to IP for anon calls.
+const tokenKey = (prefix: string) => (req: AuthRequest) => {
+  const auth = req.headers.authorization;
+  return auth?.startsWith('Bearer ') ? `${prefix}:t:${auth.slice(-24)}` : `${prefix}:${req.ip}`;
+};
+
 export const aiLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 10,
-  keyGenerator: (req) => `ai:${(req as AuthRequest).userId || req.ip}`,
+  keyGenerator: tokenKey('ai'),
   message: 'AI rate limit reached. Please wait a minute before sending more requests.',
 });
 
 /**
- * General API: 100 requests per minute per IP
- * Prevents abuse across all endpoints
+ * General API: per-user (token) when authenticated, per-IP otherwise.
+ * Per-IP alone locks out offices/carrier-NAT where many users share one IP —
+ * the app's own polling is already ~25 req/min per active user.
  */
 export const generalLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
-  maxRequests: 100,
-  keyGenerator: (req) => `general:${req.ip}`,
+  maxRequests: 240,
+  keyGenerator: tokenKey('general'),
   message: 'Too many requests. Please slow down.',
 });
 
@@ -131,7 +140,7 @@ export const generalLimiter = createRateLimiter({
 export const chatLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 20,
-  keyGenerator: (req) => `chat:${(req as AuthRequest).userId || req.ip}`,
+  keyGenerator: tokenKey('chat'),
   message: 'Too many messages. Take a breath and try again in a minute.',
 });
 

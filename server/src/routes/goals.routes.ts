@@ -8,7 +8,7 @@ router.use(authenticate);
 // GET /goals — List user's goals
 router.get('/', async (req: AuthRequest, res: Response) => {
   const goals = await db.query(`
-    SELECT g.*, e.title as event_name, e.start_time as event_date
+    SELECT g.*, e.title as event_name, e.date as event_date
     FROM user_goals g
     LEFT JOIN events e ON g.event_id = e.id
     WHERE g.user_id = $1 AND g.status = 'active'

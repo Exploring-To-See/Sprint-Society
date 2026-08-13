@@ -8,10 +8,17 @@ interface EventMapProps {
 export function EventMapView({ events, onEventClick }: EventMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
+  const mapInstanceRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
 
+  const eventsWithLocation = events.filter(e => e.latitude && e.longitude);
+  const hasLocated = eventsWithLocation.length > 0;
+
+  // Init keyed on container presence: with []-deps the effect fired once while
+  // the placeholder (no events yet) was rendered — mapRef.current was null and
+  // the map never initialized even after events with coordinates arrived.
   useEffect(() => {
-    if (!mapRef.current || mapInstance) return;
+    if (!hasLocated || !mapRef.current || mapInstanceRef.current) return;
 
     import('leaflet').then(L => {
       leafletRef.current = L.default || L;
@@ -28,11 +35,14 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
 
       Leaf.control.zoom({ position: 'bottomright' }).addTo(map);
 
+      mapInstanceRef.current = map;
       setMapInstance(map);
     });
 
-    return () => { mapInstance?.remove(); };
-  }, []);
+    // Cleanup via the ref — the old closure captured the initial null
+    // mapInstance, so the Leaflet map leaked on every unmount.
+    return () => { mapInstanceRef.current?.remove(); mapInstanceRef.current = null; setMapInstance(null); };
+  }, [hasLocated]);
 
   useEffect(() => {
     if (!mapInstance || !leafletRef.current) return;
@@ -73,9 +83,7 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
     }
   }, [mapInstance, events, onEventClick]);
 
-  const eventsWithLocation = events.filter(e => e.latitude && e.longitude);
-
-  if (eventsWithLocation.length === 0) {
+  if (!hasLocated) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
         <div>

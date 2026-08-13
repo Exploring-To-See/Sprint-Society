@@ -1,5 +1,36 @@
 import { Geolocation, type Position as CapPosition } from '@capacitor/geolocation';
+import { registerPlugin } from '@capacitor/core';
 import { isNative } from './native';
+
+/**
+ * Background watcher (native runs): @capacitor-community/background-geolocation
+ * runs an Android foreground service with a persistent notification, so GPS
+ * samples keep flowing with the screen off / app backgrounded — the Strava
+ * behavior. Registered lazily; only used inside watchPosition on native.
+ */
+interface BgLocation {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  altitude: number | null;
+  time: number | null;
+}
+interface BgError { code?: string; message?: string }
+interface BackgroundGeolocationPlugin {
+  addWatcher(
+    options: {
+      backgroundMessage?: string;
+      backgroundTitle?: string;
+      requestPermissions?: boolean;
+      stale?: boolean;
+      distanceFilter?: number;
+    },
+    callback: (position?: BgLocation, error?: BgError) => void,
+  ): Promise<string>;
+  removeWatcher(options: { id: string }): Promise<void>;
+  openSettings(): Promise<void>;
+}
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
 
 /**
  * Unified geolocation layer.
@@ -53,22 +84,58 @@ function webErrorToGeoError(err: GeolocationPositionError): GeoError {
 }
 
 /**
- * Ensure location permission, showing the system popup when needed.
- * Returns true when granted. On web the browser shows its own prompt on the
- * first position request, so this resolves optimistically.
+ * Detailed permission outcome so the UI can react precisely instead of
+ * treating every failure as "denied":
+ * - 'granted'         — good to go
+ * - 'ask-again'       — user dismissed/declined but the system dialog CAN
+ *                       reappear (state 'prompt'/'prompt-with-rationale')
+ * - 'denied-forever'  — Android will never re-show the dialog; only the app's
+ *                       settings screen can grant it now
+ * - 'services-off'    — the device's master Location toggle is OFF. Capacitor's
+ *                       checkPermissions/requestPermissions REJECT in this case
+ *                       (this used to be misread as a permission denial).
+ * - 'unavailable'     — no geolocation capability at all
+ */
+export type LocationPermissionState = 'granted' | 'coarse-only' | 'ask-again' | 'denied-forever' | 'services-off' | 'unavailable';
+
+export async function ensureLocationPermissionDetailed(): Promise<LocationPermissionState> {
+  if (!isNative) {
+    return typeof navigator !== 'undefined' && !!navigator.geolocation ? 'granted' : 'unavailable';
+  }
+  try {
+    const status = await Geolocation.checkPermissions();
+    if (status.location === 'granted') return 'granted';
+    if (status.coarseLocation === 'granted') return 'coarse-only';
+    const req = await Geolocation.requestPermissions({ permissions: ['location'] });
+    if (req.location === 'granted') return 'granted';
+    // Android 12+ "Approximate" choice: tracking works but pace/distance are
+    // mush — surface it so the UI can nudge toward Precise.
+    if (req.coarseLocation === 'granted') return 'coarse-only';
+    return req.location === 'denied' ? 'denied-forever' : 'ask-again';
+  } catch {
+    return 'services-off';
+  }
+}
+
+/**
+ * Boolean convenience wrapper (existing call sites). Shows the system popup
+ * when needed; true only when actually granted.
  */
 export async function ensureLocationPermission(): Promise<boolean> {
-  if (isNative) {
-    try {
-      const status = await Geolocation.checkPermissions();
-      if (status.location === 'granted' || status.coarseLocation === 'granted') return true;
-      const req = await Geolocation.requestPermissions({ permissions: ['location'] });
-      return req.location === 'granted' || req.coarseLocation === 'granted';
-    } catch {
-      return false;
+  return (await ensureLocationPermissionDetailed()) === 'granted';
+}
+
+/** Open the device screen where the user can fix the blocking state. */
+export async function openLocationRemedy(state: LocationPermissionState): Promise<void> {
+  if (!isNative) return;
+  try {
+    const { NativeSettings, AndroidSettings, IOSSettings } = await import('capacitor-native-settings');
+    if (state === 'services-off') {
+      await NativeSettings.open({ optionAndroid: AndroidSettings.Location, optionIOS: IOSSettings.LocationServices });
+    } else {
+      await NativeSettings.open({ optionAndroid: AndroidSettings.ApplicationDetails, optionIOS: IOSSettings.App });
     }
-  }
-  return typeof navigator !== 'undefined' && !!navigator.geolocation;
+  } catch { /* settings screen unavailable — nothing else we can do */ }
 }
 
 /** One-shot current position (triggers the permission popup if not yet granted). */
@@ -108,22 +175,50 @@ export async function watchPosition(
   onError: (error: GeoError) => void
 ): Promise<GeoWatch> {
   if (isNative) {
-    const granted = await ensureLocationPermission();
-    if (!granted) {
-      onError({ code: 'PERMISSION_DENIED', message: 'Location access denied — enable it in your device Settings to track runs' });
+    const state = await ensureLocationPermissionDetailed();
+    if (state !== 'granted' && state !== 'coarse-only') {
+      onError({
+        code: 'PERMISSION_DENIED',
+        message: state === 'services-off'
+          ? 'Turn on your device Location (GPS) to track runs'
+          : 'Location permission needed to track runs',
+      });
       return { clear: () => {} };
     }
-    const watchId = await Geolocation.watchPosition(
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 },
-      (pos, err) => {
-        if (err) {
-          onError({ code: 'POSITION_UNAVAILABLE', message: err.message || 'GPS signal unavailable' });
+    // Foreground-service watcher: keeps delivering fixes with the screen off
+    // or the app backgrounded — the run never flatlines in a pocket. Android
+    // shows the service notification below while the watcher is alive.
+    const watcherId = await BackgroundGeolocation.addWatcher(
+      {
+        backgroundTitle: 'Run active — Sprint Society',
+        backgroundMessage: 'Tracking your route, pace and distance.',
+        requestPermissions: true,
+        stale: false,
+        distanceFilter: 2,
+      },
+      (position, error) => {
+        if (error) {
+          if (error.code === 'NOT_AUTHORIZED') {
+            onError({ code: 'PERMISSION_DENIED', message: 'Location permission needed to track runs' });
+          } else {
+            onError({ code: 'POSITION_UNAVAILABLE', message: error.message || 'GPS signal unavailable' });
+          }
           return;
         }
-        if (pos) onPosition(fromCapPosition(pos));
-      }
+        if (position) {
+          onPosition({
+            latitude: position.latitude,
+            longitude: position.longitude,
+            altitude: position.altitude ?? null,
+            accuracy: position.accuracy,
+            timestamp: position.time ?? Date.now(),
+          });
+        }
+      },
     );
-    return { clear: () => { Geolocation.clearWatch({ id: watchId }); } };
+    return {
+      clear: () => { BackgroundGeolocation.removeWatcher({ id: watcherId }).catch(() => {}); },
+    };
   }
 
   if (!navigator.geolocation) {

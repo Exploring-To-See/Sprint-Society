@@ -20,7 +20,11 @@ export function NativeAuthPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const redirectBase = params.get('redirect') || DEFAULT_REDIRECT;
+  // SECURITY: the redirect target carries the session JWT and the signed-in
+  // effect below fires automatically — an unvalidated ?redirect= would hand any
+  // link-crafted attacker the token. Only our own app scheme is allowed.
+  const requestedRedirect = params.get('redirect') || DEFAULT_REDIRECT;
+  const redirectBase = requestedRedirect.startsWith('in.sprintsociety.app://') ? requestedRedirect : DEFAULT_REDIRECT;
   const mode = params.get('mode') === 'signup' ? 'signup' : 'signin';
 
   function bounceWithToken(jwt: string, isNew?: boolean) {

@@ -55,18 +55,22 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   if (challenges.length === 0) {
     const newChallenges = generateWeeklyChallenges(req.userId!, tier.tier, weekStartStr);
     for (const c of newChallenges) {
-      await db.execute('INSERT INTO challenges (user_id, week_start, category, title, description, target_value, target_unit, tier, xp_reward) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+      // ON CONFLICT pairs with idx_challenges_user_week_title — two concurrent
+      // dashboard loads no longer double-generate the week's challenges.
+      await db.execute('INSERT INTO challenges (user_id, week_start, category, title, description, target_value, target_unit, tier, xp_reward) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (user_id, week_start, title) DO NOTHING',
         [req.userId, weekStartStr, c.category, c.title, c.description, c.target_value || null, c.target_unit || null, c.tier, c.xp_reward]);
     }
     challenges = await db.query('SELECT * FROM challenges WHERE user_id = $1 AND week_start = $2', [req.userId, weekStartStr]) as any[];
   }
 
   // 4. Run stats
+  // ::int / ::float casts — pg returns bigint COUNT/SUM as strings, and the
+  // client's `total_runs === 0` new-user checks never match a string "0".
   const runStats = await db.queryOne(`
-    SELECT COUNT(*) as total_runs, COALESCE(SUM(distance_meters), 0) as total_distance,
-      COALESCE(SUM(moving_time_seconds), 0) as total_time, COALESCE(AVG(average_pace_per_km), 0) as avg_pace,
-      COALESCE(MIN(average_pace_per_km), 0) as best_pace, COALESCE(MAX(distance_meters), 0) as longest_run,
-      COALESCE(SUM(elevation_gain), 0) as total_elevation
+    SELECT COUNT(*)::int as total_runs, COALESCE(SUM(distance_meters), 0)::float as total_distance,
+      COALESCE(SUM(moving_time_seconds), 0)::float as total_time, COALESCE(AVG(average_pace_per_km), 0)::float as avg_pace,
+      COALESCE(MIN(average_pace_per_km), 0)::float as best_pace, COALESCE(MAX(distance_meters), 0)::float as longest_run,
+      COALESCE(SUM(elevation_gain), 0)::float as total_elevation
     FROM activities WHERE user_id = $1
   `, [req.userId]);
 

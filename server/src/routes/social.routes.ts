@@ -28,15 +28,12 @@ router.get('/feed', async (req: AuthRequest, res: Response) => {
 
   const activities = await db.query(`
     SELECT a.*, u.name as user_name, u.profile_image_url,
-      COALESCE(k.kudos_count, 0) as kudos_count,
-      COALESCE(c.comments_count, 0) as comments_count,
-      COALESCE(uk.user_gave_kudos, 0) as user_gave_kudos,
-      uk.reaction_type as user_reaction_type
+      (SELECT COUNT(*)::int FROM kudos k WHERE k.activity_id = a.id) as kudos_count,
+      (SELECT COUNT(*)::int FROM comments c WHERE c.activity_id = a.id) as comments_count,
+      (SELECT 1 FROM kudos uk WHERE uk.activity_id = a.id AND uk.user_id = $1) as user_gave_kudos,
+      (SELECT reaction_type FROM kudos uk WHERE uk.activity_id = a.id AND uk.user_id = $1 LIMIT 1) as user_reaction_type
     FROM activities a
     JOIN users u ON a.user_id = u.id
-    LEFT JOIN (SELECT activity_id, COUNT(*) as kudos_count FROM kudos GROUP BY activity_id) k ON k.activity_id = a.id
-    LEFT JOIN (SELECT activity_id, COUNT(*) as comments_count FROM comments GROUP BY activity_id) c ON c.activity_id = a.id
-    LEFT JOIN (SELECT activity_id, 1 as user_gave_kudos, reaction_type FROM kudos WHERE user_id = $1) uk ON uk.activity_id = a.id
     WHERE a.user_id IN (${placeholders})
     ORDER BY a.start_date DESC
     LIMIT $${followingIds.length + 2} OFFSET $${followingIds.length + 3}

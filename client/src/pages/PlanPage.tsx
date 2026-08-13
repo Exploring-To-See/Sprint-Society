@@ -10,7 +10,7 @@ import { SSScreen } from '../components/ss/SSScreen';
 import { SSSkeleton, SSEmpty } from '../components/ss/SSStates';
 import { Target, ChevronDown, Check, Flag } from '../components/ss/icons';
 
-interface Session { type?: string; title?: string; target_pace_per_km?: number }
+interface Session { type?: string; title?: string; target_pace_per_km?: number; day?: number }
 interface WeekData { phase_name?: string; phase?: string; total_distance_km?: number; focus?: string; sessions?: Session[] }
 interface Plan { current_week?: number; total_weeks?: number; weeks?: WeekData[]; goal?: { race_name?: string; race_date?: string }; race_name?: string; race_date?: string; predicted_time?: string }
 
@@ -124,7 +124,7 @@ export function PlanPage() {
                       <div className="ss-surface ss-recess" style={{ borderRadius: 14, padding: 12, display: 'flex', flexDirection: 'column', gap: 7 }}>
                         {(w.sessions || []).map((s, si) => (
                           <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ font: '600 9.5px var(--mono)', color: 'var(--muted-2)', width: 26, flex: 'none' }}>{DAYS[si] || ''}</span>
+                            <span style={{ font: '600 9.5px var(--mono)', color: 'var(--muted-2)', width: 26, flex: 'none' }}>{DAYS[(s.day ?? si + 1) - 1] || ''}</span>
                             <span style={{ font: '500 11px var(--body)', color: s.type === 'rest' ? 'var(--muted-2)' : 'var(--fg)' }}>{s.title || s.type || 'Rest'}</span>
                             {pace(s.target_pace_per_km) && <span style={{ marginLeft: 'auto', font: '600 10px var(--mono)', color: 'var(--muted)' }}>{pace(s.target_pace_per_km)}</span>}
                           </div>

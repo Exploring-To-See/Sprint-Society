@@ -195,7 +195,10 @@ export function AIProfilingPage() {
   const totalSteps = 8;
 
   const mutation = useMutation({
-    mutationFn: () => api.post('/profiling/generate', data),
+    // Explicit payload — the closure-captured `data` missed same-tick updates
+    // (the "skip 5K time" button set state and submitted in one tick, sending
+    // the stale value).
+    mutationFn: (payload: typeof data) => api.post('/profiling/generate', payload),
     onSuccess: (res) => {
       // Refresh the dashboard so the "Complete your profile" prompt clears now
       // that profiling_complete is set.
@@ -211,12 +214,12 @@ export function AIProfilingPage() {
     onError: () => setAnalyzing(false),
   });
 
-  const handleNext = () => {
+  const handleNext = (overrides?: Partial<typeof data>) => {
     if (step < totalSteps - 1) {
       setStep(step + 1);
     } else {
       setAnalyzing(true);
-      mutation.mutate();
+      mutation.mutate({ ...data, ...overrides });
     }
   };
 
@@ -252,7 +255,7 @@ export function AIProfilingPage() {
           <button
             className="ss-btn ss-btn-primary"
             style={{ height: 46, fontSize: 13.5, padding: '0 24px', flex: 'none', marginTop: 20 }}
-            onClick={() => { setAnalyzing(true); mutation.mutate(); }}
+            onClick={() => { setAnalyzing(true); mutation.mutate(data); }}
           >
             Try again
           </button>
@@ -603,7 +606,7 @@ export function AIProfilingPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => { setData(d => ({ ...d, recent_5k_time: null })); handleNext(); }}
+                    onClick={() => { setData(d => ({ ...d, recent_5k_time: null })); handleNext({ recent_5k_time: null }); }}
                     style={{ font: '600 12px var(--body)', color: 'var(--muted-2)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}
                   >
                     Skip — I don't know my 5K time
@@ -619,7 +622,7 @@ export function AIProfilingPage() {
         <button
           className="ss-btn ss-btn-primary"
           style={{ height: 50, fontSize: 15, width: '100%' }}
-          onClick={handleNext}
+          onClick={() => handleNext()}
           disabled={!canProceed()}
         >
           {step === totalSteps - 1 ? 'Reveal My Running DNA' : 'Continue'}

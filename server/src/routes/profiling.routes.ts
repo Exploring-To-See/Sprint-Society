@@ -79,7 +79,10 @@ router.post('/generate', async (req: AuthRequest, res: Response) => {
       personality_tags = EXCLUDED.personality_tags, ai_coach_name = EXCLUDED.ai_coach_name,
       profiling_complete = 1, updated_at = CURRENT_TIMESTAMP
   `, [
-    req.userId, dream_race, dna.weekly_volume_km, running_why, run_feeling,
+    req.userId, dream_race,
+    // dream_race_distance_km — was mistakenly bound to weekly training volume
+    ({ '5k': 5, '10k': 10, half_marathon: 21.1, marathon: 42.2, ultra: 50 } as Record<string, number>)[dream_race] ?? null,
+    running_why, run_feeling,
     bad_run_response, preferred_time, training_days, dna.coach_style,
     dna.estimated_vo2max, dna.estimated_5k_sec, JSON.stringify(dna.personality_tags),
     dna.ai_coach_name
@@ -115,7 +118,20 @@ router.get('/dna', async (req: AuthRequest, res: Response) => {
     preferred_time: profile.preferred_time || 'morning', training_days: profile.training_days_per_week || 3,
   };
 
+  // Overlay the STORED results over the regenerated object — the user's chosen
+  // coach (PUT /profiling/coach) and the persisted estimates must win over a
+  // fresh regeneration, otherwise edits appear to never save.
   const dna = generateRunnerDNA(input);
+  if (profile.ai_coach_name) dna.ai_coach_name = profile.ai_coach_name;
+  if (profile.coach_style) dna.coach_style = profile.coach_style;
+  if (profile.estimated_vo2max != null) dna.estimated_vo2max = profile.estimated_vo2max;
+  if (profile.estimated_5k_time_sec != null) dna.estimated_5k_sec = profile.estimated_5k_time_sec;
+  if (profile.personality_tags) {
+    try {
+      const stored = typeof profile.personality_tags === 'string' ? JSON.parse(profile.personality_tags) : profile.personality_tags;
+      if (Array.isArray(stored) && stored.length) dna.personality_tags = stored;
+    } catch { /* keep regenerated tags */ }
+  }
   res.json(dna);
 });
 
@@ -199,12 +215,9 @@ router.get('/classification', async (req: AuthRequest, res: Response) => {
   const createdAt = new Date(user.created_at || Date.now());
   const totalWeeksOnPlatform = Math.max(1, Math.round((Date.now() - createdAt.getTime()) / 604800000));
 
-  // Detect if user has verified race results (Strava race activities or manual race PRs)
-  const raceActivity = await db.queryOne(
-    `SELECT id FROM activities WHERE user_id = $1 AND workout_type = 1 LIMIT 1`,
-    [req.userId]
-  ) as any;
-  const hasRaceResult = !!raceActivity || prs.some((pr: any) => pr.source === 'race');
+  // Race results come from PR sources only — activities has no workout_type
+  // column (the old query 500'd the whole classification endpoint).
+  const hasRaceResult = prs.some((pr: any) => pr.source === 'race');
 
   // Normalize all factors
   const gender: Gender = user.gender === 'female' ? 'female' : 'male';

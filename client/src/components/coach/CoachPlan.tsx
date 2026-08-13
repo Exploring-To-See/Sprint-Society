@@ -54,7 +54,16 @@ export function CoachPlan() {
   const totalWeeks = week?.total_weeks || plan?.total_weeks || 8;
   const phase = plan?.current_phase || 'Base';
   const primary = activeGoals[0];
-  const daysLeft = primary?.target_date ? Math.ceil((new Date(primary.target_date).getTime() - Date.now()) / 86400000) : null;
+  // target_date arrives as 'YYYY-MM-DD'; bare new Date() parses it as UTC
+  // midnight, which shifts a day in IST. Anchor both sides to local midnight.
+  const daysLeft = (() => {
+    if (!primary?.target_date) return null;
+    const target = new Date(`${primary.target_date}T00:00:00`);
+    if (isNaN(target.getTime())) return null;
+    const todayMid = new Date();
+    todayMid.setHours(0, 0, 0, 0);
+    return Math.round((target.getTime() - todayMid.getTime()) / 86400000);
+  })();
   const goalName = primary?.name || plan?.race_name || plan?.goal_name || 'Training Plan';
 
   function statusOf(i: number): 'rest' | 'done' | 'missed' | 'today' | 'upcoming' {

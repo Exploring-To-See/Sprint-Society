@@ -42,7 +42,10 @@ const isServerless = !!process.env.VERCEL;
 
 const poolConfig: PoolConfig = {
   connectionString: dbUrl || undefined,
-  max: isServerless ? 1 : 10,
+  // Vercel Fluid compute serves many concurrent requests per instance — max:1
+  // serialized every query behind one connection. 5 stays comfortably under
+  // Supabase's pooled ceiling (pgBouncer multiplexes them).
+  max: isServerless ? 5 : 10,
   ssl: isLocalDb ? false : { rejectUnauthorized: false },
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: isServerless ? 10000 : 30000,

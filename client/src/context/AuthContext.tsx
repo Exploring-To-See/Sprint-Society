@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const timer: { id?: ReturnType<typeof setTimeout> } = {};
     api.get('/auth/me', { timeout: 10000 })
-      .then(res => { if (!cancelled) setUser(res.data); })
+      .then(res => { if (!cancelled) { setUser(res.data); setLoading(false); } })
       .catch((err) => {
         if (cancelled) return;
         // Only a definitive 401/403 means the token is dead. A network blip on
@@ -58,11 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           localStorage.removeItem('sprint_society_token');
           setToken(null);
+          setLoading(false);
         } else {
+          // Transient failure: keep loading TRUE through the retry window —
+          // dropping it dumps a signed-in user onto the public login screen
+          // for the 4s between retries.
           timer.id = setTimeout(() => { if (!cancelled) setRetryTick(t => t + 1); }, 4000);
         }
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      });
     return () => { cancelled = true; if (timer.id) clearTimeout(timer.id); };
   }, [token, retryTick]);
 
@@ -96,6 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const acceptToken = (jwt: string) => {
     localStorage.setItem('sprint_society_token', jwt);
+    // Flip loading in the SAME commit as the token change. The /auth/me effect
+    // also sets it, but that happens a render later — in that gap the route
+    // guards see user=null + loading=false and bounce the deep-link sign-in
+    // back to the login screen, losing the new-user /profiling redirect.
+    setLoading(true);
     setToken(jwt);
     // /auth/me effect will hydrate `user` from the new token
   };
