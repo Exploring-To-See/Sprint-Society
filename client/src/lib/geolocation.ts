@@ -198,7 +198,12 @@ export async function watchPosition(
       },
       (position, error) => {
         if (error) {
-          if (error.code === 'NOT_AUTHORIZED') {
+          // The plugin reports a mid-run Location-Services toggle-off as
+          // NOT_AUTHORIZED with a "services disabled" message — that's a GPS
+          // problem, not a permission one; word it accordingly.
+          if (error.code === 'NOT_AUTHORIZED' && /services disabled/i.test(error.message ?? '')) {
+            onError({ code: 'POSITION_UNAVAILABLE', message: 'Turn on your device Location (GPS) to keep tracking' });
+          } else if (error.code === 'NOT_AUTHORIZED') {
             onError({ code: 'PERMISSION_DENIED', message: 'Location permission needed to track runs' });
           } else {
             onError({ code: 'POSITION_UNAVAILABLE', message: error.message || 'GPS signal unavailable' });

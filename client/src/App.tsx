@@ -63,7 +63,6 @@ function LazyLoad({ children }: { children: React.ReactNode }) {
 
 function ProtectedRoute({ children, skipProfilingCheck }: { children: React.ReactNode; skipProfilingCheck?: boolean }) {
   const { user, loading } = useAuth();
-  const location = window.location.pathname;
   if (loading) {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center">
@@ -72,6 +71,11 @@ function ProtectedRoute({ children, skipProfilingCheck }: { children: React.Reac
     );
   }
   if (!user) return <Navigate to="/" replace />;
+  // Every new account completes profiling before anything else — no optional
+  // detour. The /profiling route itself passes skipProfilingCheck.
+  if (!skipProfilingCheck && user.role !== 'admin' && user.profiling_complete === false) {
+    return <Navigate to="/profiling" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -102,6 +106,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
   if (user) {
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    // New accounts go straight to mandatory profiling, not the dashboard.
+    if (user.profiling_complete === false) return <Navigate to="/profiling" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return <>{children}</>;
@@ -155,9 +161,14 @@ function AppRoutes() {
     );
   }
 
-  return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+  // Native: NO AnimatePresence and NO per-path key. AnimatePresence
+  // mode="wait" requires motion children to signal exit completion; on native
+  // PageTransition returns bare children, so route changes could leave the old
+  // page mounted (and swallowing taps) while the new one never appeared — the
+  // "buttons don't work / tabs don't open" failure. The key also forced a full
+  // remount of the entire tree on every navigation.
+  const appRoutes = (
+      <Routes location={location} key={isNative ? undefined : location.pathname}>
         <Route path="/" element={<PublicRoute><PageTransition><HomePage /></PageTransition></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
         <Route path="/forgot-password" element={<PageTransition><LazyLoad><ForgotPasswordPage /></LazyLoad></PageTransition>} />
@@ -194,15 +205,17 @@ function AppRoutes() {
         <Route path="/rewards" element={<ProtectedRoute><PageTransition><LazyLoad><RewardsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><PageTransition><LazyLoad><NotificationsPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/subscription" element={<ProtectedRoute><PageTransition><LazyLoad><SubscriptionPage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/profiling" element={<ProtectedRoute><PageTransition><LazyLoad><AIProfilingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
+        <Route path="/profiling" element={<ProtectedRoute skipProfilingCheck><PageTransition><LazyLoad><AIProfilingPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         {/* One profile, not two — the AI profile now lives inside /profile. */}
         <Route path="/ai-profile" element={<Navigate to="/profile" replace />} />
         <Route path="/user/:id" element={<ProtectedRoute><PageTransition><LazyLoad><UserProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </AnimatePresence>
   );
+
+  if (isNative) return appRoutes;
+  return <AnimatePresence mode="wait">{appRoutes}</AnimatePresence>;
 }
 
 export default function App() {

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { SSAura } from '../components/ss/SSAura';
 import {
   Pin, ArrowLeft, Coffee, Leaf, Shoe, Flame, Dumbbell, Trophy, Check, Target, Bolt,
@@ -182,6 +183,7 @@ function OnboardShell({ children, label }: { children: React.ReactNode; label: s
 export function AIProfilingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<ProfilingData>({
     gender: '', age: 28, height_cm: 170, weight_kg: 70,
@@ -200,9 +202,11 @@ export function AIProfilingPage() {
     // the stale value).
     mutationFn: (payload: typeof data) => api.post('/profiling/generate', payload),
     onSuccess: (res) => {
-      // Refresh the dashboard so the "Complete your profile" prompt clears now
-      // that profiling_complete is set.
+      // Refresh the dashboard AND the auth user — ProtectedRoute gates the
+      // whole app on user.profiling_complete, so it must flip before the user
+      // leaves this wizard or they'd be bounced right back here.
       queryClient.invalidateQueries({ queryKey: ['dashboard-batch'] });
+      refreshUser();
       setTimeout(() => {
         setDna(res.data);
         setAnalyzing(false);

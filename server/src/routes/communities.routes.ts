@@ -508,6 +508,20 @@ router.post('/request', async (req: AuthRequest, res: Response) => {
   res.json({ success: true, message: 'Request submitted for review' });
 });
 
+// GET /communities/my-requests — the requester's own submissions with status,
+// so the app can show "request sent / approved / rejected" plus next steps.
+router.get('/my-requests', async (req: AuthRequest, res: Response) => {
+  const requests = await db.query(`
+    SELECT cr.id, cr.name, cr.status, cr.created_at, cr.reviewed_at,
+      (SELECT c.id FROM communities c WHERE c.owner_id = cr.user_id AND c.name = cr.name AND c.deleted_at IS NULL LIMIT 1) as community_id
+    FROM community_requests cr
+    WHERE cr.user_id = $1
+    ORDER BY cr.created_at DESC
+    LIMIT 10
+  `, [req.userId]);
+  res.json(requests);
+});
+
 // GET /communities/requests — Admin: list pending community requests
 router.get('/requests', async (req: AuthRequest, res: Response) => {
   const user = await db.queryOne('SELECT role FROM users WHERE id = $1', [req.userId]) as any;
@@ -555,6 +569,16 @@ router.post('/requests/:id/approve', async (req: AuthRequest, res: Response) => 
   await createCommunitySubscription(request.user_id, communityId);
 
   await db.execute("UPDATE community_requests SET status = 'approved', reviewed_at = NOW() WHERE id = $1", [requestId]);
+
+  // Tell the new community head what happened and what to do next — this rides
+  // the in-app notification feed AND the APK's system-tray mirror.
+  await createNotification(
+    request.user_id, 'community_join',
+    `🎉 ${request.name} is approved — you're the Community Head!`,
+    'Open Community → Clubs to find your new community. Post a welcome message, invite runners, and set the vibe. 1000 Kendu was charged as the founding fee.',
+    undefined, 'community', communityId,
+  );
+
   res.json({ message: 'Approved', communityId, kenduCharged: 1000 });
 });
 
@@ -568,6 +592,14 @@ router.post('/requests/:id/reject', async (req: AuthRequest, res: Response) => {
   if (!request) return res.status(404).json({ error: 'Request not found or already processed' });
 
   await db.execute("UPDATE community_requests SET status = 'rejected', reviewed_at = NOW() WHERE id = $1", [requestId]);
+
+  await createNotification(
+    request.user_id, 'community_join',
+    `Community request "${request.name}" wasn't approved`,
+    'No Kendu was charged. You can refine the idea (clear purpose, who it serves, how it grows the club) and submit again from Community → Clubs → Start a community.',
+    undefined, 'community_request', requestId,
+  );
+
   res.json({ message: 'Rejected, no Kendu charged' });
 });
 

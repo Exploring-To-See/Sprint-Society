@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
@@ -7,8 +7,9 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { isNative } from '../lib/native';
 import { useAuth } from '../context/AuthContext';
 
-/** Routes where the Android back button should minimize the app instead of navigating. */
-const ROOT_ROUTES = ['/', '/dashboard', '/admin'];
+/** Routes where the Android back button should minimize the app instead of navigating.
+ *  /profiling is a root: back must not let a new account escape mandatory onboarding. */
+const ROOT_ROUTES = ['/', '/dashboard', '/admin', '/profiling'];
 
 /**
  * Native app behavior for the Capacitor (APK / iOS) builds:
@@ -46,16 +47,21 @@ export function useNativeApp() {
   }, [navigate, location.pathname]);
 
   // Deep-link auth: in.sprintsociety.app://auth?token=JWT&isNew=1
+  // Each auth URL must be consumed exactly ONCE. The effect re-runs whenever
+  // its deps change identity (acceptToken is a new function every AuthContext
+  // render), and getLaunchUrl() keeps returning the same URL — re-applying it
+  // re-triggered acceptToken → loading → re-render → effect → getLaunchUrl,
+  // wedging cold-started deep-link sign-ins on the spinner.
+  const handledAuthUrlsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!isNative) return;
 
     const applyAuthUrl = (url: string) => {
+      if (handledAuthUrlsRef.current.has(url)) return;
+      handledAuthUrlsRef.current.add(url);
       try {
         const parsed = new URL(url);
-        if (parsed.hostname !== 'auth' && !parsed.pathname.includes('auth')) {
-          // Custom schemes parse as protocol://hostname/path — hostname is "auth"
-          // for in.sprintsociety.app://auth?token=…
-        }
         const jwt = parsed.searchParams.get('token');
         if (!jwt) return;
         // Sign-in happened in a Chrome Custom Tab (GoogleSignInButton) — close

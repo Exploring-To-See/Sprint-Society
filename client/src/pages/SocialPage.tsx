@@ -288,6 +288,14 @@ function ClubsTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['communities'] }),
   });
 
+  // The user's own community requests — surfaces "sent to admin / approved /
+  // rejected" right where they submitted, refreshed on the notification poll cadence.
+  const { data: myRequests } = useQuery<{ id: number; name: string; status: string; community_id?: number | null }[]>({
+    queryKey: ['community-my-requests'],
+    queryFn: () => api.get('/communities/my-requests').then((r) => r.data),
+    refetchInterval: 30000,
+  });
+
   const clubs = data?.communities ?? [];
   const mine = clubs.filter((c) => c.is_member);
   const discover = clubs.filter((c) => !c.is_member);
@@ -336,6 +344,28 @@ function ClubsTab() {
 
   return (
     <div data-testid="social-tab-clubs" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {(myRequests ?? []).filter((r) => r.status !== 'approved' || !r.community_id).slice(0, 3).map((r) => (
+        <div
+          key={`req-${r.id}`}
+          className="tile"
+          data-testid={`club-request-${r.id}`}
+          style={{
+            flexDirection: 'column', gap: 4, padding: '12px 14px',
+            borderLeft: `3px solid ${r.status === 'pending' ? 'var(--amber)' : r.status === 'approved' ? 'var(--green)' : 'var(--muted-2)'}`,
+          }}
+        >
+          <span style={{ font: '600 12.5px var(--body)', color: 'var(--fg)' }}>
+            {r.status === 'pending' && `"${r.name}" — request sent to admin`}
+            {r.status === 'approved' && `"${r.name}" approved — you're the Community Head!`}
+            {r.status === 'rejected' && `"${r.name}" wasn't approved this time`}
+          </span>
+          <span style={{ font: '400 10.5px var(--body)', color: 'var(--muted)' }}>
+            {r.status === 'pending' && 'The Sprint Society team is reviewing it. You’ll get a notification either way.'}
+            {r.status === 'approved' && 'It’s live in your communities below — post a welcome message and invite runners.'}
+            {r.status === 'rejected' && 'No Kendu was charged. Refine the idea and submit again any time.'}
+          </span>
+        </div>
+      ))}
       {mine.length > 0 && (
         <section>
           <p className="tlbl" style={{ marginBottom: 8 }}>My communities</p>

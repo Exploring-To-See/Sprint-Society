@@ -13,6 +13,8 @@ interface User {
   fitness_level?: string;
   running_experience?: string;
   profile_image_url?: string;
+  /** Route guards force the profiling wizard until this is true. */
+  profiling_complete?: boolean;
 }
 
 interface AuthContextType {
@@ -23,6 +25,8 @@ interface AuthContextType {
   googleLogin: (credential: string) => Promise<{ isNew?: boolean }>;
   /** Apply a JWT received from the native deep-link auth bridge. */
   acceptToken: (token: string) => void;
+  /** Re-fetch /auth/me (e.g. right after profiling completes). */
+  refreshUser: () => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -108,6 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // /auth/me effect will hydrate `user` from the new token
   };
 
+  const refreshUser = async () => {
+    try {
+      const res = await api.get('/auth/me', { timeout: 10000 });
+      setUser(res.data);
+    } catch { /* keep current user on transient failure */ }
+  };
+
   const logout = () => {
     localStorage.removeItem('sprint_society_token');
     setToken(null);
@@ -115,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, googleLogin, acceptToken, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, googleLogin, acceptToken, refreshUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

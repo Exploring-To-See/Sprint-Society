@@ -5,7 +5,7 @@
 //  2. User signs in with Google (GIS works on the real web origin) or email
 //  3. We bounce back to the deep-link with ?token=JWT so the native shell can
 //     store the session in its own (localhost) localStorage.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +27,14 @@ export function NativeAuthPage() {
   const redirectBase = requestedRedirect.startsWith('in.sprintsociety.app://') ? requestedRedirect : DEFAULT_REDIRECT;
   const mode = params.get('mode') === 'signup' ? 'signup' : 'signin';
 
+  // Bounce exactly once. The Google onSuccess handler bounces explicitly WITH
+  // the isNew flag; the token effect below is only the "already signed in"
+  // fallback. Without the guard both could fire and the flag-less one could
+  // strand a brand-new user on /dashboard instead of /profiling.
+  const bouncedRef = useRef(false);
   function bounceWithToken(jwt: string, isNew?: boolean) {
+    if (bouncedRef.current) return;
+    bouncedRef.current = true;
     const url = new URL(redirectBase);
     url.searchParams.set('token', jwt);
     if (isNew) url.searchParams.set('isNew', '1');

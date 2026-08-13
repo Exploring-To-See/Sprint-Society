@@ -211,6 +211,11 @@ export function RunTrackerPage() {
       setGpsError('Enable location, then come back — we re-check automatically');
       return;
     }
+    if (permStateRef.current === 'coarse-only') {
+      // Android shows the precise-location upgrade dialog when asked again.
+      const { Geolocation } = await import('@capacitor/geolocation');
+      await Geolocation.requestPermissions({ permissions: ['location'] }).catch(() => {});
+    }
     primeLocation();
   }, [primeLocation]);
 
@@ -355,8 +360,9 @@ export function RunTrackerPage() {
   }, []);
 
   const handlePositionUpdate = useCallback((position: GeoPoint) => {
-    // A good fix arrived — clear any stale "GPS signal unavailable" banner.
-    setGpsError((prev) => (prev && prev.includes('unavailable') ? null : prev));
+    // A good fix arrived — clear any stale watcher error banner. The
+    // approximate-location advisory is informational and stays.
+    setGpsError((prev) => (prev && !prev.startsWith('Using approximate') ? null : prev));
 
     // Accuracy gate: urban/indoor fixes with 50-200m uncertainty create phantom
     // distance while standing still. Drop hopeless fixes entirely.
@@ -420,9 +426,17 @@ export function RunTrackerPage() {
   const startTracking = useCallback(async () => {
     setGpsError(null);
     // Native: shows the system location permission popup before the run starts.
+    // coarse-only ("Approximate") still tracks — with an advisory chip.
     const state = await ensureLocationPermissionDetailed();
     permStateRef.current = state;
-    if (state !== 'granted') { primeLocation(); return; }
+    if (state !== 'granted' && state !== 'coarse-only') { primeLocation(); return; }
+    if (state === 'coarse-only') {
+      setGpsError('Using approximate location — allow Precise location for accurate tracking');
+    }
+    // stateRef must flip SYNCHRONOUSLY: the useEffect mirror only runs after a
+    // re-render, and the watcher-race guard below reads it during the await —
+    // otherwise the fresh watcher is torn down instantly and nothing records.
+    stateRef.current = 'RUNNING';
 
     startTimeRef.current = new Date().toISOString();
     positionsRef.current = [];
@@ -465,12 +479,25 @@ export function RunTrackerPage() {
   }, [handlePositionUpdate, coach, primeLocation]);
 
   const pauseTracking = useCallback(() => {
+    stateRef.current = 'PAUSED';
     setState('PAUSED');
     stopSpeaking();
     if (watchRef.current) { watchRef.current.clear(); watchRef.current = null; }
   }, []);
 
   const resumeTracking = useCallback(async () => {
+    // Things change while paused (user toggles Location off, revokes the
+    // permission from the notification shade) — re-check before resuming.
+    const p = await ensureLocationPermissionDetailed();
+    permStateRef.current = p;
+    if (p !== 'granted' && p !== 'coarse-only') {
+      setGpsError(
+        p === 'services-off' ? 'Your device Location (GPS) is off — tap to turn it on'
+        : 'Location permission is off — tap to fix it',
+      );
+      return;
+    }
+    stateRef.current = 'RUNNING';
     setState('RUNNING');
     const w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
     if (stateRef.current !== 'RUNNING') { w.clear(); return; }
@@ -479,6 +506,7 @@ export function RunTrackerPage() {
   }, [handlePositionUpdate]);
 
   const stopTracking = useCallback(() => {
+    stateRef.current = 'FINISHED';
     setState('FINISHED');
     stopSpeaking();
     if (watchRef.current) { watchRef.current.clear(); watchRef.current = null; }
@@ -791,8 +819,14 @@ export function RunTrackerPage() {
           </div>
         )}
 
-        {/* Map */}
-        {!locating && (state !== 'IDLE' || userLocation) && (
+        {/* Map — never mount Leaflet without a real fix: a run started before
+            first GPS lock otherwise renders a map centered on Null Island. */}
+        {!locating && state !== 'IDLE' && !userLocation && (
+          <div className="ss-surface ss-recess" style={{ height: 160, borderRadius: 20, display: 'grid', placeItems: 'center' }}>
+            <p style={{ font: '500 12px var(--body)', color: 'var(--muted)' }}>Acquiring GPS signal…</p>
+          </div>
+        )}
+        {!locating && userLocation && (state !== 'IDLE' || userLocation) && (
           <div
             className="ss-surface ss-recess"
             style={{

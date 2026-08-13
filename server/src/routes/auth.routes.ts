@@ -153,9 +153,16 @@ router.post('/login', async (req, res: Response) => {
 });
 
 router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
+  // profiling_complete rides along so the client's route guards can force
+  // every new account through the profiling wizard before the rest of the app.
   const user = await db.queryOne(`
-    SELECT id, name, email, role, gender, age, height_cm, weight_kg, fitness_level, running_experience, injury_history, profile_image_url, timezone, created_at
-    FROM users WHERE id = $1
+    SELECT u.id, u.name, u.email, u.role, u.gender, u.age, u.height_cm, u.weight_kg,
+      u.fitness_level, u.running_experience, u.injury_history, u.profile_image_url,
+      u.timezone, u.created_at,
+      COALESCE(rp.profiling_complete, 0)::int AS profiling_complete
+    FROM users u
+    LEFT JOIN runner_profiles rp ON rp.user_id = u.id
+    WHERE u.id = $1
   `, [req.userId]);
 
   if (!user) {
@@ -163,6 +170,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 
   user.injury_history = JSON.parse(user.injury_history || '[]');
+  user.profiling_complete = !!user.profiling_complete;
   res.json(user);
 });
 
