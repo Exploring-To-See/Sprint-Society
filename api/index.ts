@@ -15,6 +15,11 @@
  * function instance and reused across invocations.
  */
 import { createApp } from '../server/src/app';
+import { ensureHotMigrations } from '../server/src/database/pg';
+
+// Self-heal missing runtime columns once per warm instance (fire-and-forget) —
+// a stale database otherwise 500s every run save.
+ensureHotMigrations();
 
 const app = createApp({ serveStatic: false });
 

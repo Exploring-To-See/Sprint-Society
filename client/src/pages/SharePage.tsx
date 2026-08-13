@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { KenduSpendConfirmModal } from '../components/kendu/KenduSpendConfirmModal';
 import { formatPace, formatDistance, formatDuration, formatDate } from '../lib/formatters';
 import { RouteShape } from '../components/share/RouteShape';
+import { isNative } from '../lib/native';
 
 async function toJpeg(node: HTMLElement, options?: Record<string, any>): Promise<string> {
   const { toJpeg: fn } = await import('html-to-image');
@@ -497,6 +498,22 @@ export function SharePage() {
     if (!cardRef.current) return;
     try {
       const dataUrl = await toJpeg(cardRef.current, { pixelRatio: 3, quality: 0.92 });
+      if (isNative) {
+        // Native share sheet (Instagram / WhatsApp / Facebook / anything
+        // installed): write the JPEG to app cache, hand the file URI to the
+        // system sheet. navigator.share with files does NOT work in the
+        // Android WebView.
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const fileName = `sprint-society-run-${selectedRunId || 'card'}.jpg`;
+        const written = await Filesystem.writeFile({
+          path: fileName,
+          data: dataUrl.split(',')[1],
+          directory: Directory.Cache,
+        });
+        await Share.share({ title: 'My Sprint Society Run', files: [written.uri] });
+        return;
+      }
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], 'sprint-society-run.jpg', { type: 'image/jpeg' });
       if (navigator.share) {

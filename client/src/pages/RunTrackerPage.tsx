@@ -510,6 +510,12 @@ export function RunTrackerPage() {
   }, [coach]);
 
   const saveRun = async () => {
+    // No distance recorded (GPS never locked / indoor test) → the server would
+    // 400 anyway. Say so plainly instead of a misleading connection error.
+    if (Math.round(totalDistance) < 10 || elapsedSeconds < 5) {
+      setSaveError('Not enough GPS data to save this run — try an outdoor run with location on.');
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     try {
@@ -546,7 +552,10 @@ export function RunTrackerPage() {
       console.error('Failed to save run:', err);
       setSaving(false);
       setState('FINISHED');
-      setSaveError('We couldn\'t save your run. Check your connection and try again.');
+      // Surface the server's actual reason (ApiError.message) — the generic
+      // "check your connection" hid real causes like validation errors.
+      const msg = err instanceof Error && err.message ? err.message : '';
+      setSaveError(msg || "We couldn't save your run. Check your connection and try again.");
       return;
     } finally { setSaving(false); }
   };

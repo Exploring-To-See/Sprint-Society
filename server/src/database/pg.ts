@@ -124,6 +124,37 @@ export async function initializeDatabase(): Promise<void> {
 }
 
 /**
+ * Hot column migrations — the tiny idempotent ALTERs from the bottom of
+ * schema.pg.sql that runtime queries depend on (activities.rpe/map_polyline/
+ * deleted_at etc.). Databases provisioned before those columns existed 500
+ * every run save. Runs once per warm instance, fire-and-forget, each statement
+ * a no-op when the column already exists.
+ */
+let hotMigrationsStarted = false;
+export function ensureHotMigrations(): void {
+  if (hotMigrationsStarted) return;
+  hotMigrationsStarted = true;
+  const stmts = [
+    "ALTER TABLE activities ADD COLUMN IF NOT EXISTS activity_type TEXT DEFAULT 'Run'",
+    'ALTER TABLE activities ADD COLUMN IF NOT EXISTS rpe INTEGER',
+    'ALTER TABLE activities ADD COLUMN IF NOT EXISTS suspicious INTEGER DEFAULT 0',
+    'ALTER TABLE activities ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP',
+    'ALTER TABLE activities ADD COLUMN IF NOT EXISTS map_polyline TEXT',
+    'ALTER TABLE activities ADD COLUMN IF NOT EXISTS splits TEXT',
+    'ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP',
+    'ALTER TABLE communities ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP',
+    "ALTER TABLE kudos ADD COLUMN IF NOT EXISTS reaction_type TEXT DEFAULT 'high_five'",
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT',
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'Asia/Kolkata'",
+  ];
+  (async () => {
+    for (const s of stmts) {
+      try { await pool.query(s); } catch { /* column exists or table missing — fine */ }
+    }
+  })();
+}
+
+/**
  * Gracefully shut down the pool.
  */
 export async function closePool(): Promise<void> {

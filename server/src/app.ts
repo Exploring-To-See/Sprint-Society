@@ -128,7 +128,9 @@ export function createApp(options: CreateAppOptions = {}) {
     },
     credentials: true,
   }));
-  app.use(express.json({ limit: '2mb' }));
+  // 5mb: base64 photo uploads (profile + community post images) exceed 2mb for
+  // phone-camera shots; the photo routes enforce their own per-field caps.
+  app.use(express.json({ limit: '5mb' }));
   app.use(createRequestLogger());
   app.use(sanitizeInput);
   app.use('/api', generalLimiter);

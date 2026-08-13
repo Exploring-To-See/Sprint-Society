@@ -356,12 +356,17 @@ function ClubsTab() {
         />
       )}
       <button
-        className="ss-btn ss-btn-soft"
-        style={{ height: 44 }}
+        className="tile"
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '14px 15px', cursor: 'pointer', textAlign: 'left', border: '1px dashed rgba(249,115,22,.4)', background: 'rgba(249,115,22,.06)' }}
         onClick={() => navigate('/communities/create')}
         data-testid="clubs-create"
       >
-        Start a community
+        <span style={{ width: 36, height: 36, borderRadius: 12, flex: 'none', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg,var(--accent),var(--accent-2))', color: '#fff', font: '600 20px var(--head)', lineHeight: 1 }}>+</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', font: '600 13.5px var(--head)', color: 'var(--fg)' }}>Start a community</span>
+          <span style={{ display: 'block', font: '400 11px var(--body)', color: 'var(--muted)', marginTop: 2 }}>Rally your running crew — reviewed by the Sprint Society team</span>
+        </span>
+        <ChevronRight width={15} height={15} style={{ color: 'var(--accent-2)', flex: 'none' }} />
       </button>
     </div>
   );

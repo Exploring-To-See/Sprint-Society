@@ -14,6 +14,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { LandingPage } from './pages/LandingPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { ADMIN_ONLY } from './lib/backend';
+import { isNative } from './lib/native';
 
 // Lazy-loaded pages (code splitting)
 const RunHistoryPage = lazy(() => import('./pages/RunHistoryPage').then(m => ({ default: m.RunHistoryPage })));
@@ -133,6 +134,24 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
+    );
+  }
+
+  // App-only product: the full experience lives in the APK / iOS shells. On
+  // the open web this deploy serves ONLY what has to be web-reachable — the
+  // native Google/email auth bridge, password-reset links from emails, and the
+  // marketing landing. Everything else routes to the landing page. The admin
+  // portal is untouched (ADMIN_ONLY hostnames return above).
+  if (!isNative) {
+    return (
+      <Routes location={location}>
+        <Route path="/native-auth" element={<LazyLoad><NativeAuthPage /></LazyLoad>} />
+        <Route path="/forgot-password" element={<LazyLoad><ForgotPasswordPage /></LazyLoad>} />
+        <Route path="/reset-password/:token" element={<LazyLoad><ResetPasswordPage /></LazyLoad>} />
+        <Route path="/join" element={<LandingPage />} />
+        <Route path="/founding" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/join" replace />} />
+      </Routes>
     );
   }
 
