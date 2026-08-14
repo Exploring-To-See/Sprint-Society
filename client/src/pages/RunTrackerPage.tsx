@@ -364,9 +364,11 @@ export function RunTrackerPage() {
     // approximate-location advisory is informational and stays.
     setGpsError((prev) => (prev && !prev.startsWith('Using approximate') ? null : prev));
 
-    // Accuracy gate: urban/indoor fixes with 50-200m uncertainty create phantom
-    // distance while standing still. Drop hopeless fixes entirely.
-    if (position.accuracy > 30) return;
+    // Accuracy gate: fixes with huge uncertainty create phantom distance while
+    // standing still. 50m keeps urban-canyon/under-trees fixes usable — the
+    // old 30m cutoff dropped EVERY fix in poor-signal conditions, so distance
+    // never accumulated and the run couldn't be saved.
+    if (position.accuracy > 50) return;
 
     const newPos: Position = {
       lat: position.latitude,
@@ -397,7 +399,10 @@ export function RunTrackerPage() {
         // froze for the rest of the run.
         positionsRef.current = [...positions, newPos];
         setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
-      } else if (dist >= Math.max(2, position.accuracy * 0.5)) {
+      } else if (dist >= Math.min(6, Math.max(2, position.accuracy * 0.25))) {
+        // Movement threshold scales with accuracy but caps at 6m — the old
+        // accuracy*0.5 (up to 15m) rejected every step of a slow jog, so the
+        // speedometer read zero and distance never moved.
         positionsRef.current = [...positions, newPos];
         setRouteCoords(prev => [...prev, [newPos.lat, newPos.lon]]);
         setTotalDistance(prev => {

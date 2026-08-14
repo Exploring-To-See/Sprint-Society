@@ -28,10 +28,10 @@ router.get('/runners', async (req: AuthRequest, res: Response) => {
 
   if (search) {
     const like = `%${search}%`;
-    const countResult = await db.queryOne("SELECT COUNT(*) as c FROM users WHERE role = 'runner' AND (name LIKE $1 OR email LIKE $2)", [like, like]);
+    const countResult = await db.queryOne("SELECT COUNT(*) as c FROM users WHERE role IN ('runner','disabled') AND (name LIKE $1 OR email LIKE $2)", [like, like]);
     totalCount = countResult.c;
     runners = await db.query(`
-      SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
+      SELECT u.id, u.name, u.email, u.phone, u.role, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
         ux.total_xp, ux.current_level, ux.current_streak_days,
         th.tier as current_tier,
         COALESCE(ast.total_runs, 0) as total_runs,
@@ -41,14 +41,14 @@ router.get('/runners', async (req: AuthRequest, res: Response) => {
       LEFT JOIN user_xp ux ON u.id = ux.user_id
       LEFT JOIN (SELECT user_id, tier, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY calculated_at DESC) as rn FROM tier_history) th ON th.user_id = u.id AND th.rn = 1
       LEFT JOIN (SELECT user_id, COUNT(*) as total_runs, SUM(distance_meters) as total_distance, AVG(average_pace_per_km) as avg_pace FROM activities GROUP BY user_id) ast ON ast.user_id = u.id
-      WHERE u.role = 'runner' AND (u.name LIKE $1 OR u.email LIKE $2)
+      WHERE u.role IN ('runner','disabled') AND (u.name LIKE $1 OR u.email LIKE $2)
       ORDER BY ux.total_xp DESC LIMIT $3 OFFSET $4
     `, [like, like, limit, offset]);
   } else {
-    const countResult = await db.queryOne("SELECT COUNT(*) as c FROM users WHERE role = 'runner'", []);
+    const countResult = await db.queryOne("SELECT COUNT(*) as c FROM users WHERE role IN ('runner','disabled')", []);
     totalCount = countResult.c;
     runners = await db.query(`
-      SELECT u.id, u.name, u.email, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
+      SELECT u.id, u.name, u.email, u.phone, u.role, u.gender, u.age, u.fitness_level, u.running_experience, u.created_at,
         ux.total_xp, ux.current_level, ux.current_streak_days,
         th.tier as current_tier,
         COALESCE(ast.total_runs, 0) as total_runs,
@@ -58,7 +58,7 @@ router.get('/runners', async (req: AuthRequest, res: Response) => {
       LEFT JOIN user_xp ux ON u.id = ux.user_id
       LEFT JOIN (SELECT user_id, tier, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY calculated_at DESC) as rn FROM tier_history) th ON th.user_id = u.id AND th.rn = 1
       LEFT JOIN (SELECT user_id, COUNT(*) as total_runs, SUM(distance_meters) as total_distance, AVG(average_pace_per_km) as avg_pace FROM activities GROUP BY user_id) ast ON ast.user_id = u.id
-      WHERE u.role = 'runner'
+      WHERE u.role IN ('runner','disabled')
       ORDER BY ux.total_xp DESC LIMIT $1 OFFSET $2
     `, [limit, offset]);
   }
@@ -70,7 +70,7 @@ router.get('/runners/:id', async (req: AuthRequest, res: Response) => {
   const runner = await db.queryOne(`
     SELECT u.*, ux.total_xp, ux.current_level, ux.current_streak_days, ux.longest_streak_days
     FROM users u LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE u.id = $1 AND u.role = 'runner'
+    WHERE u.id = $1 AND u.role IN ('runner','disabled')
   `, [req.params.id]) as any;
 
   if (!runner) return res.status(404).json({ error: 'Runner not found' });
@@ -398,6 +398,40 @@ router.put('/runners/:id/reset-password', async (req: AuthRequest, res: Response
 
 // ===== USER MANAGEMENT =====
 
+// PUT /admin/runners/:id — edit core account fields
+router.put('/runners/:id(\\d+)', async (req: AuthRequest, res: Response) => {
+  const userId = parseInt(req.params.id);
+  const { name, email, phone, role } = req.body;
+
+  const target = await db.queryOne('SELECT id, role FROM users WHERE id = $1', [userId]) as any;
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  if (role !== undefined && !['runner', 'admin', 'disabled'].includes(role)) {
+    return res.status(400).json({ error: 'role must be runner, admin, or disabled' });
+  }
+  if (email !== undefined) {
+    const clash = await db.queryOne('SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2', [email, userId]);
+    if (clash) return res.status(409).json({ error: 'Email already in use by another account' });
+  }
+
+  await db.execute(`
+    UPDATE users SET
+      name = COALESCE($1, name),
+      email = COALESCE($2, email),
+      phone = COALESCE($3, phone),
+      role = COALESCE($4, role),
+      updated_at = NOW()
+    WHERE id = $5
+  `, [name ?? null, email ?? null, phone ?? null, role ?? null, userId]);
+
+  await db.execute(
+    'INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, details) VALUES ($1, $2, $3, $4, $5)',
+    [req.userId, 'edit_user', 'user', userId, JSON.stringify({ name, email, phone, role })],
+  ).catch(() => { /* audit best-effort */ });
+  const updated = await db.queryOne('SELECT id, name, email, phone, role FROM users WHERE id = $1', [userId]);
+  res.json(updated);
+});
+
 router.put('/runners/:id/disable', async (req: AuthRequest, res: Response) => {
   const user = await db.queryOne('SELECT id, role FROM users WHERE id = $1', [req.params.id]) as any;
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -495,7 +529,7 @@ router.get('/export/runners', async (req: AuthRequest, res: Response) => {
       (SELECT COALESCE(SUM(distance_meters), 0) FROM activities WHERE user_id = u.id) as total_distance_meters
     FROM users u
     LEFT JOIN user_xp ux ON u.id = ux.user_id
-    WHERE u.role = 'runner'
+    WHERE u.role IN ('runner','disabled')
     ORDER BY u.created_at DESC
   `, []);
 
@@ -622,7 +656,7 @@ router.get('/analytics', async (req: AuthRequest, res: Response) => {
     WHERE start_date >= NOW() - INTERVAL '30 days'
   `, []) as any).count;
 
-  const totalRunners = (await db.queryOne("SELECT COUNT(*) as c FROM users WHERE role = 'runner'", []) as any).c;
+  const totalRunners = (await db.queryOne("SELECT COUNT(*) as c FROM users WHERE role IN ('runner','disabled')", []) as any).c;
 
   const chatUsage = (await db.queryOne(`
     SELECT COUNT(DISTINCT user_id) as users, COUNT(*) as messages

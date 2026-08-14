@@ -12,6 +12,7 @@ import { KenduSpendConfirmModal } from '../kendu/KenduSpendConfirmModal';
 import { CoachMarkdown } from './CoachMarkdown';
 
 interface ChatMessage { id?: number | string; role: 'user' | 'assistant'; content: string; created_at?: string }
+interface ChatThread { id: number; title: string; updated_at?: string; message_count?: number }
 interface Suggestion { label: string }
 
 const FALLBACK_PROMPTS: Suggestion[] = [
@@ -33,11 +34,36 @@ export function CoachChat() {
   const reduce = useReducedMotion();
   const [input, setInput] = useState('');
   const [showDeepDive, setShowDeepDive] = useState(false);
+  // null = fresh conversation (a thread is created on first send).
+  const [activeThread, setActiveThread] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const { data: threads } = useQuery<ChatThread[]>({
+    queryKey: ['chat-threads'],
+    queryFn: () => api.get('/chat/threads').then((r) => r.data),
+  });
+
+  // Default to the most recent conversation once threads load.
+  const pickedInitialRef = useRef(false);
+  useEffect(() => {
+    if (pickedInitialRef.current || !threads) return;
+    pickedInitialRef.current = true;
+    if (threads.length > 0) setActiveThread(threads[0].id);
+  }, [threads]);
+
   const { data: history, isLoading, isError, refetch } = useQuery<ChatMessage[]>({
-    queryKey: ['chat-history'],
-    queryFn: () => api.get('/chat/history').then((r) => r.data),
+    queryKey: ['chat-history', activeThread],
+    queryFn: () => api.get('/chat/history', { params: activeThread != null ? { thread_id: activeThread } : {} }).then((r) => r.data),
+    enabled: activeThread !== null || pickedInitialRef.current,
+  });
+
+  const deleteThread = useMutation({
+    mutationFn: (id: number) => api.delete(`/chat/threads/${id}`),
+    onSuccess: (_res, id) => {
+      queryClient.invalidateQueries({ queryKey: ['chat-threads'] });
+      queryClient.removeQueries({ queryKey: ['chat-history', id] });
+      if (activeThread === id) setActiveThread(null);
+    },
   });
 
   const { data: suggestionsData } = useQuery<{ suggestions?: Suggestion[] } | null>({
@@ -52,23 +78,32 @@ export function CoachChat() {
   });
 
   const sendMessage = useMutation({
-    mutationFn: (message: string) => api.post('/chat/message', { message }),
+    mutationFn: (message: string) => api.post('/chat/message', { message, thread_id: activeThread }),
     // Optimistic UX: the user's bubble appears the instant they hit send, and
     // the coach's reply is inserted straight from the POST response — no
     // waiting for a history refetch round-trip (the old flow felt frozen, then
     // dumped the reply seconds later).
     onMutate: async (message) => {
       setInput('');
-      await queryClient.cancelQueries({ queryKey: ['chat-history'] });
-      queryClient.setQueryData<ChatMessage[]>(['chat-history'], (old = []) => [
+      await queryClient.cancelQueries({ queryKey: ['chat-history', activeThread] });
+      queryClient.setQueryData<ChatMessage[]>(['chat-history', activeThread], (old = []) => [
         ...old,
         { id: `local-${Date.now()}`, role: 'user', content: message, created_at: new Date().toISOString() },
       ]);
     },
     onSuccess: (res) => {
       const reply: string = res.data?.message || '';
+      const threadId: number | undefined = res.data?.thread_id;
+      // First message of a fresh conversation: the server just created the
+      // thread — adopt it and carry the optimistic bubbles over to its key.
+      if (threadId != null && threadId !== activeThread) {
+        const pending = queryClient.getQueryData<ChatMessage[]>(['chat-history', activeThread]) || [];
+        queryClient.setQueryData(['chat-history', threadId], pending);
+        setActiveThread(threadId);
+      }
+      const key = ['chat-history', threadId ?? activeThread];
       if (reply) {
-        queryClient.setQueryData<ChatMessage[]>(['chat-history'], (old = []) => [
+        queryClient.setQueryData<ChatMessage[]>(key, (old = []) => [
           ...old,
           { id: `local-ai-${Date.now()}`, role: 'assistant', content: reply, created_at: new Date().toISOString() },
         ]);
@@ -89,6 +124,7 @@ export function CoachChat() {
       }
       // Reconcile with the server copy in the background (ids, timestamps).
       queryClient.invalidateQueries({ queryKey: ['chat-history'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-threads'] });
     },
     onError: () => { queryClient.invalidateQueries({ queryKey: ['chat-history'] }); },
   });
@@ -133,6 +169,45 @@ export function CoachChat() {
         >
           <Spark width={13} height={13} style={{ color: 'var(--violet-2)' }} /> Deep Dive
         </button>
+      </div>
+
+      {/* conversations — new chat + switchable threads with delete */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none', flex: 'none' }} data-testid="coach-thread-bar">
+        <button
+          className="ss-btn ss-btn-soft"
+          style={{ flex: 'none', height: 30, padding: '0 12px', font: '600 11px var(--head)', borderStyle: activeThread === null ? 'solid' : 'dashed' }}
+          onClick={() => setActiveThread(null)}
+          data-testid="coach-thread-new"
+        >
+          + New chat
+        </button>
+        {(threads ?? []).map((t) => (
+          <span
+            key={t.id}
+            className="ss-btn ss-btn-soft"
+            style={{
+              flex: 'none', height: 30, padding: '0 6px 0 12px', font: '600 11px var(--head)',
+              display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: 180, cursor: 'pointer',
+              color: activeThread === t.id ? 'var(--fg)' : 'var(--muted)',
+              border: activeThread === t.id ? '1px solid rgba(124,107,240,.55)' : undefined,
+            }}
+            onClick={() => setActiveThread(t.id)}
+            data-testid={`coach-thread-${t.id}`}
+          >
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+            <button
+              aria-label={`Delete conversation ${t.title}`}
+              style={{ border: 'none', background: 'none', color: 'var(--muted-2)', cursor: 'pointer', padding: '2px 4px', font: '600 12px var(--body)', lineHeight: 1 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm(`Delete "${t.title}"? Its messages are removed permanently.`)) deleteThread.mutate(t.id);
+              }}
+              data-testid={`coach-thread-delete-${t.id}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
       </div>
 
       {/* thread */}

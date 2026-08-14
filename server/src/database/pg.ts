@@ -146,6 +146,17 @@ export function ensureHotMigrations(): void {
     "ALTER TABLE kudos ADD COLUMN IF NOT EXISTS reaction_type TEXT DEFAULT 'high_five'",
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT',
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'Asia/Kolkata'",
+    // AI chat threads (schema.pg.sql tail) — heal DBs provisioned earlier.
+    `CREATE TABLE IF NOT EXISTS chat_threads (
+       id SERIAL PRIMARY KEY,
+       user_id INTEGER NOT NULL,
+       title TEXT NOT NULL DEFAULT 'New chat',
+       created_at TIMESTAMP DEFAULT NOW(),
+       updated_at TIMESTAMP DEFAULT NOW()
+     )`,
+    'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS thread_id INTEGER',
+    'CREATE INDEX IF NOT EXISTS idx_chat_threads_user ON chat_threads(user_id, updated_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, created_at DESC)',
   ];
   (async () => {
     for (const s of stmts) {

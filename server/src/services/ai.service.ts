@@ -250,6 +250,39 @@ export async function extractAndStoreInsights(userId: number, userMessage: strin
 /**
  * Call Haiku for background training evaluation (lightweight, fast)
  */
+/**
+ * Personalized coach notes for a freshly generated training plan (Groq).
+ * Returns null when no AI provider is configured or the call fails — the plan
+ * itself is deterministic sports science and never depends on this.
+ */
+export async function generatePlanCoachNotes(
+  userId: number,
+  plan: { total_weeks?: number; vdot?: number; training_paces?: Record<string, number>; weeks?: unknown[] },
+  goal: { race_name?: string; distance_meters?: number; race_date?: string },
+): Promise<string | null> {
+  if (!aiAvailable) return null;
+  try {
+    const context = await buildUserContext(userId);
+    const paceStr = plan.training_paces
+      ? Object.entries(plan.training_paces).map(([k, v]) => `${k}: ${Math.floor(Number(v) / 60)}:${String(Math.round(Number(v) % 60)).padStart(2, '0')}/km`).join(', ')
+      : 'n/a';
+    const result = await completeChat(
+      'background',
+      'You are Sprint Society\'s head running coach writing a short personal briefing for a runner\'s new training plan. Plain text only — no headings, no asterisks. 4-6 short lines, each starting with "- ". Reference their actual data. Be specific and realistic; never invent numbers.',
+      [{
+        role: 'user',
+        content: `${context}\n\nNEW PLAN: ${plan.total_weeks} weeks toward ${goal.race_name || 'their goal'} (${goal.distance_meters ? (goal.distance_meters / 1000) + 'km' : 'distance n/a'}${goal.race_date ? ', race day ' + goal.race_date : ''}). Training paces: ${paceStr}.\n\nWrite the briefing: what to focus on in the first weeks, one watch-out based on their profile/history, and one motivating truth about where this plan takes them.`,
+      }],
+      350,
+    );
+    await trackUsage(userId, result.model, result.inputTokens, result.outputTokens, 'plan_notes');
+    return result.text || null;
+  } catch (err: any) {
+    console.error('[AI] plan notes failed:', err.message);
+    return null;
+  }
+}
+
 export async function evaluateTrainingWithHaiku(userId: number): Promise<any> {
   if (!aiAvailable) return { error: 'AI not configured' };
 

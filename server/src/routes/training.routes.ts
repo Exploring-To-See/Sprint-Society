@@ -96,6 +96,11 @@ router.post('/plan', async (req: AuthRequest, res: Response) => {
   ) as any;
   const plan = generateTrainingPlan(user, runs, goal, tierRowPost?.estimated_vo2max ?? null);
 
+  // Groq layer: personal coach briefing attached to the plan (best-effort).
+  const { generatePlanCoachNotes } = require('../services/ai.service');
+  const notes = await generatePlanCoachNotes(req.userId!, plan, goal);
+  if (notes) (plan as any).ai_coach_notes = notes;
+
   // Save
   await db.execute(
     `INSERT INTO transformation_plans (user_id, current_pace_per_km, target_pace_per_km, current_tier, target_tier, estimated_weeks, plan_data)

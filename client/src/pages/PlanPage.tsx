@@ -12,7 +12,7 @@ import { Target, ChevronDown, Check, Flag } from '../components/ss/icons';
 
 interface Session { type?: string; title?: string; target_pace_per_km?: number; day?: number }
 interface WeekData { phase_name?: string; phase?: string; total_distance_km?: number; focus?: string; sessions?: Session[] }
-interface Plan { current_week?: number; total_weeks?: number; weeks?: WeekData[]; goal?: { race_name?: string; race_date?: string }; race_name?: string; race_date?: string; predicted_time?: string }
+interface Plan { current_week?: number; total_weeks?: number; weeks?: WeekData[]; goal?: { race_name?: string; race_date?: string }; race_name?: string; race_date?: string; predicted_time?: string; ai_coach_notes?: string }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 function phaseFor(week: number, total: number): string {
@@ -80,6 +80,16 @@ export function PlanPage() {
             <motion.div style={{ height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,var(--accent),var(--accent-2))' }} initial={{ width: reduce ? `${Math.round((currentWeek / totalWeeks) * 100)}%` : 0 }} animate={{ width: `${Math.round((currentWeek / totalWeeks) * 100)}%` }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
           </div>
         </section>
+
+        {/* AI coach briefing — Groq-personalized notes attached at generation */}
+        {plan.ai_coach_notes && (
+          <section className="ss-surface ss-ai" style={{ borderRadius: 18, padding: 14 }} data-testid="plan-ai-notes">
+            <p style={{ font: '600 10.5px var(--body)', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--violet-2)', margin: '0 0 8px' }}>Coach briefing</p>
+            {plan.ai_coach_notes.split(/\r?\n/).filter(Boolean).map((line, i) => (
+              <p key={i} style={{ font: '400 12.5px/1.55 var(--body)', color: '#D7D7E4', margin: '3px 0' }}>{line.replace(/^-\s*/, '• ')}</p>
+            ))}
+          </section>
+        )}
 
         {/* timeline */}
         <div style={{ position: 'relative', paddingLeft: 4 }}>

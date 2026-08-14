@@ -266,7 +266,32 @@ function OverviewTab({ stats, runners }: { stats: any; runners: any[] }) {
 const TIER_TAG: Record<string, string> = { beginner: 'go', intermediate: 'now', advanced: 'maybe' };
 
 function RunnersTab({ runners }: { runners: any[] }) {
+  const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [edit, setEdit] = useState({ name: '', email: '', phone: '', role: 'runner' });
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-runners'] });
+
+  const saveEdit = useMutation({
+    mutationFn: (id: number) => api.put(`/admin/runners/${id}`, edit),
+    onSuccess: () => { setEditingId(null); refresh(); },
+    onError: (err: any) => alert(err?.message || 'Update failed'),
+  });
+  const toggleActive = useMutation({
+    mutationFn: ({ id, disabled }: { id: number; disabled: boolean }) =>
+      api.put(`/admin/runners/${id}/${disabled ? 'enable' : 'disable'}`),
+    onSuccess: refresh,
+    onError: (err: any) => alert(err?.message || 'Failed'),
+  });
+  const deleteUser = useMutation({
+    mutationFn: (id: number) => api.delete(`/admin/runners/${id}`),
+    onSuccess: refresh,
+    onError: (err: any) => alert(err?.message || 'Delete failed'),
+  });
+
   if (!runners) return <LoadingRow />;
+
+  const inputStyle: React.CSSProperties = { width: '100%', height: 34, borderRadius: 9, border: '1px solid var(--hair)', background: 'rgba(255,255,255,.04)', color: 'var(--fg)', padding: '0 10px', font: '500 12px var(--body)' };
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -275,7 +300,10 @@ function RunnersTab({ runners }: { runners: any[] }) {
         <motion.div key={runner.id} variants={fadeUp} className="tile" style={{ padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
             <div>
-              <p style={{ font: '600 13.5px var(--body)', color: 'var(--fg)', margin: 0 }}>{runner.name}</p>
+              <p style={{ font: '600 13.5px var(--body)', color: 'var(--fg)', margin: 0 }}>
+                {runner.name}
+                {runner.role === 'disabled' && <span className="ss-tag" style={{ marginLeft: 8, color: 'var(--amber)' }}>disabled</span>}
+              </p>
               <p style={{ font: '400 11px var(--body)', color: 'var(--muted-2)', margin: '2px 0 0' }}>{runner.email}</p>
             </div>
             <span className={`ss-tag ${TIER_TAG[runner.current_tier] || 'full'}`} style={{ textTransform: 'capitalize' }}>
@@ -295,6 +323,51 @@ function RunnersTab({ runners }: { runners: any[] }) {
               </div>
             ))}
           </div>
+
+          {editingId === runner.id ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--hair)' }}>
+              <input style={inputStyle} value={edit.name} onChange={(e) => setEdit(s => ({ ...s, name: e.target.value }))} placeholder="Name" aria-label="Name" />
+              <input style={inputStyle} value={edit.email} onChange={(e) => setEdit(s => ({ ...s, email: e.target.value }))} placeholder="Email" aria-label="Email" />
+              <div style={{ display: 'flex', gap: 7 }}>
+                <input style={{ ...inputStyle, flex: 1 }} value={edit.phone} onChange={(e) => setEdit(s => ({ ...s, phone: e.target.value }))} placeholder="Phone" aria-label="Phone" />
+                <select style={{ ...inputStyle, width: 110 }} value={edit.role} onChange={(e) => setEdit(s => ({ ...s, role: e.target.value }))} aria-label="Role">
+                  <option value="runner">runner</option>
+                  <option value="admin">admin</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <button className="ss-btn ss-btn-primary" style={{ flex: 1, height: 34, fontSize: 11.5 }} onClick={() => saveEdit.mutate(runner.id)} disabled={saveEdit.isPending}>Save</button>
+                <button className="ss-btn ss-btn-ghost" style={{ flex: 1, height: 34, fontSize: 11.5 }} onClick={() => setEditingId(null)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 7, marginTop: 11 }}>
+              <button
+                className="ss-btn ss-btn-soft" style={{ flex: 1, height: 32, fontSize: 11 }}
+                onClick={() => { setEditingId(runner.id); setEdit({ name: runner.name || '', email: runner.email || '', phone: runner.phone || '', role: runner.role || 'runner' }); }}
+                data-testid={`runner-edit-${runner.id}`}
+              >
+                Edit
+              </button>
+              <button
+                className="ss-btn ss-btn-soft" style={{ flex: 1, height: 32, fontSize: 11, color: 'var(--amber)' }}
+                onClick={() => toggleActive.mutate({ id: runner.id, disabled: runner.role === 'disabled' })}
+                disabled={toggleActive.isPending}
+                data-testid={`runner-toggle-${runner.id}`}
+              >
+                {runner.role === 'disabled' ? 'Enable' : 'Disable'}
+              </button>
+              <button
+                className="ss-btn ss-btn-ghost" style={{ flex: 1, height: 32, fontSize: 11, color: 'var(--red, #f87171)' }}
+                onClick={() => { if (window.confirm(`Permanently delete ${runner.name} (${runner.email}) and ALL their data? This cannot be undone.`)) deleteUser.mutate(runner.id); }}
+                disabled={deleteUser.isPending}
+                data-testid={`runner-delete-${runner.id}`}
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </motion.div>
       ))}
     </motion.div>

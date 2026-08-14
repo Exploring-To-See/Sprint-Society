@@ -174,6 +174,12 @@ router.post('/generate-plan', async (req: AuthRequest, res: Response) => {
     ) as any;
     const plan = generateTrainingPlan(user, recentRuns, raceGoal, tierRow?.estimated_vo2max ?? null);
 
+    // Groq layer: a personal coach briefing rides on top of the deterministic
+    // plan. Best-effort — plan generation never fails because AI is down.
+    const { generatePlanCoachNotes } = require('../services/ai.service');
+    const notes = await generatePlanCoachNotes(req.userId!, plan, raceGoal);
+    if (notes) (plan as any).ai_coach_notes = notes;
+
     // Store the plan
     await db.execute(`
       INSERT INTO transformation_plans (user_id, current_pace_per_km, target_pace_per_km, estimated_weeks, plan_data)

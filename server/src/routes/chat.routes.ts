@@ -31,15 +31,33 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
   // Gather runner context for the AI
   const context = await buildRunnerContext(req.userId!, user);
 
+  // Resolve the conversation thread: reuse the one the client sent (must be
+  // the user's own), or start a new thread titled from the first message.
+  let threadId: number | null = null;
+  const requestedThread = parseInt(req.body.thread_id);
+  if (Number.isInteger(requestedThread)) {
+    const owned = await db.queryOne('SELECT id FROM chat_threads WHERE id = $1 AND user_id = $2', [requestedThread, req.userId]);
+    if (owned) threadId = requestedThread;
+  }
+  if (threadId === null) {
+    const title = message.trim().slice(0, 42) + (message.trim().length > 42 ? '…' : '');
+    const created = await db.queryOne(
+      'INSERT INTO chat_threads (user_id, title) VALUES ($1, $2) RETURNING id',
+      [req.userId, title]
+    ) as any;
+    threadId = created.id;
+  }
+
   // Save user message
-  await db.execute('INSERT INTO chat_messages (user_id, role, content, context) VALUES ($1, $2, $3, $4)', [
-    req.userId, 'user', message.trim(), JSON.stringify(context)
+  await db.execute('INSERT INTO chat_messages (user_id, role, content, context, thread_id) VALUES ($1, $2, $3, $4, $5)', [
+    req.userId, 'user', message.trim(), JSON.stringify(context), threadId
   ]);
 
-  // Get conversation history (last 10 messages for context)
+  // Conversation context = last 10 messages OF THIS THREAD, so a long thread
+  // keeps its own continuity and other threads never bleed in.
   const history = await db.query(
-    `SELECT role, content FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
-    [req.userId]
+    `SELECT role, content FROM chat_messages WHERE user_id = $1 AND thread_id = $2 ORDER BY created_at DESC LIMIT 10`,
+    [req.userId, threadId]
   ) as any[];
 
   // Use the real AI whenever a provider is configured (Groq or Anthropic).
@@ -62,12 +80,14 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
   }
 
   // Save assistant message
-  await db.execute('INSERT INTO chat_messages (user_id, role, content) VALUES ($1, $2, $3)', [
-    req.userId, 'assistant', response
+  await db.execute('INSERT INTO chat_messages (user_id, role, content, thread_id) VALUES ($1, $2, $3, $4)', [
+    req.userId, 'assistant', response, threadId
   ]);
+  await db.execute('UPDATE chat_threads SET updated_at = NOW() WHERE id = $1', [threadId]);
 
   res.json({
     message: response,
+    thread_id: threadId,
     context_used: {
       has_recent_runs: context.recentRuns > 0,
       current_vdot: context.vdot,
@@ -77,16 +97,57 @@ router.post('/message', chatLimiter, async (req: AuthRequest, res: Response) => 
   });
 });
 
-// GET /chat/history — Get chat history
+// GET /chat/threads — the user's conversations, newest activity first
+router.get('/threads', async (req: AuthRequest, res: Response) => {
+  const threads = await db.query(`
+    SELECT t.id, t.title, t.created_at, t.updated_at,
+      (SELECT content FROM chat_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
+      (SELECT COUNT(*)::int FROM chat_messages m WHERE m.thread_id = t.id) as message_count
+    FROM chat_threads t
+    WHERE t.user_id = $1
+    ORDER BY t.updated_at DESC
+    LIMIT 30
+  `, [req.userId]);
+  res.json(threads);
+});
+
+// POST /chat/threads — start a fresh conversation
+router.post('/threads', async (req: AuthRequest, res: Response) => {
+  const title = (req.body?.title || 'New chat').toString().slice(0, 60);
+  const created = await db.queryOne(
+    'INSERT INTO chat_threads (user_id, title) VALUES ($1, $2) RETURNING id, title, created_at, updated_at',
+    [req.userId, title]
+  );
+  res.status(201).json(created);
+});
+
+// DELETE /chat/threads/:id — delete a conversation and its messages
+router.delete('/threads/:id(\\d+)', async (req: AuthRequest, res: Response) => {
+  const threadId = parseInt(req.params.id);
+  const owned = await db.queryOne('SELECT id FROM chat_threads WHERE id = $1 AND user_id = $2', [threadId, req.userId]);
+  if (!owned) return res.status(404).json({ error: 'Thread not found' });
+  await db.execute('DELETE FROM chat_messages WHERE thread_id = $1 AND user_id = $2', [threadId, req.userId]);
+  await db.execute('DELETE FROM chat_threads WHERE id = $1', [threadId]);
+  res.json({ success: true });
+});
+
+// GET /chat/history?thread_id=N — one thread's messages (legacy NULL-thread
+// messages come back when no thread_id is given).
 router.get('/history', async (req: AuthRequest, res: Response) => {
-  const limit = parseInt(req.query.limit as string) || 50;
+  const limit = Math.min(parseInt(req.query.limit as string) || 100, 200);
+  const threadId = parseInt(req.query.thread_id as string);
 
   // Newest-first for the LIMIT, then chronological for display — ASC+LIMIT
-  // returned the oldest 50 rows forever once a user passed ~25 exchanges.
-  const messages = await db.query(
-    `SELECT id, role, content, created_at FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
-    [req.userId, limit]
-  );
+  // returned the oldest rows forever once a user passed the limit.
+  const messages = Number.isInteger(threadId)
+    ? await db.query(
+        `SELECT id, role, content, created_at, thread_id FROM chat_messages WHERE user_id = $1 AND thread_id = $2 ORDER BY created_at DESC LIMIT $3`,
+        [req.userId, threadId, limit]
+      )
+    : await db.query(
+        `SELECT id, role, content, created_at, thread_id FROM chat_messages WHERE user_id = $1 AND thread_id IS NULL ORDER BY created_at DESC LIMIT $2`,
+        [req.userId, limit]
+      );
 
   res.json(messages.reverse());
 });

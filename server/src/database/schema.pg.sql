@@ -1050,3 +1050,18 @@ CREATE INDEX IF NOT EXISTS idx_kendu_transactions_user ON kendu_transactions(use
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages(user_id, created_at DESC);
 -- Concurrency guard for weekly-challenge generation (check-then-insert race).
 CREATE UNIQUE INDEX IF NOT EXISTS idx_challenges_user_week_title ON challenges(user_id, week_start, title);
+
+-- ===== AI chat threads =====
+-- Multiple named conversations with the coach; messages join via thread_id
+-- (NULL = pre-threads legacy messages, shown as the default conversation).
+CREATE TABLE IF NOT EXISTS chat_threads (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL DEFAULT 'New chat',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_chat_threads_user ON chat_threads(user_id, updated_at DESC);
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS thread_id INTEGER;
+CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, created_at DESC);
