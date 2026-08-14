@@ -48,7 +48,16 @@ export function UserProfilePage() {
     onError: (_e, _v, ctx: any) => {
       if (ctx?.previous) queryClient.setQueryData(['user-profile', id], ctx.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['user-profile', id] }),
+    // Braces, not a concise body: returning the invalidation promise keeps the
+    // mutation "pending" until the refetch finishes, so the button stayed
+    // disabled long after the follow actually landed.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile', id] });
+      queryClient.invalidateQueries({ queryKey: ['social', 'discover'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['social', 'following'] });
+      queryClient.invalidateQueries({ queryKey: ['social', 'followers'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification', 'friend-streaks'] });
+    },
   });
 
   if (isLoading) {

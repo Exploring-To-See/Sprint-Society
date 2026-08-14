@@ -140,7 +140,7 @@ router.post('/comments/:activityId', async (req: AuthRequest, res: Response) => 
 });
 
 // POST /social/follow/:userId — Follow a user
-router.post('/follow/:userId', async (req: AuthRequest, res: Response) => {
+router.post('/follow/:userId(\d+)', async (req: AuthRequest, res: Response) => {
   const targetId = parseInt(req.params.userId);
   if (targetId === req.userId) return res.status(400).json({ error: 'Cannot follow yourself' });
 
@@ -162,7 +162,7 @@ router.post('/follow/:userId', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /social/follow/:userId — Unfollow a user
-router.delete('/follow/:userId', async (req: AuthRequest, res: Response) => {
+router.delete('/follow/:userId(\d+)', async (req: AuthRequest, res: Response) => {
   await db.execute('DELETE FROM follows WHERE follower_id = $1 AND following_id = $2', [req.userId, parseInt(req.params.userId)]);
   res.json({ success: true, following: false });
 });
@@ -205,7 +205,7 @@ router.get('/discover', async (req: AuthRequest, res: Response) => {
     LEFT JOIN user_xp ux ON u.id = ux.user_id
     WHERE u.id != $1 AND u.role = 'runner'
       AND u.id NOT IN (SELECT following_id FROM follows WHERE follower_id = $1)
-    ORDER BY ux.total_xp DESC
+    ORDER BY ux.total_xp DESC NULLS LAST, u.id DESC
     LIMIT 10
   `, [req.userId]);
 

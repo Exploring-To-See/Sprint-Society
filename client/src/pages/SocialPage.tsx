@@ -3,7 +3,7 @@
 // Leaderboard. Each lane is its own react-query key. Feed reuses <FeedPage/> verbatim so
 // the kudos/comment behaviour is never reimplemented. Everything else is the V1 "ss" kit:
 // neutral glass surfaces, mono/tabular numerals for ranks · XP · distance, no emoji.
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -112,32 +112,28 @@ function Avatar({ url, name, size = 38 }: { url: string | null; name: string; si
 
 function FollowButton({ userId, isFollowing }: { userId: number; isFollowing: boolean }) {
   const qc = useQueryClient();
+  // LOCAL state is what the label renders. The parent lists pass a hardcoded
+  // literal (Discover always false, Connections always true), so without this
+  // the button could not change until two sequential round trips finished —
+  // the POST and then a full list refetch. That was the reported "lag, then it
+  // suddenly appears under Following".
+  const [following, setFollowing] = useState(isFollowing);
+  useEffect(() => { setFollowing(isFollowing); }, [isFollowing]);
+
   const mutation = useMutation({
-    mutationFn: () =>
-      isFollowing
-        ? api.delete(`/social/follow/${userId}`)
-        : api.post(`/social/follow/${userId}`),
-    // Optimistic: GET /social/discover only ever lists people you do NOT
-    // follow, so following someone means their card leaves the list — do that
-    // on tap. Previously the button sat inert until the POST returned AND the
-    // whole list refetched, so the change "suddenly appeared" seconds later.
-    onMutate: async () => {
-      await qc.cancelQueries({ queryKey: ['social', 'discover'] });
-      const previous = qc.getQueryData<DiscoverRunner[]>(['social', 'discover']);
-      if (!isFollowing) {
-        qc.setQueryData<DiscoverRunner[]>(['social', 'discover'], (old) =>
-          (old ?? []).filter((r) => r.id !== userId),
-        );
-      }
-      return { previous };
+    mutationFn: (next: boolean) =>
+      next ? api.post(`/social/follow/${userId}`) : api.delete(`/social/follow/${userId}`),
+    onSuccess: (res: any) => {
+      // Both endpoints return the authoritative state — trust it over guessing.
+      const server = res?.data?.following;
+      if (typeof server === 'boolean') setFollowing(server);
     },
-    onError: (_err, _vars, ctx) => {
-      // Roll back the optimistic flip if the server rejected it.
-      if (ctx?.previous) qc.setQueryData(['social', 'discover'], ctx.previous);
-    },
+    onError: (_err, next) => { setFollowing(!next); },
     onSettled: () => {
-      // Reconcile in the background — the UI already moved.
-      qc.invalidateQueries({ queryKey: ['social', 'discover'] });
+      // Mark the social caches stale WITHOUT yanking the mounted Discover list
+      // out from under the user (that list excludes anyone you follow, so an
+      // immediate refetch would delete the row they just tapped).
+      qc.invalidateQueries({ queryKey: ['social', 'discover'], refetchType: 'none' });
       qc.invalidateQueries({ queryKey: ['social', 'following'] });
       qc.invalidateQueries({ queryKey: ['social', 'followers'] });
       qc.invalidateQueries({ queryKey: ['gamification', 'friend-streaks'] });
@@ -150,15 +146,17 @@ function FollowButton({ userId, isFollowing }: { userId: number; isFollowing: bo
       data-testid="social-follow-btn"
       onClick={(e) => {
         e.stopPropagation();
-        if (!mutation.isPending) mutation.mutate();
+        if (mutation.isPending) return;
+        const next = !following;
+        setFollowing(next); // instant — never wait on the network
+        mutation.mutate(next);
       }}
-      disabled={mutation.isPending}
-      aria-pressed={isFollowing}
-      aria-label={isFollowing ? 'Unfollow' : 'Follow'}
-      className={`ss-btn ${isFollowing ? 'ss-btn-soft' : 'ss-btn-primary'}`}
-      style={{ flex: 'none', height: 34, minWidth: 90, padding: '0 14px', fontSize: 12, opacity: mutation.isPending ? 0.6 : 1 }}
+      aria-pressed={following}
+      aria-label={following ? 'Unfollow' : 'Follow'}
+      className={`ss-btn ${following ? 'ss-btn-soft' : 'ss-btn-primary'}`}
+      style={{ flex: 'none', height: 34, minWidth: 90, padding: '0 14px', fontSize: 12 }}
     >
-      {isFollowing ? (
+      {following ? (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <Check width={13} height={13} /> Following
         </span>

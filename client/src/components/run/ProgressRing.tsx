@@ -19,6 +19,8 @@ export function ProgressRing({ currentDistance, goalDistance, currentPace, targe
   const paceLabel = isStationary ? 'Waiting' : inZone ? 'In zone' : tooSlow ? 'Speed up' : 'Slow down';
 
   function formatPace(sec: number): string {
+    // No pace yet reads "--:--", never "0:00/km" under a "Waiting" label.
+    if (!sec || !isFinite(sec) || sec <= 0) return '--:--';
     const m = Math.floor(sec / 60);
     const s = Math.round(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;

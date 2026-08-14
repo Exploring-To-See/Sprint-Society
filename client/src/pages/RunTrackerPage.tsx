@@ -131,6 +131,11 @@ export function RunTrackerPage() {
   const [currentSpeedKmh, setCurrentSpeedKmh] = useState(0);
   /** True once any fix reported velocity, so the derived fallback stands down. */
   const gpsSpeedSeenRef = useRef(false);
+  /** Epoch ms of the newest fix — drives the no-signal watchdog. */
+  const lastFixAtRef = useRef(0);
+  /** How many fixes this run has accepted (shown so a blackout is never silent). */
+  const [fixCount, setFixCount] = useState(0);
+  const [gpsStale, setGpsStale] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -334,6 +339,23 @@ export function RunTrackerPage() {
   // persistent "Run active — Sprint Society" notification while recording, so
   // no separate ongoing notification is scheduled here.
 
+  // GPS watchdog: the background-geolocation plugin never raises an error for
+  // "no fix" (its onLocationAvailability only logs), so without this a total
+  // GPS blackout looks identical to a healthy run — green "Tracking" dot,
+  // clock ticking, 0.00 km. Surface it instead.
+  useEffect(() => {
+    if (state !== 'RUNNING') { setGpsStale(false); return; }
+    if (!lastFixAtRef.current) lastFixAtRef.current = Date.now();
+    const id = setInterval(() => {
+      const since = Date.now() - lastFixAtRef.current;
+      if (since > 15000) {
+        setGpsStale(true);
+        setGpsError(`Waiting for GPS signal — no fix for ${Math.round(since / 1000)}s. Head outside for clear sky.`);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [state]);
+
   // Keep the screen awake while recording. If the screen sleeps, Android pauses
   // the WebView and GPS samples + timers stop — the classic "my run flatlined
   // in my pocket" failure. Screen Wake Lock is supported by the Android WebView;
@@ -378,6 +400,11 @@ export function RunTrackerPage() {
       gpsSpeedSeenRef.current = true;
       setCurrentSpeedKmh(Math.max(0, position.speed * 3.6));
     }
+
+    // Watchdog bookkeeping: a fix arrived, so the run is genuinely tracking.
+    lastFixAtRef.current = Date.now();
+    setGpsStale(false);
+    setFixCount((n) => n + 1);
 
     // Map always follows the newest fix, even one too noisy to credit toward
     // distance — otherwise the camera froze at the starting point whenever the
@@ -472,6 +499,9 @@ export function RunTrackerPage() {
     setCurrentPace(0);
     setCurrentSpeedKmh(0);
     gpsSpeedSeenRef.current = false;
+    lastFixAtRef.current = 0;
+    setFixCount(0);
+    setGpsStale(false);
     setElevationGain(0);
     setSplits([]);
     setRpe(null);
@@ -499,7 +529,18 @@ export function RunTrackerPage() {
     // was still being created, kill the late-arriving watcher immediately —
     // otherwise it leaks and keeps feeding positions (and the foreground
     // service notification never clears).
-    const w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    // A rejected addWatcher (plugin missing from the build, native error) used
+    // to leave the run in RUNNING with no watcher and no message: clock ticking,
+    // nothing recording. Fail loudly and return to IDLE instead.
+    let w: GeoWatch;
+    try {
+      w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    } catch {
+      setGpsError('Could not start GPS tracking — close and reopen the app, then try again.');
+      stateRef.current = 'IDLE';
+      setState('IDLE');
+      return;
+    }
     if (stateRef.current !== 'RUNNING') { w.clear(); return; }
     if (watchRef.current) watchRef.current.clear();
     watchRef.current = w;
@@ -526,7 +567,15 @@ export function RunTrackerPage() {
     }
     stateRef.current = 'RUNNING';
     setState('RUNNING');
-    const w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    let w: GeoWatch;
+    try {
+      w = await watchPosition(handlePositionUpdate, (error) => setGpsError(error.message));
+    } catch {
+      setGpsError('Could not restart GPS tracking — tap resume again.');
+      stateRef.current = 'PAUSED';
+      setState('PAUSED');
+      return;
+    }
     if (stateRef.current !== 'RUNNING') { w.clear(); return; }
     if (watchRef.current) watchRef.current.clear();
     watchRef.current = w;
@@ -672,6 +721,9 @@ export function RunTrackerPage() {
     setCurrentPace(0);
     setCurrentSpeedKmh(0);
     gpsSpeedSeenRef.current = false;
+    lastFixAtRef.current = 0;
+    setFixCount(0);
+    setGpsStale(false);
     setElevationGain(0);
     setSplits([]);
     setRpe(null);
@@ -980,10 +1032,12 @@ export function RunTrackerPage() {
                     <motion.span
                       animate={state === 'RUNNING' ? { scale: [1, 1.3, 1] } : {}}
                       transition={{ repeat: Infinity, duration: 1.5 }}
-                      style={{ width: 8, height: 8, borderRadius: '50%', background: state === 'RUNNING' ? 'var(--green)' : 'var(--amber)', display: 'inline-block' }}
+                      style={{ width: 8, height: 8, borderRadius: '50%', background: state === 'RUNNING' && !gpsStale ? 'var(--green)' : 'var(--amber)', display: 'inline-block' }}
                       aria-hidden="true"
                     />
-                    <span className="tlbl">{state === 'RUNNING' ? 'Tracking' : 'Paused'}</span>
+                    <span className="tlbl">
+                      {state !== 'RUNNING' ? 'Paused' : gpsStale ? 'Acquiring GPS' : `Tracking · ${fixCount} fixes`}
+                    </span>
                   </div>
                   <span className="num" style={{ font: '600 12px var(--mono)', color: 'var(--muted)' }}>{formatTime(elapsedSeconds)}</span>
                 </div>
