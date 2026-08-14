@@ -13,6 +13,8 @@ interface BgLocation {
   longitude: number;
   accuracy: number;
   altitude: number | null;
+  /** Ground speed in m/s (null when the fix has no velocity yet). */
+  speed: number | null;
   time: number | null;
 }
 interface BgError { code?: string; message?: string }
@@ -46,7 +48,10 @@ export interface GeoPoint {
   latitude: number;
   longitude: number;
   altitude: number | null;
+  /** Horizontal uncertainty in metres. Defaults to 15 when the platform omits it. */
   accuracy: number;
+  /** GPS-reported ground speed in m/s (null when unavailable) — powers the live speedometer. */
+  speed: number | null;
   timestamp: number;
 }
 
@@ -57,12 +62,21 @@ export interface GeoError {
   message: string;
 }
 
+/** Some Android devices report accuracy/speed as null — never let that poison the math. */
+function safeAccuracy(value: unknown): number {
+  return typeof value === 'number' && isFinite(value) && value > 0 ? value : 15;
+}
+function safeSpeed(value: unknown): number | null {
+  return typeof value === 'number' && isFinite(value) && value >= 0 ? value : null;
+}
+
 function fromCapPosition(pos: CapPosition): GeoPoint {
   return {
     latitude: pos.coords.latitude,
     longitude: pos.coords.longitude,
     altitude: pos.coords.altitude ?? null,
-    accuracy: pos.coords.accuracy,
+    accuracy: safeAccuracy(pos.coords.accuracy),
+    speed: safeSpeed(pos.coords.speed),
     timestamp: pos.timestamp,
   };
 }
@@ -72,7 +86,8 @@ function fromWebPosition(pos: GeolocationPosition): GeoPoint {
     latitude: pos.coords.latitude,
     longitude: pos.coords.longitude,
     altitude: pos.coords.altitude,
-    accuracy: pos.coords.accuracy,
+    accuracy: safeAccuracy(pos.coords.accuracy),
+    speed: safeSpeed(pos.coords.speed),
     timestamp: pos.timestamp,
   };
 }
@@ -215,7 +230,11 @@ export async function watchPosition(
             latitude: position.latitude,
             longitude: position.longitude,
             altitude: position.altitude ?? null,
-            accuracy: position.accuracy,
+            // Defensive: a null accuracy from the OS used to make every
+            // downstream comparison NaN, which silently rejected every fix and
+            // left distance at 0.00 for the whole run.
+            accuracy: safeAccuracy(position.accuracy),
+            speed: safeSpeed(position.speed),
             timestamp: position.time ?? Date.now(),
           });
         }

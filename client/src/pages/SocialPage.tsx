@@ -37,6 +37,7 @@ interface DiscoverRunner {
   current_level: number | null;
   total_xp: number | null;
   total_runs: number | string | null;
+  is_following?: boolean;
 }
 
 // GET /social/following + GET /social/followers
@@ -116,7 +117,26 @@ function FollowButton({ userId, isFollowing }: { userId: number; isFollowing: bo
       isFollowing
         ? api.delete(`/social/follow/${userId}`)
         : api.post(`/social/follow/${userId}`),
-    onSuccess: () => {
+    // Optimistic: GET /social/discover only ever lists people you do NOT
+    // follow, so following someone means their card leaves the list — do that
+    // on tap. Previously the button sat inert until the POST returned AND the
+    // whole list refetched, so the change "suddenly appeared" seconds later.
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['social', 'discover'] });
+      const previous = qc.getQueryData<DiscoverRunner[]>(['social', 'discover']);
+      if (!isFollowing) {
+        qc.setQueryData<DiscoverRunner[]>(['social', 'discover'], (old) =>
+          (old ?? []).filter((r) => r.id !== userId),
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Roll back the optimistic flip if the server rejected it.
+      if (ctx?.previous) qc.setQueryData(['social', 'discover'], ctx.previous);
+    },
+    onSettled: () => {
+      // Reconcile in the background — the UI already moved.
       qc.invalidateQueries({ queryKey: ['social', 'discover'] });
       qc.invalidateQueries({ queryKey: ['social', 'following'] });
       qc.invalidateQueries({ queryKey: ['social', 'followers'] });

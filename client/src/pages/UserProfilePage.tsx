@@ -32,6 +32,22 @@ export function UserProfilePage() {
   const followMutation = useMutation({
     mutationFn: (following: boolean) =>
       following ? api.delete(`/social/follow/${id}`) : api.post(`/social/follow/${id}`),
+    // Optimistic flip so the button reacts on tap instead of after the refetch.
+    onMutate: async (following: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['user-profile', id] });
+      const previous = queryClient.getQueryData<any>(['user-profile', id]);
+      queryClient.setQueryData<any>(['user-profile', id], (old: any) =>
+        old ? {
+          ...old,
+          is_following: !following,
+          followers_count: Math.max(0, (Number(old.followers_count) || 0) + (following ? -1 : 1)),
+        } : old,
+      );
+      return { previous };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(['user-profile', id], ctx.previous);
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['user-profile', id] }),
   });
 

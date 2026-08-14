@@ -126,6 +126,11 @@ export function RunTrackerPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [totalDistance, setTotalDistance] = useState(0);
   const [currentPace, setCurrentPace] = useState(0);
+  /** Live ground speed in km/h — GPS velocity when the fix carries it,
+   *  otherwise derived from the rolling pace window. */
+  const [currentSpeedKmh, setCurrentSpeedKmh] = useState(0);
+  /** True once any fix reported velocity, so the derived fallback stands down. */
+  const gpsSpeedSeenRef = useRef(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -286,6 +291,9 @@ export function RunTrackerPage() {
         const timeSpan = (positions[positions.length - 1].timestamp - positions[i].timestamp) / 1000;
         if (distAccum > 10 && timeSpan > 0) {
           setCurrentPace((timeSpan / distAccum) * 1000);
+          // Fallback speedometer source for devices whose fixes carry no
+          // velocity: derive km/h from the same rolling window.
+          if (!gpsSpeedSeenRef.current) setCurrentSpeedKmh((distAccum / timeSpan) * 3.6);
         }
       }, 5000);
     } else {
@@ -363,6 +371,18 @@ export function RunTrackerPage() {
     // A good fix arrived — clear any stale watcher error banner. The
     // approximate-location advisory is informational and stays.
     setGpsError((prev) => (prev && !prev.startsWith('Using approximate') ? null : prev));
+
+    // Speedometer: GPS velocity is instant and accurate; update it before any
+    // accuracy gating so the readout stays live even on noisy fixes.
+    if (position.speed !== null) {
+      gpsSpeedSeenRef.current = true;
+      setCurrentSpeedKmh(Math.max(0, position.speed * 3.6));
+    }
+
+    // Map always follows the newest fix, even one too noisy to credit toward
+    // distance — otherwise the camera froze at the starting point whenever the
+    // signal degraded (the "route not showing" report).
+    setUserLocation([position.latitude, position.longitude]);
 
     // Accuracy gate: fixes with huge uncertainty create phantom distance while
     // standing still. 50m keeps urban-canyon/under-trees fixes usable — the
@@ -450,6 +470,8 @@ export function RunTrackerPage() {
     runClockRef.current = { segmentStart: 0, accumulated: 0 };
     setElapsedSeconds(0);
     setCurrentPace(0);
+    setCurrentSpeedKmh(0);
+    gpsSpeedSeenRef.current = false;
     setElevationGain(0);
     setSplits([]);
     setRpe(null);
@@ -648,6 +670,8 @@ export function RunTrackerPage() {
     setElapsedSeconds(0);
     setTotalDistance(0);
     setCurrentPace(0);
+    setCurrentSpeedKmh(0);
+    gpsSpeedSeenRef.current = false;
     setElevationGain(0);
     setSplits([]);
     setRpe(null);
@@ -853,6 +877,8 @@ export function RunTrackerPage() {
                 {routeCoords.length > 1 && (
                   <Polyline positions={routeCoords} pathOptions={{ color: '#f97316', weight: 4, opacity: 0.9 }} />
                 )}
+                {/* Camera follows the runner while tracking (immersive covers
+                    RUNNING + PAUSED) — Google-Maps navigation behaviour. */}
                 {immersive && userLocation && <MapFollower position={userLocation} />}
                 {state === 'FINISHED' && routeCoords.length > 1 && <FitBounds positions={routeCoords} />}
               </MapContainer>
@@ -981,6 +1007,15 @@ export function RunTrackerPage() {
                   </div>
                 )}
 
+                {/* SPEEDOMETER — live km/h straight from the GPS velocity,
+                    the reading a runner glances at mid-stride. */}
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginTop: 12 }} data-testid="run-speedometer" aria-live="off">
+                  <span className="num" style={{ font: '700 40px var(--mono)', color: 'var(--fg)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                    {currentSpeedKmh.toFixed(1)}
+                  </span>
+                  <span style={{ font: '600 12px var(--body)', color: 'var(--muted-2)', textTransform: 'uppercase', letterSpacing: '.06em' }}>km/h</span>
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--hair)' }}>
                   {[
                     { v: (totalDistance / 1000).toFixed(2), k: 'km' },
@@ -1086,7 +1121,7 @@ export function RunTrackerPage() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: 9 }}>
                 <button className="ss-btn ss-btn-soft" onClick={discardRun}>Discard</button>
-                <button className="ss-btn ss-btn-primary" onClick={saveRun} disabled={saving || totalDistance < 10}>
+                <button className="ss-btn ss-btn-primary" onClick={saveRun} disabled={saving}>
                   {saving ? 'Saving...' : 'Save run'}
                 </button>
               </div>
