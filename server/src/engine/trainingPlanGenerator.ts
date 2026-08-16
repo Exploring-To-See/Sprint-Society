@@ -89,6 +89,13 @@ export interface TrainingPaces {
 // ===== VDOT TABLE (Jack Daniels) =====
 // Maps VDOT score to equivalent race performances and training paces
 const VDOT_TABLE: Record<number, { marathon_pace: number; tempo_pace: number; interval_pace: number; easy_pace_min: number; easy_pace_max: number }> = {
+  // Sub-30 rows: true beginners exist below VDOT 30 (a 34-38min 5K). Without
+  // these rows the floor at 30 handed them training paces FASTER than their
+  // race pace — plans they could not physically run.
+  22: { marathon_pace: 520, tempo_pace: 480, interval_pace: 435, easy_pace_min: 590, easy_pace_max: 650 },
+  24: { marathon_pace: 487, tempo_pace: 450, interval_pace: 410, easy_pace_min: 555, easy_pace_max: 615 },
+  26: { marathon_pace: 455, tempo_pace: 422, interval_pace: 385, easy_pace_min: 522, easy_pace_max: 580 },
+  28: { marathon_pace: 425, tempo_pace: 395, interval_pace: 361, easy_pace_min: 490, easy_pace_max: 545 },
   30: { marathon_pace: 398, tempo_pace: 370, interval_pace: 340, easy_pace_min: 460, easy_pace_max: 510 },
   32: { marathon_pace: 380, tempo_pace: 354, interval_pace: 324, easy_pace_min: 440, easy_pace_max: 490 },
   34: { marathon_pace: 364, tempo_pace: 338, interval_pace: 310, easy_pace_min: 422, easy_pace_max: 470 },
@@ -125,8 +132,11 @@ export function estimateVDOT(runs: RunHistory[]): number {
   const recentRuns = runs.filter(r => new Date(r.start_date).getTime() > sixWeeksAgo);
   const relevantRuns = recentRuns.length >= 3 ? recentRuns : runs.slice(0, 10);
 
-  // Find the best effort (fastest pace for a meaningful distance)
-  let bestVDOT = 30;
+  // Find the best effort (fastest pace for a meaningful distance). Start below
+  // the table floor so a genuinely slower runner's REAL result is used instead
+  // of being silently discarded (the old init of 30 gave 35min-5K runners
+  // training paces faster than their race pace).
+  let bestVDOT = 0;
   for (const run of relevantRuns) {
     if (run.distance_meters < 1500) continue; // Skip very short runs
     const velocity = run.distance_meters / run.moving_time_seconds; // m/s
@@ -140,6 +150,9 @@ export function estimateVDOT(runs: RunHistory[]): number {
     const vdot = vo2 / percentVO2;
     if (vdot > bestVDOT && vdot < 85) bestVDOT = vdot;
   }
+  // No usable runs → neutral default; otherwise clamp to the table's range.
+  if (bestVDOT === 0) bestVDOT = 30;
+  bestVDOT = Math.max(22, Math.min(bestVDOT, 85));
 
   return Math.round(bestVDOT * 2) / 2; // Round to nearest 0.5
 }
@@ -224,13 +237,20 @@ function allocatePhases(totalWeeks: number): { phase: TrainingWeek['phase']; wee
       { phase: 'taper', weeks: taper },
     ];
   }
-  // 12+ weeks: full periodization
+  // 12+ weeks: full periodization. Phases must sum EXACTLY to totalWeeks —
+  // the old all-ceil split produced 16 weeks for a 14-week request, so "week
+  // N of M" and the race-day taper drifted. Taper absorbs the remainder.
+  const base = Math.ceil(totalWeeks * 0.3);
+  const build = Math.ceil(totalWeeks * 0.25);
+  const peak = Math.ceil(totalWeeks * 0.25);
+  const recovery = 1;
+  const taper = Math.max(1, totalWeeks - base - build - peak - recovery);
   return [
-    { phase: 'base', weeks: Math.ceil(totalWeeks * 0.3) },
-    { phase: 'build', weeks: Math.ceil(totalWeeks * 0.25) },
-    { phase: 'peak', weeks: Math.ceil(totalWeeks * 0.25) },
-    { phase: 'taper', weeks: Math.max(2, Math.floor(totalWeeks * 0.15)) },
-    { phase: 'recovery', weeks: 1 },
+    { phase: 'base', weeks: base },
+    { phase: 'build', weeks: build },
+    { phase: 'peak', weeks: peak },
+    { phase: 'taper', weeks: taper },
+    { phase: 'recovery', weeks: recovery },
   ];
 }
 
@@ -318,13 +338,16 @@ function generateWeek(
 
   if (phase === 'base') {
     // Base: all easy + one long run + one fartlek
-    const longKm = Math.round(adjustedVolume * 0.3);
+    const longKm = Math.max(3, Math.round(adjustedVolume * 0.3));
     sessions.push({ ...generateLongRun(paces, longKm), day: 6 });
     sessions.push({ ...generateFartlek(paces, 30), day: 3 });
-    const remainingKm = adjustedVolume - longKm - 5;
+    const remainingKm = Math.max(2, adjustedVolume - longKm - 5);
     const easyRuns = Math.max(1, sessionsPerWeek - 3);
+    // Skip day 3 (fartlek) and day 6 (long) when placing easy runs — advanced
+    // users with 3+ easy runs used to double-book day 3.
+    const easyDays = [1, 2, 4, 5];
     for (let i = 0; i < easyRuns; i++) {
-      sessions.push({ ...generateEasyRun(paces, Math.round(remainingKm / easyRuns)), day: i + 1 });
+      sessions.push({ ...generateEasyRun(paces, Math.max(2, Math.round(remainingKm / easyRuns))), day: easyDays[i] ?? i + 1 });
     }
     sessions.push({ day: 7, type: 'rest', title: 'Rest Day', description: 'Full rest. Sleep well. Hydrate.', rpe: 0 });
   } else if (phase === 'build') {
@@ -432,7 +455,10 @@ export function generateTrainingPlan(
   // Generate week by week
   const weeks: TrainingWeek[] = [];
   let weekCounter = 1;
-  let currentVolumeProgression = currentVolume || 15;
+  // Floor at 15km: `currentVolume || 15` only caught EXACTLY zero, so a user
+  // with e.g. 3km of history got a 3km "weekly volume" whose session split
+  // produced negative-distance easy runs.
+  let currentVolumeProgression = Math.max(currentVolume, 15);
 
   for (const phaseBlock of phases) {
     for (let i = 0; i < phaseBlock.weeks; i++) {

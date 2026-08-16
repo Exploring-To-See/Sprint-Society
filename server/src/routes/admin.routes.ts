@@ -371,7 +371,16 @@ router.post('/announcements', async (req: AuthRequest, res: Response) => {
     INSERT INTO announcements (admin_id, title, body, pinned) VALUES ($1, $2, $3, $4) RETURNING id
   `, [req.userId, title, body, pinned ? 1 : 0]);
 
-  res.status(201).json({ id: result.rows[0]?.id, success: true });
+  // Fan the announcement out as a notification to every active user — it then
+  // reaches phones via the APK's tray mirror instead of waiting to be noticed
+  // on the dashboard.
+  const fan = await db.execute(`
+    INSERT INTO user_notifications (user_id, type, title, body, target_type, target_id)
+    SELECT id, 'achievement', $1, $2, 'announcement', $3
+    FROM users WHERE role = 'runner'
+  `, [`📣 ${title}`, String(body).slice(0, 140), result.rows[0]?.id]).catch(() => ({ rowCount: 0 }));
+
+  res.status(201).json({ id: result.rows[0]?.id, success: true, notified: (fan as { rowCount: number }).rowCount });
 });
 
 router.delete('/announcements/:id', async (req: AuthRequest, res: Response) => {

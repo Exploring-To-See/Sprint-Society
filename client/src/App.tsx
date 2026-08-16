@@ -8,15 +8,15 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { ErrorToast } from './components/ui/ErrorToast';
 import { PageTransition } from './components/ui/PageTransition';
 import { HomePage } from './pages/HomePage';
-import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { LandingPage } from './pages/LandingPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { ADMIN_ONLY } from './lib/backend';
 import { isNative } from './lib/native';
 
 // Lazy-loaded pages (code splitting)
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const RunHistoryPage = lazy(() => import('./pages/RunHistoryPage').then(m => ({ default: m.RunHistoryPage })));
 const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.SharePage })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
@@ -154,8 +154,8 @@ function AppRoutes() {
         <Route path="/native-auth" element={<LazyLoad><NativeAuthPage /></LazyLoad>} />
         <Route path="/forgot-password" element={<LazyLoad><ForgotPasswordPage /></LazyLoad>} />
         <Route path="/reset-password/:token" element={<LazyLoad><ResetPasswordPage /></LazyLoad>} />
-        <Route path="/join" element={<LandingPage />} />
-        <Route path="/founding" element={<LandingPage />} />
+        <Route path="/join" element={<LazyLoad><LandingPage /></LazyLoad>} />
+        <Route path="/founding" element={<LazyLoad><LandingPage /></LazyLoad>} />
         <Route path="*" element={<Navigate to="/join" replace />} />
       </Routes>
     );
@@ -170,14 +170,14 @@ function AppRoutes() {
   const appRoutes = (
       <Routes location={location} key={isNative ? undefined : location.pathname}>
         <Route path="/" element={<PublicRoute><PageTransition><HomePage /></PageTransition></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><PageTransition><RegisterPage /></PageTransition></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><PageTransition><LazyLoad><RegisterPage /></LazyLoad></PageTransition></PublicRoute>} />
         <Route path="/forgot-password" element={<PageTransition><LazyLoad><ForgotPasswordPage /></LazyLoad></PageTransition>} />
         <Route path="/reset-password/:token" element={<PageTransition><LazyLoad><ResetPasswordPage /></LazyLoad></PageTransition>} />
         {/* Capacitor APK/iOS Google+email bridge — must stay outside PublicRoute so a
             web session doesn't redirect to /dashboard before the deep-link bounce. */}
         <Route path="/native-auth" element={<PageTransition><LazyLoad><NativeAuthPage /></LazyLoad></PageTransition>} />
-        <Route path="/join" element={<PageTransition><LandingPage /></PageTransition>} />
-        <Route path="/founding" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route path="/join" element={<PageTransition><LazyLoad><LandingPage /></LazyLoad></PageTransition>} />
+        <Route path="/founding" element={<PageTransition><LazyLoad><LandingPage /></LazyLoad></PageTransition>} />
         <Route path="/run/track" element={<ProtectedRoute><PageTransition><LazyLoad><RunTrackerPage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="/admin" element={<AdminRoute><PageTransition><LazyLoad><AdminPage /></LazyLoad></PageTransition></AdminRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
@@ -209,7 +209,7 @@ function AppRoutes() {
         {/* One profile, not two — the AI profile now lives inside /profile. */}
         <Route path="/ai-profile" element={<Navigate to="/profile" replace />} />
         <Route path="/user/:id" element={<ProtectedRoute><PageTransition><LazyLoad><UserProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><PageTransition><ProfilePage /></PageTransition></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><PageTransition><LazyLoad><ProfilePage /></LazyLoad></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
   );

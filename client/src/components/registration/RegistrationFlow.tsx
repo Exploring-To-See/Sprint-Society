@@ -6,6 +6,7 @@ import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import { SSAura } from '../ss/SSAura';
 import { ArrowLeft, Camera, Check } from '../ss/icons';
 import api from '../../lib/api';
+import { toSquareDataUrl } from '../../lib/imageResize';
 
 interface FormData {
   name: string;
@@ -110,16 +111,18 @@ export function RegistrationFlow() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      update('profile_photo', file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        update('profile_photo_preview', reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    update('profile_photo', file);
+    try {
+      // Downscale before storing the preview — the raw base64 of a camera shot
+      // was later PATCHed as-is and silently rejected by the server's size cap.
+      update('profile_photo_preview', await toSquareDataUrl(file));
+    } catch {
+      setError('Could not use that image — try another photo.');
     }
+    e.target.value = '';
   };
 
   const canProceed = () => {

@@ -3,7 +3,7 @@
 // liquid-glass system: Idle (map preview + START disc + pace-zone tile), Running /
 // Paused (map + instrument overlay), Finished (stats + RPE + save), Analysis (score
 // orb + AI commentary + cascade rewards + PR celebration via GET /records/check/:id).
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
@@ -17,6 +17,7 @@ import { Play, Bolt, Flame, Trophy } from '../components/ss/icons';
 import api from '../lib/api';
 import { App as CapApp } from '@capacitor/app';
 import { isNative } from '../lib/native';
+import { runState } from '../lib/runState';
 import {
   getCurrentPosition, watchPosition, ensureLocationPermissionDetailed, openLocationRemedy,
   type GeoPoint, type GeoWatch, type LocationPermissionState,
@@ -116,6 +117,39 @@ function FitBounds({ positions }: { positions: LatLngExpression[] }) {
   return null;
 }
 
+/**
+ * Memoized Leaflet subtree. The run clock updates elapsedSeconds every second,
+ * re-rendering the whole page — without the memo boundary that meant Leaflet
+ * reconciliation (tiles, polyline, follower) 60×/minute for the entire run.
+ * Props only change when a fix arrives or the tracking state flips.
+ */
+const RunMap = memo(function RunMap({ mapCenter, routeCoords, userLocation, immersive, finished }: {
+  mapCenter: LatLngExpression;
+  routeCoords: [number, number][];
+  userLocation: [number, number] | null;
+  immersive: boolean;
+  finished: boolean;
+}) {
+  return (
+    <MapContainer
+      center={mapCenter}
+      zoom={15}
+      style={{ width: '100%', height: '100%' }}
+      zoomControl={false}
+      attributionControl={false}
+    >
+      <MapAutoResize />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+      {routeCoords.length > 1 && (
+        <Polyline positions={routeCoords} pathOptions={{ color: '#f97316', weight: 4, opacity: 0.9 }} />
+      )}
+      {/* Camera follows the runner while tracking — Google-Maps navigation behaviour. */}
+      {immersive && userLocation && <MapFollower position={userLocation} />}
+      {finished && routeCoords.length > 1 && <FitBounds positions={routeCoords} />}
+    </MapContainer>
+  );
+});
+
 // mono stat cell (reference .qcell)
 function QCell({ v, unit, k }: { v: string; unit?: string; k: string }) {
   return (
@@ -180,6 +214,15 @@ export function RunTrackerPage() {
   const splitStartTimeRef = useRef(0);
   // Moving-time (elapsedSeconds) value at the last recorded split boundary.
   const lastSplitElapsedRef = useRef(0);
+  /** Id returned by POST /runs/log — the share page opens THIS run, not runs[0]. */
+  const savedRunIdRef = useRef<number | null>(null);
+
+  // Publish "run in progress" so hardware-back and chrome can't silently kill
+  // an active recording (leaving = unmount = run discarded without a word).
+  useEffect(() => {
+    runState.active = state === 'RUNNING' || state === 'PAUSED';
+    return () => { runState.active = false; };
+  }, [state]);
 
   // One-way voice coach (on-device cue engine + Web Speech synthesis)
   const coach = useRunCoach();
@@ -660,6 +703,7 @@ export function RunTrackerPage() {
       }
       // PR celebration (non-critical): did this run set any personal records?
       if (data.id) {
+        savedRunIdRef.current = data.id;
         api.get(`/records/check/${data.id}`)
           .then(({ data: pr }) => { if (pr?.has_new_pr) setPrCelebration(pr); })
           .catch(() => { /* non-critical */ });
@@ -893,7 +937,7 @@ export function RunTrackerPage() {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 9, width: '100%', maxWidth: 340, paddingTop: 4 }}>
-            <button className="ss-btn ss-btn-soft" onClick={() => navigate('/share')}>Share card</button>
+            <button className="ss-btn ss-btn-soft" onClick={() => navigate('/share', { state: { runId: savedRunIdRef.current } })}>Share card</button>
             <button className="ss-btn ss-btn-primary" onClick={() => navigate('/dashboard', { state: { fromRun: true } })}>Back home</button>
           </div>
         </motion.div>
@@ -904,7 +948,7 @@ export function RunTrackerPage() {
   const immersive = state === 'RUNNING' || state === 'PAUSED';
 
   return (
-    <SSScreen hideNav={immersive} bodyLabel="Run tracker">
+    <SSScreen hideNav={immersive} hideAura={immersive} bodyLabel="Run tracker">
       <div className="ss-pad" style={{ position: 'relative', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
         {/* Locating indicator */}
         {locating && state === 'IDLE' && (
@@ -938,23 +982,13 @@ export function RunTrackerPage() {
             }}
           >
             <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-              <MapContainer
-                center={mapCenter}
-                zoom={15}
-                style={{ width: '100%', height: '100%' }}
-                zoomControl={false}
-                attributionControl={false}
-              >
-                <MapAutoResize />
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-                {routeCoords.length > 1 && (
-                  <Polyline positions={routeCoords} pathOptions={{ color: '#f97316', weight: 4, opacity: 0.9 }} />
-                )}
-                {/* Camera follows the runner while tracking (immersive covers
-                    RUNNING + PAUSED) — Google-Maps navigation behaviour. */}
-                {immersive && userLocation && <MapFollower position={userLocation} />}
-                {state === 'FINISHED' && routeCoords.length > 1 && <FitBounds positions={routeCoords} />}
-              </MapContainer>
+              <RunMap
+                mapCenter={mapCenter}
+                routeCoords={routeCoords}
+                userLocation={userLocation}
+                immersive={immersive}
+                finished={state === 'FINISHED'}
+              />
             </div>
             {state === 'IDLE' && (
               <span className="schip" style={{ position: 'absolute', top: 11, left: 11, zIndex: 2 }}>
@@ -1050,9 +1084,10 @@ export function RunTrackerPage() {
               <div className="ss-surface" style={{ pointerEvents: 'auto', margin: 10, borderRadius: 18, padding: 14, background: 'rgba(11,10,22,.72)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <motion.span
-                      animate={state === 'RUNNING' ? { scale: [1, 1.3, 1] } : {}}
-                      transition={{ repeat: Infinity, duration: 1.5 }}
+                    {/* CSS-only pulse: framer-motion keyframe loops run on the
+                        main thread every frame; the compositor does this free. */}
+                    <span
+                      className={state === 'RUNNING' ? 'ss-pulse-dot' : undefined}
                       style={{ width: 8, height: 8, borderRadius: '50%', background: state === 'RUNNING' && !gpsStale ? 'var(--green)' : 'var(--amber)', display: 'inline-block' }}
                       aria-hidden="true"
                     />

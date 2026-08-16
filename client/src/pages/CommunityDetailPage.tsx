@@ -161,8 +161,8 @@ export function CommunityDetailPage() {
       <div style={{ position: 'sticky', top: 50, zIndex: 15, padding: '4px 16px 10px', background: 'linear-gradient(180deg,var(--bg) 62%,transparent)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <button
-            onClick={() => navigate('/communities')}
-            aria-label="Back to communities"
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/communities'))}
+            aria-label="Back"
             className="iconbtn"
             style={{ cursor: 'pointer' }}
           >

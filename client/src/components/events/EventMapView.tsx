@@ -44,9 +44,16 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
     return () => { mapInstanceRef.current?.remove(); mapInstanceRef.current = null; setMapInstance(null); };
   }, [hasLocated]);
 
+  // Markers added per render pass — must be removed before the next pass or
+  // they stack forever (the effect re-runs whenever events/onEventClick change).
+  const markersRef = useRef<any[]>([]);
+
   useEffect(() => {
     if (!mapInstance || !leafletRef.current) return;
     const L = leafletRef.current;
+
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
     const bounds: [number, number][] = [];
 
@@ -65,6 +72,7 @@ export function EventMapView({ events, onEventClick }: EventMapProps) {
       });
 
       const marker = L.marker([lat, lng], { icon }).addTo(mapInstance);
+      markersRef.current.push(marker);
 
       const popup = L.popup({ className: 'event-popup', closeButton: false }).setContent(`
         <div style="background:#0B0A16;border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px 12px;min-width:160px;cursor:pointer;">

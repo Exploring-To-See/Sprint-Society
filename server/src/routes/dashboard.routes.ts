@@ -80,9 +80,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   if (existingPlan) {
     const plan = safeJsonParse(existingPlan.plan_data, { weeks: [] });
     const weeks = Array.isArray(plan.weeks) ? plan.weeks : [];
+    // Monday anchor — must match GET /training/week or the dashboard and the
+    // plan page disagree about which week the user is in.
     const startDate = new Date(existingPlan.generated_at);
+    startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
+    startDate.setHours(0, 0, 0, 0);
     const weeksSinceStart = Math.floor((Date.now() - startDate.getTime()) / (7 * 86400000));
-    const currentWeekIndex = weeks.length ? Math.min(weeksSinceStart, weeks.length - 1) : 0;
+    const currentWeekIndex = weeks.length ? Math.max(0, Math.min(weeksSinceStart, weeks.length - 1)) : 0;
     planWeek = { current_week: currentWeekIndex + 1, total_weeks: weeks.length, week: weeks[currentWeekIndex] || null };
   }
 

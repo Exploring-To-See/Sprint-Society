@@ -34,7 +34,9 @@ export const WS_ENABLED =
 
 // How often to poll when WebSocket is disabled (milliseconds).
 export const CHAT_POLL_MS = 4000;
-export const NOTIFICATION_POLL_MS = 20000;
+// 60s: two independent pollers ride this (badge + native tray mirror), and
+// resume-invalidation already refreshes instantly when the app foregrounds.
+export const NOTIFICATION_POLL_MS = 60000;
 
 // Admin-only mode — the app boots straight to an admin login and exposes only the
 // admin panel, sharing the same backend + Supabase DB as the main app (so it

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { runState } from '../lib/runState';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -52,6 +53,12 @@ export function useNativeApp() {
   useEffect(() => {
     if (!isNative) return;
     const sub = CapApp.addListener('backButton', ({ canGoBack }) => {
+      // Recording in progress: back must NOT unmount the tracker (that would
+      // discard the run silently) — minimize like a nav app instead.
+      if (runState.active) {
+        CapApp.minimizeApp();
+        return;
+      }
       if (ROOT_ROUTES.includes(window.location.pathname) || !canGoBack) {
         CapApp.minimizeApp();
       } else {

@@ -242,7 +242,18 @@ export function AIProfilingPage() {
   };
 
   if (dna) {
-    return <DNAReveal dna={dna} onContinue={() => navigate('/set-goal')} />;
+    return (
+      <DNAReveal
+        dna={dna}
+        onContinue={async () => {
+          // ProtectedRoute gates on user.profiling_complete — make sure the
+          // refreshed flag has landed before leaving, or the guard bounces the
+          // user straight back into this wizard.
+          await refreshUser();
+          navigate('/set-goal');
+        }}
+      />
+    );
   }
 
   if (mutation.isError && !analyzing) {

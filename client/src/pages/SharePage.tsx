@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
@@ -420,6 +421,7 @@ function CardTemplate({ template, run, userName, streak, tier, backgroundImage }
 
 export function SharePage() {
   const { user } = useAuth();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<TemplateName>('dark_minimal');
@@ -434,12 +436,17 @@ export function SharePage() {
     queryFn: () => api.get('/runs?limit=10').then(r => r.data),
   });
 
-  // Auto-select most recent run when data loads
+  // Prefer the run the user just saved (passed via navigation state from the
+  // tracker) — auto-selecting runs[0] could show the WRONG run when the list
+  // cache was stale. Fall back to most-recent otherwise.
+  const stateRunId = (location.state as { runId?: number } | null)?.runId;
   useEffect(() => {
-    if (!data || selectedRunId) return;
+    if (selectedRunId) return;
+    if (stateRunId) { setSelectedRunId(stateRunId); return; }
+    if (!data) return;
     const runs = data?.runs || data || [];
     if (runs.length > 0) setSelectedRunId(runs[0].id);
-  }, [data, selectedRunId]);
+  }, [data, selectedRunId, stateRunId]);
 
   const { data: xp } = useQuery({
     queryKey: ['xp'],

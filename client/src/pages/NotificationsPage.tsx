@@ -47,6 +47,9 @@ function getNotificationLink(n: any): string | null {
   if (n.target_type === 'activity') return '/social';
   if (n.target_type === 'event') return `/events/${n.target_id}`;
   if (n.target_type === 'community') return `/communities/${n.target_id}`;
+  // Request outcomes live on the Clubs lane (status tiles + resubmit CTA).
+  if (n.target_type === 'community_request') return '/social';
+  if (n.target_type === 'announcement') return '/dashboard';
   if (n.target_type === 'user') return `/user/${n.target_id}`;
   return null;
 }

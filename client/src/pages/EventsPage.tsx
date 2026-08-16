@@ -106,6 +106,9 @@ export function EventsPage() {
       api
         .get('/events', { params: { type: activeFilter === 'all' ? undefined : activeFilter } })
         .then((r) => r.data),
+    // Admin-published events surface within a minute even while the user
+    // dwells on this screen (resume-invalidation covers the backgrounded case).
+    refetchInterval: 60_000,
   });
 
   // --- My events (going/maybe or hosting) ---
@@ -113,6 +116,7 @@ export function EventsPage() {
     queryKey: ['events', 'my'],
     queryFn: () => api.get('/events/my').then((r) => r.data),
     enabled: tab === 'my',
+    refetchInterval: 60_000,
   });
 
   // --- Nearby (needs coords; only enabled once geolocation resolves) ---

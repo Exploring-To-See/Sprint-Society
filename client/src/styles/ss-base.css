@@ -704,3 +704,6 @@
 /* Leaflet: never show the default light-grey ground — un-tiled map area must
    stay on-theme dark (was the "blank half screen" during tile load/resize). */
 .leaflet-container{background:#0B0A16 !important}
+/* Compositor-run status pulse (replaces a framer-motion rAF keyframe loop). */
+@keyframes ss-pulsedot{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.ss-pulse-dot{animation:ss-pulsedot 1.5s ease-in-out infinite;will-change:transform}

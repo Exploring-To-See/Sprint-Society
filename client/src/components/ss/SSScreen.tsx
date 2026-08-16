@@ -9,6 +9,7 @@ import { SSNav, SSTab } from './SSNav';
 import { Bell } from './icons';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { runState } from '../../lib/runState';
 import { useNotificationSocket } from '../../hooks/useNotificationSocket';
 
 interface SSScreenProps {
@@ -17,9 +18,12 @@ interface SSScreenProps {
   hideNav?: boolean;
   bodyLabel?: string;
   flush?: boolean;
+  /** Skip the animated aurora background — three infinite blurred layers cost
+   *  real GPU time; the run tracker turns them off while recording. */
+  hideAura?: boolean;
 }
 
-export function SSScreen({ children, active, hideNav, bodyLabel, flush }: SSScreenProps) {
+export function SSScreen({ children, active, hideNav, bodyLabel, flush, hideAura }: SSScreenProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -46,11 +50,15 @@ export function SSScreen({ children, active, hideNav, bodyLabel, flush }: SSScre
   const { pathname } = window.location;
   const isRoot = ['/dashboard', '/coach', '/social', '/events', '/run/track', '/', '/admin'].includes(pathname);
 
+  // While a run is recording, chrome taps must not navigate away — leaving
+  // unmounts the tracker and discards the run. Chrome renders inert instead.
+  const chromeLocked = runState.active;
+
   return (
     <div className="ss-screen">
-      <SSAura />
+      {!hideAura && <SSAura />}
 
-      <header className="topbar ss-topbar">
+      <header className="topbar ss-topbar" style={chromeLocked ? { pointerEvents: 'none', opacity: 0.75 } : undefined}>
         {!isRoot && (
           <button
             className="iconbtn"

@@ -299,6 +299,8 @@ function ClubsTab() {
   const { data, isLoading, isError, refetch } = useQuery<{ communities: ClubRow[] }>({
     queryKey: ['communities'],
     queryFn: () => api.get('/communities').then((r) => r.data),
+    // Newly approved communities appear without leaving the tab.
+    refetchInterval: 60_000,
   });
 
   const join = useMutation({

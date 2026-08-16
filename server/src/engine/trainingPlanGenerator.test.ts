@@ -30,10 +30,13 @@ describe('trainingPlanGenerator', () => {
       expect(result).toBeGreaterThan(30);
     });
 
-    it('clamps VDOT to 30-85', () => {
+    it('clamps VDOT to 22-85 (slow runners keep their REAL fitness)', () => {
+      // A 20:00 2K (10:00/km) is genuinely slow — the old floor of 30 handed
+      // this runner training paces faster than their race pace. The clamp now
+      // bottoms at the table's 22 row instead of erasing the measurement.
       const slow = [makeRun(2000, 1200, 1)];
       const result = estimateVDOT(slow);
-      expect(result).toBeGreaterThanOrEqual(30);
+      expect(result).toBeGreaterThanOrEqual(22);
       expect(result).toBeLessThanOrEqual(85);
     });
   });

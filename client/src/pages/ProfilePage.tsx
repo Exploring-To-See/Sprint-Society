@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { toSquareDataUrl } from '../lib/imageResize';
 import { useAuth } from '../context/AuthContext';
 import { SSScreen } from '../components/ss/SSScreen';
 import { SSSkeleton, SSEmpty, SSError } from '../components/ss/SSStates';
@@ -733,26 +734,8 @@ export function ProfilePage() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 try {
-                  // Downscale on-device: phone camera shots are 3-8MB and were
-                  // rejected outright by the old 2MB check. 512px JPEG lands
-                  // around 40-120KB — no rejection path needed at all.
-                  const dataUrl = await new Promise<string>((resolve, reject) => {
-                    const img = new Image();
-                    const url = URL.createObjectURL(file);
-                    img.onload = () => {
-                      const side = Math.min(img.width, img.height);
-                      const target = 512;
-                      const canvas = document.createElement('canvas');
-                      canvas.width = target; canvas.height = target;
-                      const ctx = canvas.getContext('2d')!;
-                      // Center-crop to square, then scale.
-                      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, target, target);
-                      URL.revokeObjectURL(url);
-                      resolve(canvas.toDataURL('image/jpeg', 0.85));
-                    };
-                    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable image')); };
-                    img.src = url;
-                  });
+                  // Shared 512px downscale — camera shots are 3-8MB raw.
+                  const dataUrl = await toSquareDataUrl(file);
                   await api.patch('/profile/photo', { photo: dataUrl });
                   queryClient.invalidateQueries({ queryKey: ['my-profile'] });
                   // Topbar avatar renders from AuthContext — refresh it too.
