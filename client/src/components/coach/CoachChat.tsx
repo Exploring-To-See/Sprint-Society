@@ -36,6 +36,12 @@ export function CoachChat() {
   const [showDeepDive, setShowDeepDive] = useState(false);
   // null = fresh conversation (a thread is created on first send).
   const [activeThread, setActiveThread] = useState<number | null>(null);
+  // Reply staging: fast Groq responses used to snap in the instant the POST
+  // returned, which read as glitchy. The typing indicator now dwells for a
+  // minimum beat and the reply fades in when it lands.
+  const [awaitingReply, setAwaitingReply] = useState(false);
+  const sendStartedAtRef = useRef(0);
+  const MIN_TYPING_MS = 1100;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: threads } = useQuery<ChatThread[]>({
@@ -85,6 +91,8 @@ export function CoachChat() {
     // dumped the reply seconds later).
     onMutate: async (message) => {
       setInput('');
+      setAwaitingReply(true);
+      sendStartedAtRef.current = Date.now();
       await queryClient.cancelQueries({ queryKey: ['chat-history', activeThread] });
       queryClient.setQueryData<ChatMessage[]>(['chat-history', activeThread], (old = []) => [
         ...old,
@@ -102,11 +110,17 @@ export function CoachChat() {
         setActiveThread(threadId);
       }
       const key = ['chat-history', threadId ?? activeThread];
+      // Hold the typing indicator so it never flashes for less than a beat —
+      // then let the reply's own mount animation carry the reveal.
+      const dwell = Math.max(0, MIN_TYPING_MS - (Date.now() - sendStartedAtRef.current));
       if (reply) {
-        queryClient.setQueryData<ChatMessage[]>(key, (old = []) => [
-          ...old,
-          { id: `local-ai-${Date.now()}`, role: 'assistant', content: reply, created_at: new Date().toISOString() },
-        ]);
+        setTimeout(() => {
+          setAwaitingReply(false);
+          queryClient.setQueryData<ChatMessage[]>(key, (old = []) => [
+            ...old,
+            { id: `local-ai-${Date.now()}`, role: 'assistant', content: reply, created_at: new Date().toISOString() },
+          ]);
+        }, dwell);
         // App backgrounded mid-reply (native): pop a system notification so the
         // user knows the coach answered.
         if (document.visibilityState === 'hidden') {

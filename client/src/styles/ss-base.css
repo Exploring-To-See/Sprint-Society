@@ -700,3 +700,7 @@
   .ss-rise{opacity:0;transform:translateY(14px);animation:ss-rise var(--in-base) var(--ease) both}
   @keyframes ss-rise{to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.ss-skel::after{animation:none!important}.ss-rise{animation:none!important;opacity:1!important;transform:none!important}}
+
+/* Leaflet: never show the default light-grey ground — un-tiled map area must
+   stay on-theme dark (was the "blank half screen" during tile load/resize). */
+.leaflet-container{background:#0B0A16 !important}

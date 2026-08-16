@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -33,6 +34,20 @@ export function useNativeApp() {
     StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
     StatusBar.setBackgroundColor({ color: '#09090B' }).catch(() => {});
   }, []);
+
+  // Freshness on resume: WebViews don't reliably fire the window focus events
+  // react-query listens for, so anything an admin changed (events, announcements,
+  // approvals, account edits) stayed cached until a manual pull. Mark ALL
+  // queries stale when the app returns to the foreground — active screens
+  // refetch immediately, everything else refetches on next visit.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!isNative) return;
+    const sub = CapApp.addListener('resume', () => {
+      queryClient.invalidateQueries();
+    });
+    return () => { sub.then(s => s.remove()); };
+  }, [queryClient]);
 
   useEffect(() => {
     if (!isNative) return;

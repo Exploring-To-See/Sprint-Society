@@ -41,11 +41,27 @@ export function SSScreen({ children, active, hideNav, bodyLabel, flush }: SSScre
     ? name.split(' ').filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase()
     : 'R';
 
+  // Back affordance on every page that isn't a bottom-nav root — hardware back
+  // works, but a visible control belongs in the chrome too.
+  const { pathname } = window.location;
+  const isRoot = ['/dashboard', '/coach', '/social', '/events', '/run/track', '/', '/admin'].includes(pathname);
+
   return (
     <div className="ss-screen">
       <SSAura />
 
       <header className="topbar ss-topbar">
+        {!isRoot && (
+          <button
+            className="iconbtn"
+            aria-label="Go back"
+            data-testid="ss-back"
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/dashboard'))}
+            style={{ marginRight: 2 }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+        )}
         <button
           className="brand"
           aria-label="Sprint Society home"

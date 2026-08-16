@@ -638,7 +638,7 @@ function XpHistorySection() {
 // --- Main Profile Page ---
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -728,18 +728,39 @@ export function ProfilePage() {
               type="file"
               accept="image/*"
               className="hidden"
+              data-testid="profile-photo-input"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return; }
-                const reader = new FileReader();
-                reader.onload = async () => {
-                  try {
-                    await api.patch('/profile/photo', { photo: reader.result });
-                    queryClient.invalidateQueries({ queryKey: ['my-profile'] });
-                  } catch { alert('Upload failed'); }
-                };
-                reader.readAsDataURL(file);
+                try {
+                  // Downscale on-device: phone camera shots are 3-8MB and were
+                  // rejected outright by the old 2MB check. 512px JPEG lands
+                  // around 40-120KB — no rejection path needed at all.
+                  const dataUrl = await new Promise<string>((resolve, reject) => {
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    img.onload = () => {
+                      const side = Math.min(img.width, img.height);
+                      const target = 512;
+                      const canvas = document.createElement('canvas');
+                      canvas.width = target; canvas.height = target;
+                      const ctx = canvas.getContext('2d')!;
+                      // Center-crop to square, then scale.
+                      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, target, target);
+                      URL.revokeObjectURL(url);
+                      resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable image')); };
+                    img.src = url;
+                  });
+                  await api.patch('/profile/photo', { photo: dataUrl });
+                  queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+                  // Topbar avatar renders from AuthContext — refresh it too.
+                  refreshUser();
+                } catch (err) {
+                  alert(err instanceof Error && err.message !== 'unreadable image' ? err.message : 'Could not use that image — try another photo.');
+                }
+                e.target.value = '';
               }}
             />
             {(profile?.profile_image_url || (user as any)?.profile_image_url) ? (
@@ -753,11 +774,16 @@ export function ProfilePage() {
                 {(profile?.name || user?.name)?.[0]?.toUpperCase() || '?'}
               </span>
             )}
+            {/* Always-visible camera chip — the old hover-only overlay was
+                invisible on touch screens, so nobody knew the avatar was tappable. */}
             <div
-              className="opacity-0 hover:opacity-100 active:opacity-100 transition-opacity"
-              style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)' }}
+              style={{
+                position: 'absolute', right: -1, bottom: -1, width: 22, height: 22, borderRadius: '50%',
+                display: 'grid', placeItems: 'center', background: 'var(--accent)',
+                border: '2px solid var(--bg, #0B0A16)', boxShadow: '0 2px 6px rgba(0,0,0,.4)',
+              }}
             >
-              <Camera width={18} height={18} style={{ color: '#fff' }} />
+              <Camera width={11} height={11} style={{ color: '#fff' }} />
             </div>
           </label>
 

@@ -86,6 +86,26 @@ function MapFollower({ position }: { position: LatLngExpression | null }) {
   return null;
 }
 
+/**
+ * Leaflet measures its container ONCE at mount. The immersive layout's flex
+ * sizing settles after that, so tiles covered only the initial strip and the
+ * rest of the map area showed Leaflet's default light background — the "blank
+ * half screen". Re-measure on every container resize plus a settle-window of
+ * delayed passes for the WebView's late layout.
+ */
+function MapAutoResize() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const invalidate = () => map.invalidateSize({ animate: false });
+    const ro = new ResizeObserver(invalidate);
+    ro.observe(container);
+    const timers = [50, 250, 600, 1200].map((ms) => setTimeout(invalidate, ms));
+    return () => { ro.disconnect(); timers.forEach(clearTimeout); };
+  }, [map]);
+  return null;
+}
+
 function FitBounds({ positions }: { positions: LatLngExpression[] }) {
   const map = useMap();
   useEffect(() => {
@@ -925,6 +945,7 @@ export function RunTrackerPage() {
                 zoomControl={false}
                 attributionControl={false}
               >
+                <MapAutoResize />
                 <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
                 {routeCoords.length > 1 && (
                   <Polyline positions={routeCoords} pathOptions={{ color: '#f97316', weight: 4, opacity: 0.9 }} />
